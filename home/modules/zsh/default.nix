@@ -62,6 +62,7 @@
       ];
     };
 
+    # TODO figure out how these load!
     sessionVariables = {
       # Editor
       EDITOR = "nvim";
