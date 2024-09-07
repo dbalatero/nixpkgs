@@ -6,6 +6,7 @@
 
     ./git
     ./tmux
+    ./zsh
   ];
 
   home.packages = with pkgs; [
