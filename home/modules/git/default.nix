@@ -33,9 +33,76 @@
     userName = "David Balatero";
     userEmail = "dbalatero@users.noreply.github.com";
 
+    diff-so-fancy = {
+      enable = true;
+    };
+
     extraConfig = {
       github.user = "dbalatero";
       init.defaultBranch = "main";
+
+      advice.statusHints = false;
+
+      apply.whitespace = "nowarn";
+
+      branch.autosetupmerge = true;
+
+      color.ui = true;
+      color.branch.current = "yellow reverse";
+      color.branch.local = "yellow";
+      color.branch.remote = "green";
+
+      color.diff.meta = "yellow bold";
+      color.diff.frag = "magenta bold";
+      color.diff.old = "red";
+      color.diff.new = "green";
+
+      core.autocrlf = false;
+      core.commitGraph = true;
+      core.editor = "nvim";
+      core.fsmonitor = true;
+      core.precomposeUnicode = true;
+
+      diff.algorithm = "patience";
+
+      # Git diff will use (i)ndex, (w)ork tree, (c)ommit and (o)bject
+      # instead of a/b/c/d as prefixes for patches
+      diff.mnemonicprefix = true;
+
+      feature.manyFiles = 1;
+
+      filter.lfs.clean = "git-lfs clean -- %f";
+      filter.lfs.process = "git-lfs filter-process";
+      filter.lfs.required = true;
+      filter.lfs.smudge = "git-lfs smudge -- %f";
+
+      format.pretty = "format:%C(blue)%ad%Creset %C(yellow)%h%C(green)%d%Creset %C(blue)%s %C(magenta) [%an]%Creset";
+
+      gc.writecommitGraph = true;
+
+      help.autocorrect = 0;
+
+      interactive.singlekey = true;
+
+      mergetool.prompt = false;
+
+      merge.conflictstyle = "diff3";
+      merge.summary = true;
+      merge.tool = "nvimdiff";
+      merge.verbosity = 1;
+ 
+      # fast-forwards only
+      pull.ff = "only";
+
+      push.autoSetupRemote = true;
+
+      # 'git push' will push the current branch to its tracking branch
+      # the usual default is to push all branches
+      push.default = "current";
+
+      # Remember my merges:
+      #   http://gitfu.wordpress.com/2008/04/20/git-rerere-rereremember-what-you-did-last-time/
+      rerere.enabled = true;
     };
 
     attributes = [
