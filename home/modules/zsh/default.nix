@@ -24,6 +24,11 @@
   programs.starship.enable = true;
   xdg.configFile."starship.toml".source = ./starship.toml;
 
+  home.file.".zsh/secrets" = {
+    recursive = true;
+    source = ./secrets;
+  };
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -71,6 +76,14 @@
 
       HOMEBREW_NO_AUTO_UPDATE = "1";
       GITSTATUS_DAEMON = "$HOME/.nix-profile/bin/gitstatusd";
+
+      # Restic/Backblaze
+      # restic mount -r $SYNC_REPO ~/backblaze
+      RESTIC_REPOSITORY = "b2:dbalatero-backup";
+      SYNC_REPO = "$RESTIC_REPOSITORY:/Sync";
+      FREEZE_REPO = "$RESTIC_REPOSITORY:/Freeze";
+
+      PATH = "./node_modules/.bin:$HOME/.config/base16-shell:$PATH";
     };
 
     shellAliases = {
@@ -86,6 +99,8 @@
     };
 
     initExtraFirst = ''
+[ -e "~/.zshenv" ] && source ~/.zshenv
+
 # Disable auto title so tmux window titles don't get messed up.
 export DISABLE_AUTO_TITLE="true"
 
@@ -122,6 +137,12 @@ bindkey -M viins 'jk' vi-cmd-mode
 if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
   . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 fi
+
+for file in $HOME/.zsh/secrets/**/*.zsh
+do
+  source $file
+done
+
     '';
   };
 }
