@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ./modules/home-manager.nix
+    ./modules/common.nix
   ];
 
   home.homeDirectory = "/home/dbalatero";
