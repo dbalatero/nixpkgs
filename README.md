@@ -2,6 +2,6 @@
 
 Clone this to `~/.config/nixpkgs`
 
-```
-home-manager switch --flake .#$(hostname)
+```sh
+./bin/switch
 ```
