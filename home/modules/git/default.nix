@@ -5,6 +5,13 @@
     diff-so-fancy
     git
     lazygit
+
+    (writeShellScriptBin "git-churn" (builtins.readFile ./bin/git-churn.sh))
+    (writeShellScriptBin "git-delete-merged-branches" (builtins.readFile ./bin/git-delete-merged-branches.sh))
+    (writeShellScriptBin "git-local-repos" (builtins.readFile ./bin/git-local-repos.sh))
+    (writeShellScriptBin "git-main-branch" (builtins.readFile ./bin/git-main-branch.sh))
+    (writeShellScriptBin "git-switch-interactive" (builtins.readFile ./bin/git-switch-interactive.sh))
+    (writeShellScriptBin "git-what-i-did" (builtins.readFile ./bin/git-what-i-did.sh))
   ];
 
   xdg.configFile."git/message".text = ''
@@ -28,6 +35,7 @@
 
     extraConfig = {
       github.user = "dbalatero";
+      init.defaultBranch = "main";
     };
 
     attributes = [
