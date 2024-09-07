@@ -8,7 +8,7 @@ function command_exists() {
 }
 
 function source_nix_shell() {
-  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+  if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
     . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
   fi
 }
@@ -21,12 +21,23 @@ function install_nix() {
 
     source_nix_shell
 
+    sudo -i nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
     sudo -i nix-channel --update nixpkgs
   else
     echo "Nix already installed, skipping"
   fi
 }
 
+function install_home_manager() {
+  if ! command_exists "home-manager" ; then
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+    nix-channel --update
+
+    nix-shell '<home-manager>' -A install
+  fi
+}
+
 command_exists curl || (echo "curl is required to run" && exit 1)
-install_nix
 source_nix_shell
+install_nix
+install_home_manager
