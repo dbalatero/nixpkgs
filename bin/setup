@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+
+function command_exists() {
+  local name=$1
+  command -v "$name" >/dev/null 2>&1
+}
+
+function source_nix_shell() {
+  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  fi
+}
+
+function install_nix() {
+  if ! command_exists nix ; then
+    curl --proto '=https' --tlsv1.2 -sSf \
+      -L https://install.determinate.systems/nix \
+      | sh -s -- install
+
+    source_nix_shell
+
+    sudo -i nix-channel --update nixpkgs
+  else
+    echo "Nix already installed, skipping"
+  fi
+}
+
+command_exists curl || (echo "curl is required to run" && exit 1)
+install_nix
+source_nix_shell
