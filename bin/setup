@@ -3,7 +3,7 @@
 set -e
 
 function command_exists() {
-  local name=$1
+  local name="$1"
   command -v "$name" >/dev/null 2>&1
 }
 
@@ -37,7 +37,32 @@ function install_home_manager() {
   fi
 }
 
+function zsh_binary() {
+  echo "$HOME/.nix-profile/bin/zsh"
+}
+
+function update_shell_whitelist() {
+  local zshbin=$(zsh_binary)
+  if ! cat /etc/shells | grep -q "$zshbin"; then
+    echo "Adding $zshbin to /etc/shells, please enter your sudo password"
+
+    echo "$zshbin" | sudo tee -a /etc/shells > /dev/null
+  fi
+}
+
+function chsh_zsh() {
+  if [[ "$SHELL" != "$(zsh_binary)" ]]; then
+    local current_user=$USER
+
+    echo "Changing shell for $current_user..."
+    sudo chsh -s $(zsh_binary) "$current_user"
+  fi
+}
+
 command_exists curl || (echo "curl is required to run" && exit 1)
 source_nix_shell
 install_nix
 install_home_manager
+./bin/switch
+update_shell_whitelist
+chsh_zsh

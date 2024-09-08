@@ -16,9 +16,11 @@
     gh
     gnutar
     pgcli
+    readline
     redis
     ripgrep
     sl
     wget
+    xz
   ];
 }
