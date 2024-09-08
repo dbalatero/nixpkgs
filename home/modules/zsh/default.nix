@@ -30,6 +30,11 @@
 
   home.file.".base16_theme".source = ./themes/oceanic-next.sh;
 
+  home.file.".inputrc".text = ''
+set editing-mode vi
+set keymap vi-command
+  '';
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
