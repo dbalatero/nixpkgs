@@ -30,8 +30,8 @@
 
   programs.git = {
     enable = true;
-    userName = "David Balatero";
-    userEmail = "dbalatero@users.noreply.github.com";
+    userName = lib.mkDefault "David Balatero";
+    userEmail = lib.mkDefault "dbalatero@users.noreply.github.com";
 
     diff-so-fancy = {
       enable = true;
@@ -180,7 +180,7 @@
       merge.summary = true;
       merge.tool = "nvimdiff";
       merge.verbosity = 1;
- 
+
       # fast-forwards only
       pull.ff = "only";
 
@@ -201,7 +201,7 @@
     ];
 
     ignores = [
-      ###  OSX 
+      ###  OSX
       ".DS_Store"
 
       # Thumbnails
