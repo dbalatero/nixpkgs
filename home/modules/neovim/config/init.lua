@@ -58,8 +58,7 @@ require("lazy").setup({
   { import = "custom.plugins.files" },
   { import = "custom.plugins.fzf" },
   { import = "custom.plugins.git" },
-  -- TODO: re-enable & fix
-  -- { import = "custom.plugins.lsp" },
+  { import = "custom.plugins.lsp" },
   { import = "custom.plugins.neotest" },
   { import = "custom.plugins.telescope" },
   { import = "custom.plugins.testing" },
