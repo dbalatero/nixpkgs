@@ -30,7 +30,10 @@ require("lazy").setup({
     "folke/which-key.nvim",
     config = function()
       local wk = require("which-key")
-      wk.setup({})
+      wk.setup({
+        -- Do not warn me on boot
+        notify = false,
+      })
 
       wk.register({
         { "<leader>b", group = "+comment-[b]ox" },
