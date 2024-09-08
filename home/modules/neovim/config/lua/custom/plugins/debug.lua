@@ -2,7 +2,12 @@ return {
   "mfussenegger/nvim-dap",
   dependencies = {
     -- Creates a beautiful debugger UI
-    "rcarriga/nvim-dap-ui",
+    {
+      "rcarriga/nvim-dap-ui",
+      dependencies = {
+        "nvim-neotest/nvim-nio",
+      }
+    },
 
     -- Installs the debug adapters for you
     "williamboman/mason.nvim",

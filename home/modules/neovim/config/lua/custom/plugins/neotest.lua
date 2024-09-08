@@ -11,6 +11,7 @@ return {
 
       -- Languages
       "haydenmeade/neotest-jest",
+      "nvim-neotest/nvim-nio",
     },
     config = function()
       require("neotest").setup({
