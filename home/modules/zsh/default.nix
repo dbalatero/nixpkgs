@@ -29,6 +29,8 @@
     source = ./secrets;
   };
 
+  home.file.".base16_theme".source = ./themes/oceanic-next.sh;
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -59,6 +61,7 @@
         { name = "twang817/zsh-ssh-agent"; }
         { name = "dbalatero/fast-syntax-highlighting"; }
         { name = "hlissner/zsh-autopair"; }
+        { name = "chriskempson/base16-shell"; }
       ];
     };
 
@@ -144,6 +147,7 @@ do
   source $file
 done
 
+[ -f ~/.base16_theme ] && source ~/.base16_theme
     '';
   };
 }
