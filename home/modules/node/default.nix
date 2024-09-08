@@ -9,6 +9,10 @@
     yarn-berry
   ];
 
+  programs.zsh.initExtra = ''
+    eval "$(${pkgs.nodenv}/bin/nodenv init -)"
+  '';
+
   home.file.".nodenv/plugins" = {
     source = pkgs.linkFarm "nodenv-plugins" [
       {

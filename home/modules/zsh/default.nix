@@ -126,7 +126,6 @@ setopt extended_glob
     initExtra = ''
 # hooks
 eval "$(fasd --init auto)"
-eval "$(nodenv init -)"
 
 # Print theme colors
 function theme_colors() {
