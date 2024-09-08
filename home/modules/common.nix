@@ -5,9 +5,11 @@
     ./home-manager.nix
 
     ./audio
+    ./fonts
     ./git
     ./ruby
     ./tmux
+    ./vscode
     ./zsh
   ];
 

@@ -18,6 +18,9 @@
         modules = [
           ./home/racknerd-a61953.nix
         ];
+        extraSpecialArgs = {
+          pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.x86_64-linux;
+        };
       };
     };
   };
