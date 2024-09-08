@@ -8,6 +8,7 @@
     ./fonts
     ./git
     ./neovim
+    ./node
     ./ruby
     ./tmux
     ./vscode
