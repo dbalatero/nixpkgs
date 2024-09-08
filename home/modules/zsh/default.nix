@@ -1,10 +1,9 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, pkgsUnstable, ... }:
 
 {
   home.packages = with pkgs; [
     fasd
     fd
-    fzf
     neofetch
     nodenv
     gitstatus
@@ -17,6 +16,7 @@
     enable = true;
     defaultCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
+    package = pkgsUnstable.fzf;
   };
   programs.pyenv.enable = true;
 
