@@ -4,6 +4,7 @@
   imports = [
     ./home-manager.nix
 
+    ./audio
     ./git
     ./ruby
     ./tmux
