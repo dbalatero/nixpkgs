@@ -18,7 +18,6 @@
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
     package = pkgsUnstable.fzf;
   };
-  programs.pyenv.enable = true;
 
   programs.starship.enable = true;
   xdg.configFile."starship.toml".source = ./starship.toml;

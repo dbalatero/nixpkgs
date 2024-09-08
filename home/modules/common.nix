@@ -9,6 +9,7 @@
     ./git
     ./neovim
     ./node
+    ./python
     ./ruby
     ./tmux
     ./vscode
