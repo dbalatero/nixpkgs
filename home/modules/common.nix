@@ -7,6 +7,7 @@
     ./audio
     ./fonts
     ./git
+    ./neovim
     ./ruby
     ./tmux
     ./vscode

@@ -96,7 +96,7 @@
 
       tk = "tmux kill-session";
       tn = "tmuxinator";
-      # vim = "nvim";
+      vim = "nvim";
 
       weather = "curl wttr.in";
     };
