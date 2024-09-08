@@ -33,33 +33,15 @@ require("lazy").setup({
       wk.setup({})
 
       wk.register({
-        b = {
-          name = "+comment-[b]ox",
-        },
-        d = {
-          name = "+debug",
-        },
-        f = {
-          name = "+fzf",
-        },
-        l = {
-          name = "+lsp",
-          w = {
-            name = "+workspace",
-          },
-        },
-        m = {
-          name = "+marks",
-        },
-        n = {
-          name = "+a[n]notations",
-        },
-        s = {
-          name = "+search",
-        },
-        x = {
-          name = "+trouble",
-        },
+        { "<leader>b", group = "+comment-[b]ox" },
+        { "<leader>d", group = "+debug" },
+        { "<leader>f", group = "+fzf" },
+        { "<leader>l", group = "+lsp" },
+        { "<leader>lw", group = "+workspace" },
+        { "<leader>m", group = "+marks" },
+        { "<leader>n", group = "+a[n]notations" },
+        { "<leader>s", group = "+search" },
+        { "<leader>x", group = "+trouble" },
       }, { prefix = "<leader>" })
     end,
   },
@@ -73,7 +55,8 @@ require("lazy").setup({
   { import = "custom.plugins.files" },
   { import = "custom.plugins.fzf" },
   { import = "custom.plugins.git" },
-  { import = "custom.plugins.lsp" },
+  -- TODO: re-enable & fix
+  -- { import = "custom.plugins.lsp" },
   { import = "custom.plugins.neotest" },
   { import = "custom.plugins.telescope" },
   { import = "custom.plugins.testing" },
