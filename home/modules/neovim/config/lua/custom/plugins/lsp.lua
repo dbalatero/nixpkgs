@@ -266,6 +266,7 @@ return {
       --  the `settings` field of the server config. You must look up that documentation yourself.
       local servers = {
         bashls = {},
+        nil_ls = {},
         jsonls = {
           json = {
             schemas = {
@@ -439,11 +440,11 @@ return {
 
       local hasEslintConfig = function(utils)
         return isMonorepo()
-          or utils.root_has_file({
-            ".eslintrc",
-            ".eslintrc.json",
-            ".eslintrc.js",
-          })
+            or utils.root_has_file({
+              ".eslintrc",
+              ".eslintrc.json",
+              ".eslintrc.js",
+            })
       end
 
       local getRepoRoot = function(filepath)
