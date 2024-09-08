@@ -5,6 +5,7 @@
     ./home-manager.nix
 
     ./git
+    ./ruby
     ./tmux
     ./zsh
   ];

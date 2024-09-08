@@ -19,7 +19,6 @@
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
   };
   programs.pyenv.enable = true;
-  programs.rbenv.enable = true;
 
   programs.starship.enable = true;
   xdg.configFile."starship.toml".source = ./starship.toml;
