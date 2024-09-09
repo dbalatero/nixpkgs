@@ -1,9 +1,7 @@
-{ config, lib, pkgs, pkgsUnstable, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   home.packages = with pkgs; [
-    pkgsUnstable.neovim
-
     bat
     clang
     libgcc
@@ -12,5 +10,15 @@
     tree-sitter
   ];
 
-  xdg.configFile."nvim".source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/nixpkgs/home/modules/neovim/config";
+  programs.nixvim = {
+    enable = true;
+    vimAlias = true;
+
+    colorschemes.catppuccin = {
+      enable = true;
+      settings = {
+        flavour = "mocha";
+      };
+    };
+  };
 }

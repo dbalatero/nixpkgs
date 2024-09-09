@@ -1,4 +1,4 @@
-{ config, lib, pkgs, pkgsUnstable, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -16,7 +16,6 @@
     enable = true;
     defaultCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
-    package = pkgsUnstable.fzf;
   };
 
   programs.starship.enable = true;
