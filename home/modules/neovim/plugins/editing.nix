@@ -17,17 +17,20 @@ in {
       indent-blankline = {
         enable = true;
         settings = {
-          char = "│";
-          filetype_exclude = [
-            "alpha"
-            "dashboard"
-            "help"
-            "lazy"
-            "neo-tree"
-            "Trouble"
-          ];
-          show_trailing_blankline_indent = false;
-          show_current_context = false;
+          indent = {
+            char = "│";
+          };
+
+          exclude = {
+            filetypes = [
+              "alpha"
+              "dashboard"
+              "help"
+              "lazy"
+              "neo-tree"
+              "Trouble"
+            ];
+          };
         };
       };
 

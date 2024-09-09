@@ -1,6 +1,4 @@
-{ config, lib, pkgs, ... }:
-
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
     # Installs to:
     #  ~/.nix-profile/share/fonts/truetype/NerdFonts

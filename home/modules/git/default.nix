@@ -1,6 +1,8 @@
-{ config, lib, pkgs, ... }:
-
 {
+  lib,
+  pkgs,
+  ...
+}: {
   home.packages = with pkgs; [
     diff-so-fancy
     git
@@ -17,15 +19,15 @@
   xdg.configFile."git/message".text = ''
 
 
-# 50-character subject line
-#
-# 72-character wrapped longer description. This should answer:
-#
-# * Why was this change necessary?
-# * How does it address the problem?
-# * Are there any side effects?
-#
-# Include a link to the ticket, if any.
+    # 50-character subject line
+    #
+    # 72-character wrapped longer description. This should answer:
+    #
+    # * Why was this change necessary?
+    # * How does it address the problem?
+    # * Are there any side effects?
+    #
+    # Include a link to the ticket, if any.
   '';
 
   programs.git = {
@@ -42,29 +44,29 @@
       a = "add";
 
       # branch
-      b = "branch -v";                     # branch (verbose)
+      b = "branch -v"; # branch (verbose)
       recent-branches = "!git for-each-ref --count=5 --sort=-committerdate refs/heads/ --format='%(refname:short)'";
 
       # commit
-      amend = "commit --amend";            # amend your last commit
-      c = "commit -m";                     # commit with message
-      ca = "commit -am";                   # commit all with message
-      ci = "commit";                       # commit
+      amend = "commit --amend"; # amend your last commit
+      c = "commit -m"; # commit with message
+      ca = "commit -am"; # commit all with message
+      ci = "commit"; # commit
 
       # checkout
-      co = "checkout";                     # checkout
-      nb = "checkout -b";                  # create and switch to a new branch (mnemonic: "git new branch branchname...")
-      m = "checkout master";               # checkout main branch
+      co = "checkout"; # checkout
+      nb = "checkout -b"; # create and switch to a new branch (mnemonic: "git new branch branchname...")
+      m = "checkout master"; # checkout main branch
 
       done = "!git fetch origin $(git main-branch):$(git main-branch) && git checkout $(git main-branch)";
 
       # cherry-pick
-      cp = "cherry-pick -x";               # grab a change from a branch
+      cp = "cherry-pick -x"; # grab a change from a branch
 
       # diff
-      d = "diff";                          # diff unstaged changes
-      dc = "diff --cached";                # diff staged changes
-      last = "diff HEAD^";                 # diff last committed change
+      d = "diff"; # diff unstaged changes
+      dc = "diff --cached"; # diff staged changes
+      last = "diff HEAD^"; # diff last committed change
 
       # log
       l = "log --graph --date=short";
@@ -74,19 +76,19 @@
       shortnocolor = "log --pretty=format:\"%h %cr %cn %s\"";
 
       # pull
-      pl = "pull";                         # pull
+      pl = "pull"; # pull
 
       # push
-      ps = "push -u";                      # push
+      ps = "push -u"; # push
       p = "push -u --force-with-lease";
       please = "push -u --force-with-lease";
 
       # rebase
-      rc = "rebase --continue";            # continue rebase
-      rs = "rebase --skip";                # skip rebase
+      rc = "rebase --continue"; # continue rebase
+      rs = "rebase --skip"; # skip rebase
 
       # remote
-      r = "remote -v";                     # show remotes (verbose)
+      r = "remote -v"; # show remotes (verbose)
 
       ### sync
       # Quick sync (non-interactive mode)
@@ -104,24 +106,24 @@
       upstream = "!git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)";
 
       # reset
-      unstage = "reset HEAD";              # remove files from index (tracking)
+      unstage = "reset HEAD"; # remove files from index (tracking)
 
       # switch branches interactive
       si = "switch-interactive";
 
       # stash
-      ss = "stash";                        # stash changes
-      sl = "stash list";                   # list stashes
-      sa = "stash apply";                  # apply stash (restore changes)
-      sd = "stash drop";                   # drop stashes (destory changes)
+      ss = "stash"; # stash changes
+      sl = "stash list"; # list stashes
+      sa = "stash apply"; # apply stash (restore changes)
+      sd = "stash drop"; # drop stashes (destory changes)
 
       # status
-      s = "status";                        # status
-      st = "status";                       # status
-      stat = "status";                     # status
+      s = "status"; # status
+      st = "status"; # status
+      stat = "status"; # status
 
       # tag
-      t = "tag -n";                        # show tags with <n> lines of each tag message
+      t = "tag -n"; # show tags with <n> lines of each tag message
     };
 
     extraConfig = {
