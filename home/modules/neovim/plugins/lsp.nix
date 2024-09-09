@@ -6,7 +6,10 @@
 }: let
   helpers = config.lib.nixvim;
 in {
-  home.packages = [pkgs.alejandra];
+  home.packages = with pkgs; [
+    alejandra
+    typescript
+  ];
 
   programs.nixvim = {
     keymaps = [
@@ -118,10 +121,76 @@ in {
 
       # LSP
       {
+        key = "gd";
+        action = helpers.mkRaw "vim.lsp.buf.definition";
+        options = {
+          desc = "LSP: [G]o to [d]efinition";
+        };
+      }
+      {
+        key = "gD";
+        action = helpers.mkRaw "vim.lsp.buf.declaration";
+        options = {
+          desc = "LSP: [G]o to [d]eclaration";
+        };
+      }
+      {
+        key = "gI";
+        action = helpers.mkRaw "vim.lsp.buf.implementation";
+        options = {
+          desc = "[G]o to [i]mplementation";
+        };
+      }
+      {
+        key = "gr";
+        action = helpers.mkRaw ''
+          require("telescope.builtin").lsp_references
+        '';
+        options = {
+          desc = "LSP: [G]o to [r]eferences";
+        };
+      }
+      {
+        key = "K";
+        action = helpers.mkRaw "vim.lsp.buf.hover";
+        options = {
+          desc = "LSP: Hover documentation";
+        };
+      }
+      {
+        mode = ["i" "v"];
+        key = "<leader>lc";
+        action = helpers.mkRaw "vim.lsp.buf.code_action";
+        options = {
+          desc = "LSP: [C]ode action";
+        };
+      }
+      {
         key = "<leader>li";
         action = ":LspInfo<CR>";
         options = {
           desc = "LSP: [I]nfo";
+        };
+      }
+      {
+        key = "<leader>lr";
+        action = helpers.mkRaw "vim.lsp.buf.rename";
+        options = {
+          desc = "LSP: [R]ename";
+        };
+      }
+      {
+        key = "<leader>lt";
+        action = helpers.mkRaw "vim.lsp.buf.type_definition";
+        options = {
+          desc = "LSP: [T]ype definition";
+        };
+      }
+      {
+        key = "<leader>lx";
+        action = ":LspRestart<CR>";
+        options = {
+          desc = "LSP: Restart LSP(s) in buffer";
         };
       }
     ];
@@ -212,7 +281,6 @@ in {
             };
           };
 
-          tsserver.enable = true;
           yamlls = {
             enable = true;
             settings = {
