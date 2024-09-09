@@ -2,8 +2,10 @@
 {
   imports = [
     ./completion.nix
+    ./lsp.nix
     ./telescope.nix
     ./treesitter.nix
+    ./tmux.nix
     ./ui.nix
   ];
 

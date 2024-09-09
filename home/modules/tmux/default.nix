@@ -65,6 +65,7 @@ in
           bind -Tcopy-mode-vi 'C-l' if-shell "$is_vim_emacs" "send-keys C-l" "select-pane -R"
           bind -Tcopy-mode-vi 'C-\' if-shell "$is_vim_emacs" "send-keys C-\\\\" "select-pane -l"
 
+          # TODO: replace this with the better-vim-tmux-resizer plugin
           # Resize panes with meta+hjkl
           bind -n M-h if-shell "$is_vim_emacs" "send-keys M-h" "resize-pane -L 10"
           bind -n M-l if-shell "$is_vim_emacs" "send-keys M-l" "resize-pane -R 10"
