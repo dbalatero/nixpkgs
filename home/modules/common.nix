@@ -3,6 +3,7 @@
     ./home-manager.nix
 
     ./audio
+    ./backups
     ./fonts
     ./git
     ./neovim
