@@ -23,6 +23,15 @@
           ./home/racknerd-a61953.nix
         ];
       };
+
+      # WSL
+      tiger = inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+        modules = [
+          inputs.nixvim.homeManagerModules.nixvim
+          ./home/tiger.nix
+        ];
+      };
     };
   };
 }
