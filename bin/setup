@@ -57,7 +57,7 @@ function chsh_zsh() {
     local current_user=$USER
 
     echo "Changing shell for $current_user..."
-    sudo chsh -s $(zsh_binary) "$current_user"
+    sudo chsh -s "$(zsh_binary)" "$current_user"
   fi
 }
 
