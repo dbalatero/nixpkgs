@@ -1,9 +1,11 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   imports = [
     ./completion.nix
+    ./editing.nix
+    ./git.nix
     ./lsp.nix
     ./telescope.nix
+    ./testing.nix
     ./treesitter.nix
     ./tmux.nix
     ./ui.nix

@@ -1,12 +1,51 @@
-{ pkgs, ... }:
 {
+  config,
+  pkgs,
+  ...
+}: let
+  keyGroup = key: group: {
+    __unkeyed-1 = "${key}";
+    group = "${group}";
+  };
+  helpers = config.lib.nixvim;
+in {
   programs.nixvim = {
     plugins = {
-      lualine.enable = true;
-      which-key.enable = true;
+      # better inputs and selects
+      dressing.enable = true;
+
+      lualine = {
+        enable = true;
+        settings = {
+          icons_enabled = true;
+          sections = {
+            lualine_a = ["mode"];
+            lualine_b = helpers.mkRaw "{}";
+            lualine_c = ["filename" "diff" "diagnostics"];
+            lualine_x = ["filesize" "encoding" "fileformat" "filetype"];
+            lualine_y = helpers.mkRaw "{}";
+            lualine_z = ["LineNoIndicator"];
+          };
+        };
+      };
+      nvim-colorizer.enable = true;
+
+      which-key = {
+        enable = true;
+        settings = {
+          spec = [
+            (keyGroup "<leader>b" "+comment-box")
+            (keyGroup "<leader>l" "+lsp")
+            (keyGroup "<leader>m" "+marks")
+            (keyGroup "<leader>n" "+a[n]notations")
+            (keyGroup "<leader>s" "+search")
+            (keyGroup "<leader>x" "+trouble")
+          ];
+        };
+      };
     };
 
-    extraConfigLuaPost = 
+    extraConfigLuaPost =
       /*
       lua
       */
@@ -20,12 +59,12 @@
         -- bind the minus key to show the file explorer in the dir of the current open
         -- buffer's file
         vim.keymap.set(
-          { "n" }, 
-          "-", 
+          { "n" },
+          "-",
           ":VimFilerBufferDir<CR>",
-          { 
-            noremap = true, 
-            silent = true, 
+          {
+            noremap = true,
+            silent = true,
             desc = "Navigate to current directory",
           }
         )
@@ -48,6 +87,15 @@
               repo = "vim-cool";
               rev = "662e7b11064cbeedad17c45d2fe926e78d3cd0b6";
               hash = "sha256-M91iWqytUR6AldM2H4U/79nX2ba5gN4I/z7m0iltjcY=";
+            };
+          }
+          {
+            name = "vim-line-no-indicator";
+            src = fetchFromGitHub {
+              owner = "drzel";
+              repo = "vim-line-no-indicator";
+              rev = "004c731581621021674546e0f076e1c900f8163a";
+              hash = "sha256-k7YTfws50pUmGV1ShJvx6HY3qBc43NO7OxVtuLiRwJs=";
             };
           }
         ]
