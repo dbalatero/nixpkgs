@@ -14,10 +14,10 @@ function source_nix_shell() {
 }
 
 function install_nix() {
-  if ! command_exists nix ; then
+  if ! command_exists nix; then
     curl --proto '=https' --tlsv1.2 -sSf \
-      -L https://install.determinate.systems/nix \
-      | sh -s -- install
+      -L https://install.determinate.systems/nix |
+      sh -s -- install
 
     source_nix_shell
 
@@ -29,7 +29,7 @@ function install_nix() {
 }
 
 function install_home_manager() {
-  if ! command_exists "home-manager" ; then
+  if ! command_exists "home-manager"; then
     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
     nix-channel --update
 
@@ -46,7 +46,7 @@ function update_shell_whitelist() {
   if ! cat /etc/shells | grep -q "$zshbin"; then
     echo "Adding $zshbin to /etc/shells, please enter your sudo password"
 
-    echo "$zshbin" | sudo tee -a /etc/shells > /dev/null
+    echo "$zshbin" | sudo tee -a /etc/shells >/dev/null
   fi
 }
 
@@ -60,6 +60,7 @@ function chsh_zsh() {
 }
 
 command_exists curl || (echo "curl is required to run" && exit 1)
+command_exists hostname || (echo "hostname is required to run" && exit 1)
 source_nix_shell
 install_nix
 install_home_manager

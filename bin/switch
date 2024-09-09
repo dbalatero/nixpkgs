@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
+function command_exists() {
+  local name="$1"
+  command -v "$name" >/dev/null 2>&1
+}
+
+command_exists hostname || (echo "hostname is required to run" && exit 1)
 home-manager switch --flake .#$(hostname)
