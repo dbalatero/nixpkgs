@@ -115,6 +115,15 @@ in {
           desc = "LSP Definitions / references / ... (Trouble)";
         };
       }
+
+      # LSP
+      {
+        key = "<leader>li";
+        action = ":LspInfo<CR>";
+        options = {
+          desc = "LSP: [I]nfo";
+        };
+      }
     ];
 
     plugins = {

@@ -1,20 +1,22 @@
-{ config, pkgs, ... }:
-
-let
-  helpers = config.lib.nixvim;
-in 
 {
+  config,
+  pkgs,
+  ...
+}: let
+  helpers = config.lib.nixvim;
+in {
   programs.nixvim = {
-    extraPlugins = with pkgs;
-      (
-        with vimPlugins; [
-          cmp-under-comparator
-          lspkind-nvim
-        ]
-      );
+    extraPlugins = with pkgs; (
+      with vimPlugins; [
+        cmp-under-comparator
+        lspkind-nvim
+      ]
+    );
 
     # reference: https://github.com/oddlama/nix-config/blob/3383fd9a142fe012461b9dc9bfa7a4a40d348aec/users/myuser/neovim/completion.nix#L14
     plugins = {
+      friendly-snippets.enable = true;
+
       luasnip = {
         enable = true;
         settings = {
@@ -31,8 +33,8 @@ in
         enable = true;
         settings = {
           sources = [
-            { name = "nvim_lsp"; }
-            { name = "luasnip"; }
+            {name = "nvim_lsp";}
+            {name = "luasnip";}
             {
               name = "buffer";
               option.get_bufnrs =
@@ -80,7 +82,7 @@ in
                 cmp.mapping(function(fallback)
                   if cmp.visible() then
                     cmp.select_prev_item({
-                      behavior = cmp.SelectBehavior.Select 
+                      behavior = cmp.SelectBehavior.Insert
                     })
                   elseif luasnip.jumpable(-1) then
                     luasnip.jump(-1)
@@ -108,7 +110,7 @@ in
 
                   if cmp.visible() and has_words_before() then
                     cmp.select_next_item({
-                      behavior = cmp.SelectBehavior.Select 
+                      behavior = cmp.SelectBehavior.Insert
                     })
                   elseif luasnip.expandable() then
                     luasnip.expand()
