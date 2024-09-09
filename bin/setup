@@ -42,7 +42,9 @@ function zsh_binary() {
 }
 
 function update_shell_whitelist() {
-  local zshbin=$(zsh_binary)
+  local zshbin
+  zshbin="$(zsh_binary)"
+
   if ! cat /etc/shells | grep -q "$zshbin"; then
     echo "Adding $zshbin to /etc/shells, please enter your sudo password"
 
