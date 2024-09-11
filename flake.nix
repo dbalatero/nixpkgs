@@ -17,20 +17,44 @@
     };
   };
 
-  outputs = inputs: let
+  outputs = {
+    self,
+    home-manager,
+    nixpkgs,
+    nix-darwin,
+    nixvim,
+    ...
+  } @ inputs: let
+    # Stole from: https://github.com/mhanberg/.dotfiles/blob/main/flake.nix
+    mkDarwin = {extraDarwinModules ? []}:
+      nix-darwin.lib.darwinSystem {
+        system = "aarch64-darwin";
+        modules = [./home/modules/darwin] ++ extraDarwinModules;
+        specialArgs = {inherit self;};
+      };
+
     mkHm = {
       extraModules ? [],
       arch,
     }:
-      inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.${arch};
+      home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.${arch};
         modules =
           [
-            inputs.nixvim.homeManagerModules.nixvim
+            nixvim.homeManagerModules.nixvim
           ]
+          ++ (
+            if arch == "aarch64-darwin"
+            then ["./home/modules/darwin/home-manager.nix"]
+            else []
+          )
           ++ extraModules;
       };
   in {
+    darwinConfigurations = {
+      nix-machine = mkDarwin {};
+    };
+
     homeConfigurations = {
       # HLDM RackNerd server
       racknerd-a61953 = mkHm {

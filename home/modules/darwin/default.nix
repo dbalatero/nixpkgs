@@ -1,27 +1,10 @@
-{ pkgs, ... }:
-{
-  home.packages = with pkgs; [
-    reattach-to-user-namespace
-  ];
+{self, ...}: {
+  services.nix-daemon.enable = true;
 
-  programs.tmux = {
-    extraConfig = ''
-      # Enable system copy/paste:
-      # https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard
-      set-option -g default-command "reattach-to-user-namespace -l zsh"
+  nix.settings.experimental-features = "nix-command flakes";
+  nix.settings.trusted-users = ["dbalatero"];
 
-      # Copy mode
-      unbind p
-      bind p paste-buffer
-      bind -T copy-mode-vi 'v' send -X begin-selection
-      bind -T copy-mode-vi 'r' send -X rectangle-toggle
-      bind -T copy-mode-vi 'y' send -X copy-pipe "reattach-to-user-namespace pbcopy"
-      unbind -T copy-mode-vi Enter
-      bind-key -T copy-mode-vi Enter send -X copy-pipe "reattach-to-user-namespace pbcopy"
-
-      # Clipboard
-      bind C-c run "tmux save-buffer - | reattach-to-user-namespace pbcopy"
-      bind C-v run "reattach-to-user-namespace pbpaste | tmux load-buffer - && tmux paste-buffer"
-    '';
-  };
+  system.configurationRevision = self.rev or self.dirtyRev or null;
+  nixpkgs.hostPlatform = "aarch64-darwin";
+  nixpkgs.config.allowUnfree = true;
 }
