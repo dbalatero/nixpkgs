@@ -26,7 +26,12 @@
       };
 
       ts-autotag.enable = true;
-      treesitter-context.enable = true;
+      treesitter-context = {
+        enable = true;
+        settings = {
+          max_lines = 2;
+        };
+      };
 
       vim-matchup = {
         enable = true;
