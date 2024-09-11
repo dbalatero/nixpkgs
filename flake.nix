@@ -17,33 +17,37 @@
     };
   };
 
-  outputs = inputs: {
+  outputs = inputs: let
+    mkHm = {
+      extraModules ? [],
+      arch,
+    }:
+      inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = inputs.nixpkgs.legacyPackages.${arch};
+        modules =
+          [
+            inputs.nixvim.homeManagerModules.nixvim
+          ]
+          ++ extraModules;
+      };
+  in {
     homeConfigurations = {
       # HLDM RackNerd server
-      racknerd-a61953 = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-        modules = [
-          inputs.nixvim.homeManagerModules.nixvim
-          ./home/racknerd-a61953.nix
-        ];
+      racknerd-a61953 = mkHm {
+        arch = "x86_64-linux";
+        extraModules = [./home/racknerd-a61953.nix];
       };
 
       # WSL
-      tiger = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-        modules = [
-          inputs.nixvim.homeManagerModules.nixvim
-          ./home/tiger.nix
-        ];
+      tiger = mkHm {
+        arch = "x86_64-linux";
+        extraModules = [./home/tiger.nix];
       };
 
       # macOS testbed
-      nix-machine = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.aarch64-darwin;
-        modules = [
-          inputs.nixvim.homeManagerModules.nixvim
-          ./home/nix-machine.nix
-        ];
+      nix-machine = mkHm {
+        arch = "aarch64-darwin";
+        extraModules = [./home/nix-machine.nix];
       };
     };
   };
