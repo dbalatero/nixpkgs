@@ -334,7 +334,6 @@ in {
           formatting = {
             alejandra.enable = true; # nix
             prettierd.enable = true;
-            rubyfmt.enable = true;
             shfmt.enable = true;
             stylua.enable = true;
           };
