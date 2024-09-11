@@ -1,16 +1,19 @@
-{ config, lib, pkgs, ... }:
-
 {
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [./plugins];
 
-  home.packages = with pkgs; [
-    bat
-    clang
-    libgcc
-    luajit
-    luajitPackages.luarocks
-    tree-sitter
-  ];
+  home.packages = with pkgs;
+    [
+      bat
+      clang
+      tree-sitter
+    ]
+    ++ lib.optionals (!pkgs.stdenv.isDarwin) [
+      libgcc
+    ];
 
   programs.nixvim = {
     enable = true;
@@ -39,19 +42,22 @@
         mode = "i";
         key = "jk";
         action = "<Esc>";
-        options = { silent = true; remap = false; };
+        options = {
+          silent = true;
+          remap = false;
+        };
       }
 
       # Create window splits with vv or ss
       {
         key = "ss";
         action = "<C-w>s";
-        options = { remap = false; };
+        options = {remap = false;};
       }
       {
         key = "vv";
         action = "<C-w>v";
-        options = { remap = false; };
+        options = {remap = false;};
       }
 
       # Allow ctrl+z backgrounding in insert mode
@@ -59,7 +65,7 @@
         mode = "i";
         key = "<C-Z>";
         action = "<Esc><C-Z>";
-        options = { remap = false; };
+        options = {remap = false;};
       }
 
       # sane regexes
@@ -67,14 +73,14 @@
         mode = ["n" "v"];
         key = "/";
         action = "/\\v";
-        options = { remap = false; };
+        options = {remap = false;};
       }
 
       # Remap : to ;
       {
         key = ";";
         action = ":";
-        options = { remap = false; };
+        options = {remap = false;};
       }
 
       # Better default experience
@@ -82,7 +88,7 @@
         mode = ["n" "v"];
         key = "<Space>";
         action = "<Nop>";
-        options = { silent = true; };
+        options = {silent = true;};
       }
     ];
 

@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   ...
@@ -146,8 +147,7 @@
       color.diff.old = "red";
       color.diff.new = "green";
 
-      # TODO: inject the XDG path and stop hardcoding it
-      commit.template = "~/.config/git/message";
+      commit.template = "${config.xdg.configHome}/git/message";
 
       core.autocrlf = false;
       core.commitGraph = true;

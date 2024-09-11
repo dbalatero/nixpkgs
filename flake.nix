@@ -32,6 +32,15 @@
           ./home/tiger.nix
         ];
       };
+
+      # macOS testbed
+      nix-machine = inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = inputs.nixpkgs.legacyPackages.aarch64-darwin;
+        modules = [
+          inputs.nixvim.homeManagerModules.nixvim
+          ./home/nix-machine.nix
+        ];
+      };
     };
   };
 }

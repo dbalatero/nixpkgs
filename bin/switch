@@ -6,4 +6,4 @@ function command_exists() {
 }
 
 command_exists hostname || (echo "hostname is required to run" && exit 1)
-home-manager switch --flake .#$(hostname)
+home-manager switch --flake .#$(hostname -s)
