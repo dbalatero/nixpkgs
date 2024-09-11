@@ -1,7 +1,7 @@
 {
   imports = [
     ./modules/common.nix
-    ./modules/darwin
+    ./modules/darwin/home-manager.nix
   ];
 
   home.homeDirectory = "/Users/dbalatero";
