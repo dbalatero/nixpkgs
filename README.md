@@ -1,13 +1,20 @@
 # nixpkgs
 
-Clone this to `~/.config/nixpkgs`
+## Clone
+
+```sh
+mkdir -p ~/.config
+git clone git@github.com:dbalatero/nixpkgs.git ~/.config/nixpkgs
+```
+
+## Setup
+
+```sh
+./bin/setup
+```
+
+## Updating config
 
 ```sh
 ./bin/switch
-```
-
-osx:
-
-```sh
-./bin/osx
 ```
