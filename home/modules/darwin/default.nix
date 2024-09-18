@@ -1,5 +1,9 @@
 { pkgs, ... }:
 {
+  imports = [
+    ./karabiner-elements
+  ];
+
   home.packages = with pkgs; [
     reattach-to-user-namespace
   ];
