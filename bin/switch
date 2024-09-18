@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
-function command_exists() {
-  local name="$1"
-  command -v "$name" >/dev/null 2>&1
-}
+source "${BASH_SOURCE%/*}/shared.sh"
 
 command_exists hostname || (echo "hostname is required to run" && exit 1)
-home-manager switch --flake .#$(hostname -s)
+
+# Pass --option eval-cache false to this script if you get an
+# error like `error: cached failure of attribute...`
+if is_darwin ; then
+  command_exists darwin-rebuild || (echo "darwin-rebuild is missing from the path?")
+
+  darwin-rebuild switch --flake ".#$(hostname -s)" "$@"
+else
+  home-manager switch --flake ".#$(hostname -s)" "$@"
+fi

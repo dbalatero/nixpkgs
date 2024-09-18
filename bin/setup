@@ -2,10 +2,7 @@
 
 set -e
 
-function command_exists() {
-  local name="$1"
-  command -v "$name" >/dev/null 2>&1
-}
+source "${BASH_SOURCE%/*}/shared.sh"
 
 function source_nix_shell() {
   if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
@@ -34,6 +31,16 @@ function install_home_manager() {
     nix-channel --update
 
     nix-shell '<home-manager>' -A install
+  fi
+}
+
+function install_nix_darwin() {
+  if ! is_darwin ; then
+    return
+  fi
+
+  if ! command_exists "darwin-rebuild" ; then
+    nix run nix-darwin -- switch --flake ".#$(hostname -s)"
   fi
 }
 
@@ -66,6 +73,7 @@ command_exists hostname || (echo "hostname is required to run" && exit 1)
 source_nix_shell
 install_nix
 install_home_manager
+install_nix_darwin
 ./bin/switch
 update_shell_whitelist
 chsh_zsh
