@@ -1,5 +1,9 @@
 { pkgs, ... }:
 {
+  imports = [
+    ./homebrew.nix
+  ];
+
   # Auto upgrade nix package and the daemon service.
   services.nix-daemon.enable = true;
   nix = {
@@ -11,6 +15,8 @@
 
   # Install shell hooks into /etc/zshenv
   programs.zsh.enable = true;
+
+  time.timeZone = "America/New_York";
 
   system = {
     stateVersion = 5;
@@ -28,8 +34,7 @@
         expose-animation-duration = 0.0;
         launchanim = false;
         magnification = true;
-        # Enable highlight hover effect for the grid view of a stack (Dock)
-        mouse-over-hilite-stack = true;
+        mouse-over-hilite-stack = true; # Enable highlight hover effect for the grid view of a stack (Dock)
         orientation = "left";
         show-process-indicators = true;
         show-recents = false;
@@ -47,6 +52,7 @@
         AppleShowAllFiles = true;
         CreateDesktop = false; # remove all desktop icons
         FXEnableExtensionChangeWarning = false;
+        FXPreferredViewStyle = "Nlsv"; # View files as list
         QuitMenuItem = true; # Allow quitting Finder via ⌘ + Q; doing so will also hide desktop icons
         ShowPathbar = true;
         ShowStatusBar = true;
