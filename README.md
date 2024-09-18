@@ -1,5 +1,7 @@
 # nixpkgs
 
+My dotfiles with nix & home-manager. macOS version also includes nix-darwin.
+
 ## Clone
 
 ```sh
