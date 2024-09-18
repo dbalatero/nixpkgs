@@ -37,7 +37,7 @@ in
     brews = [];
     casks = [
       "google-chrome"
-      # "hammerspoon"
+      "hammerspoon"
       "karabiner-elements"
       "monitorcontrol"
       "spotify"
