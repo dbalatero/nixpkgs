@@ -36,11 +36,14 @@ in
     enable = true;
     brews = [];
     casks = [
+      "bartender"
+      "firefox"
       "google-chrome"
       "hammerspoon"
       "karabiner-elements"
       "monitorcontrol"
       "spotify"
+      "vlc"
     ];
   };
 }
