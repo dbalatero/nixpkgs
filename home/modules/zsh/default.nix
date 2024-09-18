@@ -8,6 +8,9 @@
     nodenv
     gitstatus
     zsh
+
+    (writeScriptBin "slack-thread-format" (builtins.readFile ./bin/slack-thread-format.rb))
+    (writeShellScriptBin "truecolor" (builtins.readFile ./bin/truecolor.sh))
   ];
 
   programs.direnv.enable = true;

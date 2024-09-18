@@ -1,11 +1,15 @@
 { pkgs, ... }:
 {
   imports = [
+    ./hammerspoon
     ./karabiner-elements
   ];
 
   home.packages = with pkgs; [
+    imagemagick
     reattach-to-user-namespace
+
+    (writeShellScriptBin "emoji-intensifies" (builtins.readFile ./bin/emoji-intensifies.sh))
   ];
 
   programs.tmux = {

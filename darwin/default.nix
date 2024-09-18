@@ -13,6 +13,9 @@
     };
   };
 
+  nixpkgs.config.allowUnfree = true;
+  security.pam.enableSudoTouchIdAuth = true;
+
   # Install shell hooks into /etc/zshenv
   programs.zsh.enable = true;
 
@@ -131,6 +134,8 @@
         # 0: Slow
         # 3: Fast
         "com.apple.trackpad.scaling" = 3.0;
+
+        "com.apple.sound.beep.feedback" = 0;
       };
     };
   };
