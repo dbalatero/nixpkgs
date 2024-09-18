@@ -38,6 +38,7 @@ in
     casks = [
       "google-chrome"
       # "hammerspoon"
+      "karabiner-elements"
       "monitorcontrol"
       "spotify"
     ];
