@@ -38,6 +38,7 @@ in
     casks = [
       "google-chrome"
       # "hammerspoon"
+      "monitorcontrol"
       "spotify"
     ];
   };
