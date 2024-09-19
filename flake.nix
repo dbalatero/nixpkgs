@@ -32,6 +32,7 @@
                   inputs.nixvim.homeManagerModules.nixvim
                 ];
               };
+              useGlobalPkgs = true;
               extraSpecialArgs = { inherit inputs; };
             };
 
