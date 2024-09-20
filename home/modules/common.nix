@@ -12,6 +12,7 @@
     ./ruby
     ./tmux
     ./vscode
+    ./wezterm
     ./zsh
   ];
 
