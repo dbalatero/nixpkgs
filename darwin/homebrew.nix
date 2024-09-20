@@ -36,6 +36,7 @@ in
     enable = true;
     brews = [];
     casks = [
+      "alfred"
       "bartender"
       "firefox"
       "google-chrome"
