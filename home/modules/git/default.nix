@@ -153,9 +153,11 @@
 
       core.autocrlf = false;
       core.commitGraph = true;
+      core.deltabasecachelimit = "4g";
       core.editor = "nvim";
       core.fsmonitor = true;
       core.precomposeUnicode = true;
+      core.preloadindex = true;
 
       diff.algorithm = "patience";
 
@@ -163,7 +165,10 @@
       # instead of a/b/c/d as prefixes for patches
       diff.mnemonicprefix = true;
 
-      feature.manyFiles = 1;
+      # http://stackoverflow.com/questions/18257622/why-is-git-core-preloadindex-default-value-false
+      feature.manyFiles = true;
+
+      fetch.prune = true;
 
       filter.lfs.clean = "git-lfs clean -- %f";
       filter.lfs.process = "git-lfs filter-process";
