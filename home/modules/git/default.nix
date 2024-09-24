@@ -6,7 +6,9 @@
 }: {
   home.packages = with pkgs; [
     diff-so-fancy
+    gh
     git
+    go-jira
     lazygit
 
     (writeShellScriptBin "git-churn" (builtins.readFile ./bin/git-churn.sh))
