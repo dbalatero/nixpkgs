@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   imports = [
     ./homebrew.nix
   ];
@@ -9,7 +8,7 @@
   nix = {
     package = pkgs.nix;
     settings = {
-      "extra-experimental-features" = [ "nix-command" "flakes" ];
+      "extra-experimental-features" = ["nix-command" "flakes"];
     };
   };
 
@@ -70,11 +69,6 @@
       screensaver = {
         askForPassword = true;
         askForPasswordDelay = 5; # how many seconds to wait until requiring?
-      };
-
-      universalaccess = {
-        # Disable animation when switching screens or opening apps
-        reduceMotion = true;
       };
 
       LaunchServices = {

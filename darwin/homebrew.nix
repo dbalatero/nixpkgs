@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   brewPath = "${config.homebrew.brewPrefix}/brew";
-  isStripe = config.networking.hostName == "st-dbalatero1";
+  isStripe = config.networking.localHostName == "st-dbalatero1";
 
   extraPackages = if isStripe then [] else [
     "google-chrome"

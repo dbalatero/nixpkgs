@@ -6,13 +6,13 @@
     ./backups
     ./fonts
     ./git
+    ./kitty
     ./neovim
     ./node
     ./python
     ./ruby
     ./tmux
     ./vscode
-    ./wezterm
     ./zsh
   ];
 

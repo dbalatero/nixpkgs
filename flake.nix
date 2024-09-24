@@ -23,6 +23,9 @@
         system = "aarch64-darwin";
         modules = [
           ./darwin
+          {
+            networking.localHostName = "nix-machine2";
+          }
           inputs.home-manager.darwinModules.home-manager {
             home-manager = {
               users.dbalatero = {
@@ -46,6 +49,10 @@
         system = "aarch64-darwin";
         modules = [
           ./darwin
+          ./darwin/stripe.nix
+          {
+            networking.localHostName = "st-dbalatero1";
+          }
           inputs.home-manager.darwinModules.home-manager {
             home-manager = {
               users.dbalatero = {
