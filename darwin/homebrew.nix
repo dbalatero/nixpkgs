@@ -1,8 +1,19 @@
-{ config, lib, pkgs, ... }:
-let
-  brewPath = "${config.homebrew.brewPrefix}/brew";
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  brewPath = "${config.homebrew.brewPrefix}/brew";
+  isStripe = config.networking.localHostName == "st-dbalatero1";
+
+  extraPackages =
+    if isStripe
+    then []
+    else [
+      "google-chrome"
+    ];
+in {
   # From: https://github.com/robhanlon22/dotfiles/blob/main/nix-darwin/homebrew.nix
   system.activationScripts.preUserActivation.text = ''
     echo >&2 "ensuring Homebrew is available..."
@@ -35,16 +46,18 @@ in
   homebrew = {
     enable = true;
     brews = [];
-    casks = [
-      "alfred"
-      "bartender"
-      "firefox"
-      "google-chrome"
-      "hammerspoon"
-      "karabiner-elements"
-      "monitorcontrol"
-      "spotify"
-      "vlc"
-    ];
+    casks =
+      [
+        "alfred"
+        "bartender"
+        "firefox"
+        "hammerspoon"
+        "karabiner-elements"
+        "kitty"
+        "monitorcontrol"
+        "spotify"
+        "vlc"
+      ]
+      ++ extraPackages;
   };
 }
