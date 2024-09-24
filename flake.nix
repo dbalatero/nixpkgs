@@ -41,6 +41,29 @@
         ];
         specialArgs = { inherit inputs; };
       };
+
+      st-dbalatero1 = inputs.darwin.lib.darwinSystem {
+        system = "aarch64-darwin";
+        modules = [
+          ./darwin
+          inputs.home-manager.darwinModules.home-manager {
+            home-manager = {
+              users.dbalatero = {
+                # thank god: https://github.com/ddervisis/dotnix/blob/72ea2067d61dddaa1c1ce8c277040f80c59d9bcf/darwin/default.nix#L29
+                imports = [
+                  (import ./home/st-dbalatero1.nix)
+                  inputs.nixvim.homeManagerModules.nixvim
+                ];
+              };
+              useGlobalPkgs = true;
+              extraSpecialArgs = { inherit inputs; };
+            };
+
+            users.users.dbalatero.home = "/Users/dbalatero";
+          }
+        ];
+        specialArgs = { inherit inputs; };
+      };
     };
 
     homeConfigurations = {

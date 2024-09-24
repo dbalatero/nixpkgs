@@ -1,6 +1,11 @@
 { config, lib, pkgs, ... }:
 let
   brewPath = "${config.homebrew.brewPrefix}/brew";
+  isStripe = config.networking.hostName == "st-dbalatero1";
+
+  extraPackages = if isStripe then [] else [
+    "google-chrome"
+  ];
 in
 {
   # From: https://github.com/robhanlon22/dotfiles/blob/main/nix-darwin/homebrew.nix
@@ -39,12 +44,11 @@ in
       "alfred"
       "bartender"
       "firefox"
-      "google-chrome"
       "hammerspoon"
       "karabiner-elements"
       "monitorcontrol"
       "spotify"
       "vlc"
-    ];
+    ] ++ extraPackages;
   };
 }
