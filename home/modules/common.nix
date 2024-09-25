@@ -11,6 +11,7 @@
     ./node
     ./python
     ./ruby
+    ./stylix
     ./tmux
     ./vscode
     ./zsh

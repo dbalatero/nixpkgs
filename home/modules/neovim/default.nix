@@ -29,13 +29,6 @@
       loaded_perl_provider = 0;
     };
 
-    colorschemes.catppuccin = {
-      enable = true;
-      settings = {
-        flavour = "mocha";
-      };
-    };
-
     keymaps = [
       # jk for normal mode
       {

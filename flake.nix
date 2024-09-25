@@ -15,6 +15,10 @@
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    stylix = {
+      url = "github:danth/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs: {
@@ -26,23 +30,25 @@
           {
             networking.localHostName = "nix-machine2";
           }
-          inputs.home-manager.darwinModules.home-manager {
+          inputs.home-manager.darwinModules.home-manager
+          {
             home-manager = {
               users.dbalatero = {
                 # thank god: https://github.com/ddervisis/dotnix/blob/72ea2067d61dddaa1c1ce8c277040f80c59d9bcf/darwin/default.nix#L29
                 imports = [
                   (import ./home/nix-machine2.nix)
                   inputs.nixvim.homeManagerModules.nixvim
+                  inputs.stylix.homeManagerModules.stylix
                 ];
               };
               useGlobalPkgs = true;
-              extraSpecialArgs = { inherit inputs; };
+              extraSpecialArgs = {inherit inputs;};
             };
 
             users.users.dbalatero.home = "/Users/dbalatero";
           }
         ];
-        specialArgs = { inherit inputs; };
+        specialArgs = {inherit inputs;};
       };
 
       st-dbalatero1 = inputs.darwin.lib.darwinSystem {
@@ -53,23 +59,25 @@
           {
             networking.localHostName = "st-dbalatero1";
           }
-          inputs.home-manager.darwinModules.home-manager {
+          inputs.home-manager.darwinModules.home-manager
+          {
             home-manager = {
               users.dbalatero = {
                 # thank god: https://github.com/ddervisis/dotnix/blob/72ea2067d61dddaa1c1ce8c277040f80c59d9bcf/darwin/default.nix#L29
                 imports = [
                   (import ./home/st-dbalatero1.nix)
                   inputs.nixvim.homeManagerModules.nixvim
+                  inputs.stylix.homeManagerModules.stylix
                 ];
               };
               useGlobalPkgs = true;
-              extraSpecialArgs = { inherit inputs; };
+              extraSpecialArgs = {inherit inputs;};
             };
 
             users.users.dbalatero.home = "/Users/dbalatero";
           }
         ];
-        specialArgs = { inherit inputs; };
+        specialArgs = {inherit inputs;};
       };
     };
 
@@ -79,6 +87,7 @@
         pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
         modules = [
           inputs.nixvim.homeManagerModules.nixvim
+          inputs.stylix.homeManagerModules.stylix
           ./home/racknerd-a61953.nix
         ];
       };
@@ -88,6 +97,7 @@
         pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
         modules = [
           inputs.nixvim.homeManagerModules.nixvim
+          inputs.stylix.homeManagerModules.stylix
           ./home/tiger.nix
         ];
       };

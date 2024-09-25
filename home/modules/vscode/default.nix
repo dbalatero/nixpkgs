@@ -10,10 +10,8 @@
     ];
 
     userSettings = {
-      "editor.fontFamily" = "'Inconsolata Go NerdFont Regular', Menlo, Monaco, 'Courier New', monospace";
       "terminal.external.linuxExec" = "xterm-256color";
       "terminal.integrated.experimentalRestore" = true;
-      "terminal.integrated.fontFamily" = "InconsolataGo Nerd Font";
       "terminal.integrated.fontSize" = 14;
       "update.mode" = "none";
       "vscode-neovim.neovimInitPath" = "/Users/dbalatero/.config/nvim/vscode.vim";
@@ -24,7 +22,6 @@
       "security.workspace.trust.enabled" = true;
       "zenMode.fullScreen" = false;
       "workbench.statusBar.visible" = true;
-      "workbench.colorTheme" = "One Dark Pro Mix";
       "breadcrumbs.enabled" = false;
       "editor.minimap.enabled" = false;
       "workbench.activityBar.visible" = false;
