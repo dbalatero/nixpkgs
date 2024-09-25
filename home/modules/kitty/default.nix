@@ -1,4 +1,4 @@
-{config, ...}: {
+{
   xdg.configFile."kitty/images/gradient_background.png" = {
     source = ./images/gradient_background.png;
   };
