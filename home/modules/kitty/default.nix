@@ -30,15 +30,6 @@
       macos_hide_titlebar = true;
       macos_titlebar_color = "system";
       macos_traditional_fullscreen = true;
-
-      # TODO: stylix?
-      font_family = "JetBrainsMonoNL Nerd Font";
-      font_size = 16;
-
-      background_image = "${config.xdg.configHome}/kitty/images/gradient_background.png";
-      background_image_layout = "cscaled";
-      dynamic_background_opacity = "0.1";
-      background_tint = "0.88";
     };
   };
 }
