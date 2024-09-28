@@ -149,7 +149,7 @@ in {
         };
       }
       {
-        mode = ["i" "v"];
+        mode = ["n" "v"];
         key = "<leader>lc";
         action = helpers.mkRaw "vim.lsp.buf.code_action";
         options = {

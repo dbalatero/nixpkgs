@@ -14,6 +14,12 @@ in {
       settings = {
         fzf_color = true;
 
+        winopts = {
+          preview = {
+            layout = "vertical";
+          };
+        };
+
         files = {
           file_icons = false;
           # pay-server can't take the heat
