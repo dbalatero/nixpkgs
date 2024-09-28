@@ -7,13 +7,13 @@
 
   home.packages = with pkgs;
     [
-      bat
-      clang
       tree-sitter
     ]
     ++ lib.optionals (!pkgs.stdenv.isDarwin) [
       libgcc
     ];
+
+  programs.bat.enable = true;
 
   programs.nixvim = {
     enable = true;

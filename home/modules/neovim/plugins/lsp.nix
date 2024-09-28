@@ -142,15 +142,6 @@ in {
         };
       }
       {
-        key = "gr";
-        action = helpers.mkRaw ''
-          require("telescope.builtin").lsp_references
-        '';
-        options = {
-          desc = "LSP: [G]o to [r]eferences";
-        };
-      }
-      {
         key = "K";
         action = helpers.mkRaw "vim.lsp.buf.hover";
         options = {

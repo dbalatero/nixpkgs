@@ -1,8 +1,8 @@
-{ config, lib, pkgs, ... }:
-
-{
+{pkgs, ...}: {
   programs.vscode = {
-    enable = true;
+    # TODO: re-enable this, maybe, I don't know, but allow it to be writable by
+    # corp Stripe
+    enable = false;
 
     extensions = with pkgs.vscode-extensions; [
       asvetliakov.vscode-neovim
