@@ -14,7 +14,21 @@
       sha256 = "sha256-oMwLMG6ZRdVz4qxTC9H4NsGkQyDnoJkMzchdHQDGgHQ=";
     };
   };
+
+  tmux-prefix-highlight = pkgs.tmuxPlugins.mkTmuxPlugin {
+    pluginName = "tmux-prefix-highlight";
+    version = "489a96189778a21d2f5f4dbbbc0ad2cec8f6c854";
+    rtpFilePath = "prefix_highlight.tmux";
+    src = pkgs.fetchFromGitHub {
+      owner = "tmux-plugins";
+      repo = "tmux-prefix-highlight";
+      rev = "489a96189778a21d2f5f4dbbbc0ad2cec8f6c854";
+      sha256 = "sha256-GXqlwl1TPgXX1Je/ORjGFwfCyz17ZgdsoyOK1P3XF18=";
+    };
+  };
 in {
+  xdg.configFile."tmux/tmux.theme.conf".source = ./tmux.theme.conf;
+
   programs.tmux = {
     enable = true;
     tmuxinator.enable = true;
@@ -36,14 +50,6 @@ in {
       {
         plugin = tmuxPlugins.yank;
         extraConfig = "set -g set-clipboard on";
-      }
-      {
-        plugin = tmuxPlugins.prefix-highlight;
-        extraConfig = ''
-          set -g @prefix_highlight_bg 'colour33'
-          set -g @prefix_highlight_show_copy_mode 'on'
-          set -g @prefix_highlight_copy_mode_attr 'fg=colour234,bg=yellow,bold'
-        '';
       }
       {
         plugin = tmux-pain-control;
@@ -75,11 +81,20 @@ in {
           bind -n M-j if-shell "$is_vim_emacs" "send-keys M-j" "resize-pane -D 5"
         '';
       }
+      {
+        plugin = tmux-prefix-highlight;
+        extraConfig = ''
+          set -g @prefix_highlight_bg 'colour33'
+          set -g @prefix_highlight_show_copy_mode 'on'
+          set -g @prefix_highlight_copy_mode_attr 'fg=colour234,bg=yellow,bold'
+
+          source ${config.xdg.configHome}/tmux/tmux.theme.conf;
+        '';
+      }
     ];
 
     extraConfig = builtins.concatStringsSep "\n\n" [
       (builtins.readFile ./tmux.conf)
-      (builtins.readFile ./tmux.theme.conf)
     ];
   };
 }

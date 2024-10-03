@@ -1,9 +1,10 @@
-{ config, lib, pkgs, ... }:
-
-let
-  pyenvRootDirectory = "${config.xdg.dataHome}/pyenv";
-in
 {
+  config,
+  pkgs,
+  ...
+}: let
+  pyenvRootDirectory = "${config.xdg.dataHome}/pyenv";
+in {
   programs.pyenv = {
     enable = true;
     rootDirectory = pyenvRootDirectory;
