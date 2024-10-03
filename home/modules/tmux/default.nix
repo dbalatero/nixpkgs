@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   tmux-pain-control = pkgs.tmuxPlugins.mkTmuxPlugin {
     pluginName = "tmux-pain-control";
     version = "097f09dabd64084ab0c72ae75df4b5a89bb431a6";
@@ -11,8 +14,7 @@ let
       sha256 = "sha256-oMwLMG6ZRdVz4qxTC9H4NsGkQyDnoJkMzchdHQDGgHQ=";
     };
   };
-in
-{
+in {
   programs.tmux = {
     enable = true;
     tmuxinator.enable = true;
@@ -75,9 +77,9 @@ in
       }
     ];
 
-    extraConfig = (builtins.concatStringsSep "\n\n" [
+    extraConfig = builtins.concatStringsSep "\n\n" [
       (builtins.readFile ./tmux.conf)
       (builtins.readFile ./tmux.theme.conf)
-    ]);
+    ];
   };
 }

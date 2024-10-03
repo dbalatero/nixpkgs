@@ -15,5 +15,8 @@
         terminal = 16;
       };
     };
+
+    # For now keep the tmux theme we have
+    targets.tmux.enable = false;
   };
 }
