@@ -1,10 +1,14 @@
-{pkgs, ...}: {
+{
+  # config,
+  pkgs,
+  ...
+}: {
   imports = [
     ./completion.nix
     ./editing.nix
+    ./fzf-lua.nix
     ./git.nix
     ./lsp.nix
-    ./telescope.nix
     ./testing.nix
     ./treesitter.nix
     ./tmux.nix

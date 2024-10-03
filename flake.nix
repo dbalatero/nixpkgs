@@ -34,7 +34,7 @@
           {
             home-manager = {
               users.dbalatero = {
-                # thank god: https://github.com/ddervisis/dotnix/blob/72ea2067d61dddaa1c1ce8c277040f80c59d9bcf/darwin/default.nix#L29
+                # thank god: https://github.com/dervisis/dotnix/blob/72ea2067d61dddaa1c1ce8c277040f80c59d9bcf/darwin/default.nix#L29
                 imports = [
                   (import ./home/nix-machine2.nix)
                   inputs.nixvim.homeManagerModules.nixvim

@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   imports = [
     ./hammerspoon
     ./karabiner-elements
@@ -23,9 +22,9 @@
       bind p paste-buffer
       bind -T copy-mode-vi 'v' send -X begin-selection
       bind -T copy-mode-vi 'r' send -X rectangle-toggle
-      bind -T copy-mode-vi 'y' send -X copy-pipe "reattach-to-user-namespace pbcopy"
+      bind -T copy-mode-vi 'y' send -X copy-pipe-and-cancel "reattach-to-user-namespace pbcopy"
       unbind -T copy-mode-vi Enter
-      bind-key -T copy-mode-vi Enter send -X copy-pipe "reattach-to-user-namespace pbcopy"
+      bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel "reattach-to-user-namespace pbcopy"
 
       # Clipboard
       bind C-c run "tmux save-buffer - | reattach-to-user-namespace pbcopy"

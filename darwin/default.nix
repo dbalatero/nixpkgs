@@ -18,8 +18,6 @@
   # Install shell hooks into /etc/zshenv
   programs.zsh.enable = true;
 
-  time.timeZone = "America/New_York";
-
   system = {
     stateVersion = 5;
 

@@ -1,10 +1,5 @@
-{ config, lib, pkgs, ... }:
-
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
-    # Prevent collision with clang
-    #  https://github.com/nix-community/home-manager/issues/1668
-    (hiPrio gcc14)
     gnumake
     openssl_3_3
     pkg-config
