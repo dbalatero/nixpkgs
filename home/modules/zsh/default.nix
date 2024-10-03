@@ -143,6 +143,9 @@
       # Use jk to exit insert mode on the command line
       bindkey -M viins 'jk' vi-cmd-mode
 
+      # Set vi mode AGAIN
+      bindkey -v
+
       if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
         . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
       fi
