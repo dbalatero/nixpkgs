@@ -10,6 +10,7 @@
     nodenv
     gitstatus
     zsh
+    zsh-powerlevel10k
 
     (writeScriptBin "slack-thread-format" (builtins.readFile ./bin/slack-thread-format.rb))
     (writeShellScriptBin "truecolor" (builtins.readFile ./bin/truecolor.sh))
@@ -23,9 +24,6 @@
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
   };
 
-  programs.starship.enable = true;
-  xdg.configFile."starship.toml".source = ./starship.toml;
-
   home.file.".zsh/secrets" = {
     recursive = true;
     source = ./secrets;
@@ -35,6 +33,8 @@
     set editing-mode vi
     set keymap vi-command
   '';
+
+  home.file.".p10k.zsh".source = ./p10k.zsh;
 
   programs.zsh = {
     enable = true;
@@ -153,6 +153,9 @@
       do
         source $file
       done
+
+      source "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme"
+      source "$HOME/.p10k.zsh"
     '';
   };
 }
