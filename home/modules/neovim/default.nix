@@ -187,6 +187,12 @@
       vim.cmd([[set formatoptions-=t]])
     '';
 
+    extraConfigLuaPost =
+      # lua
+      ''
+        pcall(loadfile(os.getenv('HOME') .. '/.nvim.extra.lua'))
+      '';
+
     autoCmd = [
       {
         event = ["BufNewFile" "BufRead"];
