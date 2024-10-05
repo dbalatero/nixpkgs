@@ -155,9 +155,10 @@
       core.commitGraph = true;
       core.deltabasecachelimit = "4g";
       core.editor = "nvim";
-      core.fsmonitor = true;
       core.precomposeUnicode = true;
       core.preloadindex = true;
+      core.fsmonitor = true;
+      core.untrackedCache = true;
 
       diff.algorithm = "patience";
 
