@@ -28,6 +28,7 @@
   };
 in {
   xdg.configFile."tmux/tmux.theme.conf".source = ./tmux.theme.conf;
+  xdg.configFile."tmuxinator".source = ./tmuxinator;
 
   programs.tmux = {
     enable = true;
