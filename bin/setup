@@ -98,7 +98,13 @@ function chsh_zsh() {
     local current_user=$USER
 
     echo "Changing shell for $current_user..."
-    sudo chsh -s "$(zsh_binary)" "$current_user"
+    if is_stripe_devbox; then
+      # chsh doesn't work on devboxes?
+      # nix doesn't manage bashrc, so we can just write it here...
+      echo "export SHELL=$(zsh_binary)" >> ~/.bashrc
+    else 
+      sudo chsh -s "$(zsh_binary)" "$current_user"
+    fi
   fi
 }
 
