@@ -17,10 +17,7 @@ function install_nix() {
     extra_flags=""
     if is_stripe_devbox; then
       extra_flags="--nix-build-group-id 666666 --nix-build-user-id-base 666666"
-
-      if [[ -v https_proxy ]]; then
-        extra_flags="$extra_flags --proxy='$https_proxy'"
-      fi
+      extra_flags="$extra_flags --proxy $https_proxy"
     fi
 
     curl --proto '=https' --tlsv1.2 -sSf \
@@ -29,7 +26,7 @@ function install_nix() {
         --diagnostic-endpoint "" \
         --no-confirm \
         --explain \
-        "$extra_flags"
+        $extra_flags
 
     source_nix_shell
 
