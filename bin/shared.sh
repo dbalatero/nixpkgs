@@ -6,8 +6,17 @@ if uname -a | grep -q "Darwin"; then
   IS_DARWIN="true"
 fi
 
+IS_STRIPE_DEVBOX="false"
+if [[ -v STRIPE_USER ]]; then
+  IS_STRIPE_DEVBOX="true"
+fi
+
 function is_darwin() {
   [[ "$IS_DARWIN" == "true" ]]
+}
+
+function is_stripe_devbox() {
+  [[ "$IS_STRIPE_DEVBOX" == "true" ]]
 }
 
 function command_exists() {

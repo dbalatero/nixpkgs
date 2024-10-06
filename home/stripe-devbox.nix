@@ -1,6 +1,6 @@
 {
   imports = [
-    ./modules/common.nix
+    ./modules/slim.nix
   ];
 
   home.homeDirectory = "/home/dbalatero";

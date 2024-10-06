@@ -1,9 +1,9 @@
 {pkgs, ...}: {
   imports = [
     ./home-manager.nix
-
     ./audio
     ./backups
+    ./core
     ./fonts
     ./git
     ./kitty
@@ -17,18 +17,19 @@
     ./zsh
   ];
 
-  home.packages = with pkgs; [
-    coreutils
-    curl
-    fd
-    gh
-    gnutar
-    pgcli
-    readline
-    redis
-    ripgrep
-    sl
-    wget
-    xz
-  ];
+  stylix = {
+    fonts = {
+      monospace = {
+        package = pkgs.nerdfonts.override {
+          # Only install the listed font(s)
+          fonts = ["JetBrainsMono"];
+        };
+        name = "JetBrainsMono";
+      };
+
+      sizes = {
+        terminal = 16;
+      };
+    };
+  };
 }

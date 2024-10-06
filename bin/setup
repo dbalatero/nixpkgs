@@ -11,10 +11,25 @@ function source_nix_shell() {
 }
 
 function install_nix() {
+  local extra_flags
+
   if ! command_exists nix; then
+    extra_flags=""
+    if is_stripe_devbox; then
+      extra_flags="--nix-build-group-id 666666 --nix-build-user-id-base 666666"
+
+      if [[ -v https_proxy ]]; then
+        extra_flags="$extra_flags --proxy='$https_proxy'"
+      fi
+    fi
+
     curl --proto '=https' --tlsv1.2 -sSf \
       -L https://install.determinate.systems/nix |
-      sh -s -- install
+      sh -s -- install \
+        --diagnostic-endpoint "" \
+        --no-confirm \
+        --explain \
+        "$extra_flags"
 
     source_nix_shell
 
@@ -35,11 +50,11 @@ function install_home_manager() {
 }
 
 function install_nix_darwin() {
-  if ! is_darwin ; then
+  if ! is_darwin; then
     return
   fi
 
-  if ! command_exists "darwin-rebuild" ; then
+  if ! command_exists "darwin-rebuild"; then
     nix run nix-darwin -- switch --flake ".#$(hostname -s)"
   fi
 }
