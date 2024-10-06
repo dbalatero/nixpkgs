@@ -37,6 +37,28 @@ function install_nix() {
   fi
 }
 
+function fix_systemd_configuration() {
+  if ! is_stripe_devbox; then
+    return
+  fi
+
+  local config_file="/etc/systemd/system/nix-daemon.service"
+
+  if grep -q "$https_proxy" "$config_file"; then
+    echo "systemd already configured!"
+  else
+    sudo sed -i '/\[Service\]/a\
+Environment="http_proxy='$http_proxy'" \
+Environment="https_proxy='$https_proxy'" \
+Environment="no_proxy='$no_proxy'"' "$config_file"
+
+    echo "Injected http proxy env vars into nix-daemon systemd configuration"
+
+    sudo systemctl daemon-reload
+    sudo systemctl restart nix-daemon
+  fi
+}
+
 function install_home_manager() {
   if ! command_exists "home-manager"; then
     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
@@ -84,6 +106,7 @@ command_exists curl || (echo "curl is required to run" && exit 1)
 command_exists hostname || (echo "hostname is required to run" && exit 1)
 source_nix_shell
 install_nix
+fix_systemd_configuration
 install_home_manager
 install_nix_darwin
 ./bin/switch
