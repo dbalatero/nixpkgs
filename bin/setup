@@ -11,10 +11,22 @@ function source_nix_shell() {
 }
 
 function install_nix() {
+  local extra_flags
+
   if ! command_exists nix; then
+    extra_flags=""
+    if is_stripe_devbox; then
+      extra_flags="--nix-build-group-id 666666 --nix-build-user-id-base 666666"
+      extra_flags="$extra_flags --proxy $https_proxy"
+    fi
+
     curl --proto '=https' --tlsv1.2 -sSf \
       -L https://install.determinate.systems/nix |
-      sh -s -- install
+      sh -s -- install \
+        --diagnostic-endpoint "" \
+        --no-confirm \
+        --explain \
+        $extra_flags
 
     source_nix_shell
 
@@ -22,6 +34,28 @@ function install_nix() {
     sudo -i nix-channel --update nixpkgs
   else
     echo "Nix already installed, skipping"
+  fi
+}
+
+function fix_systemd_configuration() {
+  if ! is_stripe_devbox; then
+    return
+  fi
+
+  local config_file="/etc/systemd/system/nix-daemon.service"
+
+  if grep -q "$https_proxy" "$config_file"; then
+    echo "systemd already configured!"
+  else
+    sudo sed -i '/\[Service\]/a\
+Environment="http_proxy='$http_proxy'" \
+Environment="https_proxy='$https_proxy'" \
+Environment="no_proxy='$no_proxy'"' "$config_file"
+
+    echo "Injected http proxy env vars into nix-daemon systemd configuration"
+
+    sudo systemctl daemon-reload
+    sudo systemctl restart nix-daemon
   fi
 }
 
@@ -35,11 +69,11 @@ function install_home_manager() {
 }
 
 function install_nix_darwin() {
-  if ! is_darwin ; then
+  if ! is_darwin; then
     return
   fi
 
-  if ! command_exists "darwin-rebuild" ; then
+  if ! command_exists "darwin-rebuild"; then
     nix run nix-darwin -- switch --flake ".#$(hostname -s)"
   fi
 }
@@ -64,7 +98,13 @@ function chsh_zsh() {
     local current_user=$USER
 
     echo "Changing shell for $current_user..."
-    sudo chsh -s "$(zsh_binary)" "$current_user"
+    if is_stripe_devbox; then
+      # chsh doesn't work on devboxes?
+      # nix doesn't manage bashrc, so we can just write it here...
+      echo "export SHELL=$(zsh_binary)" >> ~/.bashrc
+    else 
+      sudo chsh -s "$(zsh_binary)" "$current_user"
+    fi
   fi
 }
 
@@ -72,6 +112,7 @@ command_exists curl || (echo "curl is required to run" && exit 1)
 command_exists hostname || (echo "hostname is required to run" && exit 1)
 source_nix_shell
 install_nix
+fix_systemd_configuration
 install_home_manager
 install_nix_darwin
 ./bin/switch

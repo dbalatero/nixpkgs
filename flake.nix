@@ -82,6 +82,16 @@
     };
 
     homeConfigurations = {
+      # stripe remote devboxes
+      stripe-devbox = inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+        modules = [
+          inputs.nixvim.homeManagerModules.nixvim
+          inputs.stylix.homeManagerModules.stylix
+          ./home/stripe-devbox.nix
+        ];
+      };
+
       # HLDM RackNerd server
       racknerd-a61953 = inputs.home-manager.lib.homeManagerConfiguration {
         pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
