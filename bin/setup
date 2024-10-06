@@ -16,7 +16,7 @@ function install_nix() {
   if ! command_exists nix; then
     extra_flags=""
     if is_stripe_devbox; then
-      extra_flags="--nix-build-group-id 666666 --nix-build-user-id-base 666666"
+      extra_flags="--nix-build-group-id 4000 --nix-build-user-id-base 4000"
       extra_flags="$extra_flags --proxy $https_proxy"
     fi
 
@@ -101,8 +101,8 @@ function chsh_zsh() {
     if is_stripe_devbox; then
       # chsh doesn't work on devboxes?
       # nix doesn't manage bashrc, so we can just write it here...
-      echo "export SHELL=$(zsh_binary)" >> ~/.bashrc
-    else 
+      echo "export SHELL=$(zsh_binary)" >>~/.bashrc
+    else
       sudo chsh -s "$(zsh_binary)" "$current_user"
     fi
   fi
