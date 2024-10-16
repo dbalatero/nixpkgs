@@ -203,6 +203,8 @@
       # Remember my merges:
       #   http://gitfu.wordpress.com/2008/04/20/git-rerere-rereremember-what-you-did-last-time/
       rerere.enabled = true;
+
+      work.features.gh = true;
     };
 
     attributes = [

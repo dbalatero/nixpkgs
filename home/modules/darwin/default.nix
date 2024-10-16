@@ -2,6 +2,7 @@
   imports = [
     ./hammerspoon
     ./karabiner-elements
+    ./obsidian
   ];
 
   home.packages = with pkgs; [
