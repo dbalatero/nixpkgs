@@ -2,6 +2,7 @@
   imports = [
     ./home-manager.nix
     ./audio
+    ./alacritty
     ./backups
     ./core
     ./fonts
@@ -24,7 +25,7 @@
           # Only install the listed font(s)
           fonts = ["JetBrainsMono"];
         };
-        name = "JetBrainsMono";
+        name = "JetBrainsMonoNL Nerd Font";
       };
 
       sizes = {

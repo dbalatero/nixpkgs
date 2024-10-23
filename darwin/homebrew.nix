@@ -11,6 +11,7 @@
     if isStripe
     then []
     else [
+      "alacritty"
       "google-chrome"
     ];
 in {
