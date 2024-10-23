@@ -107,6 +107,7 @@
 
       weather = "curl wttr.in";
 
+      switch = "cd ~/.config/nixpkgs && ./bin/switch && cd -";
       dev = "tn start remote";
     };
 
