@@ -20,15 +20,11 @@ root: /pay/src/pay-server
 # post: tmux -CC attach -t dotfiles
 
 windows:
-  - main:
+  - editor:
       layout: 4ffa,185x47,0,0{115x47,0,0,6,69x47,116,0,8}
       panes:
         - vim
         -  #
-  - pay-server:
-      layout: main-vertical
-      panes:
-        - pay up
   - dotfiles:
       layout: 4ffa,185x47,0,0{115x47,0,0,6,69x47,116,0,8}
       panes:
