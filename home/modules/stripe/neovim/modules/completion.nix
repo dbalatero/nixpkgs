@@ -18,8 +18,8 @@
         require("stripe-luasnips")
 
         local snipConfig = require('stripe-luasnips.config')
-        snipConfig.payfile.opus_project = "checkout"
-        snipConfig.todo.jira_project = "RUN_CHECKOUT"
+        snipConfig.payfile.opus_project = "ocs_api_platform"
+        snipConfig.todo.jira_project = "RUN_OCS_API"
       '';
   };
 }

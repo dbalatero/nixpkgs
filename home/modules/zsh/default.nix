@@ -93,6 +93,7 @@
       FREEZE_REPO = "$RESTIC_REPOSITORY:/Freeze";
 
       PATH = "./node_modules/.bin:$HOME/.config/base16-shell:$PATH";
+      TERM = "xterm-256color";
     };
 
     shellAliases = {

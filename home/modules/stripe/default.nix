@@ -5,4 +5,16 @@
   ];
 
   programs.git.userEmail = "dbalatero@stripe.com";
+
+  programs.zsh = {
+    initExtra = ''
+      export PATH="$PATH:$HOME/stripe/work/exe"
+    '';
+
+    shellAliases = {
+      b = "work begin";
+      p = "work pr show";
+      r = "work review";
+    };
+  };
 }
