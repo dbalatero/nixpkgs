@@ -106,6 +106,8 @@
       vim = "nvim";
 
       weather = "curl wttr.in";
+
+      dev = "tn start remote";
     };
 
     initExtraFirst = ''
