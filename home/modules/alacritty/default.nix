@@ -28,7 +28,6 @@
       };
 
       window = {
-        decorations = "none";
         dynamic_title = false;
         opacity = 1.0;
         startup_mode = "SimpleFullscreen";
