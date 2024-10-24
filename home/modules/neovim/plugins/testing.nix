@@ -28,7 +28,7 @@
           endif
 
           if !has_key(test#custom_runners, 'typescript')
-            let test#custom_runners['javascript'] = []
+            let test#custom_runners['typescript'] = []
           endif
 
           if !exists("test#enabled_runners")
