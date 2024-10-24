@@ -15,10 +15,15 @@ in {
       ''
         -- TODO: convert -> Lua someday or like never who cares
         vim.cmd([[
-          let test#custom_runners = { 'ruby': ['payserver'], 'javascript': ['payserver'] }
+          " Define the runners
+          call add(test#custom_runners['ruby'], "payserver")
+          call add(test#custom_runners['javascript'], "payserver")
+          call add(test#custom_runners['typescript'], "payserver")
 
           if fnamemodify(getcwd(), ':p') =~ "pay-server"
-            let test#enabled_runners = ["ruby#payserver", "javascript#payserver"]
+            call add(test#enabled_runners, "ruby#payserver")
+            call add(test#enabled_runners, "javascript#payserver")
+            call add(test#enabled_runners, "typescript#payserver")
           end
         ]])
       '';

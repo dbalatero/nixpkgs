@@ -7,6 +7,36 @@
       ]
     );
 
+    extraConfigLua =
+      # lua
+      ''
+        vim.cmd([[
+          if !exists('test#custom_runners')
+            let test#custom_runners = {}
+          endif
+
+          if !has_key(test#custom_runners, 'lua')
+            let test#custom_runners['lua'] = []
+          endif
+
+          if !has_key(test#custom_runners, 'ruby')
+            let test#custom_runners['ruby'] = []
+          endif
+
+          if !has_key(test#custom_runners, 'javascript')
+            let test#custom_runners['javascript'] = []
+          endif
+
+          if !has_key(test#custom_runners, 'typescript')
+            let test#custom_runners['javascript'] = []
+          endif
+
+          if !exists("test#enabled_runners")
+            let test#enabled_runners = []
+          endif
+        ]])
+      '';
+
     extraConfigLuaPost =
       # lua
       ''
@@ -29,14 +59,16 @@
             let test#strategy = "neovim"
           endif
 
-          let test#enabled_runners = ["lua#busted", "ruby#rspec", "javascript#jest"]
+          " Define the runners
+          call add(test#custom_runners['lua'], "busted")
+          call add(test#custom_runners['ruby'], "rspec")
+          call add(test#custom_runners['javascript'], "jest")
+          call add(test#custom_runners['typescript'], "jest")
 
-          let test#custom_runners = {}
-          let test#custom_runners['ruby'] = ['rspec']
-          let test#custom_runners['lua'] = ['busted']
-
-          let test#custom_runners['javascript'] = ['jest']
-          let test#custom_runners['typescript'] = ['jest']
+          " Enable the runners we want
+          call add(test#enabled_runners, "lua#busted")
+          call add(test#enabled_runners, "ruby#rspec")
+          call add(test#enabled_runners, "javascript#jest")
         ]])
       '';
   };
