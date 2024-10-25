@@ -83,6 +83,11 @@
           # Prevent Time Machine from prompting to use new hard drives as backup volume
           DoNotOfferNewDisksForBackup = true;
         };
+
+        "com.apple.dock" = {
+          # defaults write com.apple.dock no-bouncing -bool TRUE
+          no-bouncing = true;
+        };
       };
 
       NSGlobalDomain = {

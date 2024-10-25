@@ -18,10 +18,6 @@
         TERM = "xterm-256color";
       };
 
-      mouse = {
-        hide_when_typing = true;
-      };
-
       scrolling = {
         history = 10000;
         multiplier = 3;
