@@ -27,10 +27,6 @@
             let test#custom_runners['javascript'] = []
           endif
 
-          if !has_key(test#custom_runners, 'typescript')
-            let test#custom_runners['typescript'] = []
-          endif
-
           if !exists("test#enabled_runners")
             let test#enabled_runners = []
           endif
@@ -63,7 +59,6 @@
           call add(test#custom_runners['lua'], "busted")
           call add(test#custom_runners['ruby'], "rspec")
           call add(test#custom_runners['javascript'], "jest")
-          call add(test#custom_runners['typescript'], "jest")
 
           " Enable the runners we want
           call add(test#enabled_runners, "lua#busted")
