@@ -10,7 +10,7 @@
       tree-sitter
     ]
     ++ lib.optionals (!pkgs.stdenv.isDarwin) [
-      libgcc
+      # libgcc
     ];
 
   programs.bat.enable = true;
