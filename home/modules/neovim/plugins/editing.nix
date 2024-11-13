@@ -7,6 +7,8 @@
 in {
   programs.nixvim = {
     plugins = {
+      auto-session.enable = true;
+
       # "gc" to comment visual regions/lines
       comment.enable = true;
 

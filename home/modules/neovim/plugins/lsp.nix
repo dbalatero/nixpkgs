@@ -187,7 +187,10 @@ in {
     ];
 
     plugins = {
-      lsp-format.enable = true;
+      lsp-format = {
+        enable = true;
+      };
+
       web-devicons.enable = true;
 
       fidget = {
@@ -275,12 +278,11 @@ in {
           yamlls = {
             enable = true;
             settings = {
-              yaml = {
-                schemas = {
-                  # Github actions
-                  "https://json.schemastore.org/github-workflow" = ".github/workflows/*.{yml,yaml}";
-                  "https://json.schemastore.org/github-action" = ".github/action.{yml,yaml}";
-                };
+              format.enable = false;
+              schemas = {
+                # Github actions
+                "https://json.schemastore.org/github-workflow" = ".github/workflows/*.{yml,yaml}";
+                "https://json.schemastore.org/github-action" = ".github/action.{yml,yaml}";
               };
             };
           };
@@ -300,6 +302,8 @@ in {
           '';
 
         settings = {
+          # expose_as_code_action = "all";
+
           tsserverFilePreferences = {
             # Inlay Hints
             includeInlayParameterNameHints = "all";
@@ -320,11 +324,22 @@ in {
         sources = {
           diagnostics = {
             deadnix.enable = true;
+            rubocop = {
+              enable = true;
+            };
           };
 
           formatting = {
             alejandra.enable = true; # nix
-            prettierd.enable = true;
+            prettierd = {
+              enable = true;
+              settings = {
+                disabled_filetypes = [
+                  "markdown"
+                  "yaml"
+                ];
+              };
+            };
             shfmt.enable = true;
             stylua.enable = true;
           };
