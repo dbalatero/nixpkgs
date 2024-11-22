@@ -59,6 +59,7 @@ in {
         treesj # main splitjoin plugin
         vim-abolish # snake_case -> camelCase, etc
         vim-togglelist # <leader>q to toggle quickfix
+        vim-projectionist # :AV :AS for swapping between test & implementation
       ]
     );
 

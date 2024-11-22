@@ -2,6 +2,7 @@ local function isDeviceAllowlisted(device)
   -- Which devices should we skip muting for?
   local allowedDevices = {
     "Schiit",
+    "WH-1000",
   }
 
   for _, allowedPattern in ipairs(allowedDevices) do

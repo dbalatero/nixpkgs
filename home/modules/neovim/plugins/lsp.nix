@@ -5,6 +5,16 @@
   ...
 }: let
   helpers = config.lib.nixvim;
+
+  lsp-format-latest = pkgs.vimUtils.buildVimPlugin {
+    name = "lsp-format.nvim";
+    src = pkgs.fetchFromGitHub {
+      owner = "lukas-reineke";
+      repo = "lsp-format.nvim";
+      rev = "47de35b54ec95bb049f52016632394b914d4d9e9";
+      hash = "sha256-x9jCrtsPaGIw+hn9HZg24Iqf+2lpHqRnBJri0Jd+bdc=";
+    };
+  };
 in {
   home.packages = with pkgs; [
     alejandra
@@ -189,6 +199,7 @@ in {
     plugins = {
       lsp-format = {
         enable = true;
+        package = lsp-format-latest;
       };
 
       web-devicons.enable = true;

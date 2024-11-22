@@ -13,10 +13,22 @@
     );
 
     plugins = {
+      lsp-format = {
+        setup = {
+          payserver_sorbet = {
+            sync = true;
+          };
+        };
+      };
+
+      none-ls.settings = {
+        debug = true;
+      };
+
       none-ls.sources.diagnostics.rubocop = {
         settings = {
           command = "scripts/bin/rubocop-server/rubocop";
-          args = ["--except PrisonGuard/AutogenLoaderPreamble"];
+          extra_args = ["--except PrisonGuard/AutogenLoaderPreamble"];
         };
       };
 

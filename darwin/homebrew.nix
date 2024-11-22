@@ -13,6 +13,7 @@
     else [
       "alacritty"
       "google-chrome"
+      "spotify"
     ];
 in {
   # From: https://github.com/robhanlon22/dotfiles/blob/main/nix-darwin/homebrew.nix
@@ -56,7 +57,6 @@ in {
         "karabiner-elements"
         "kitty"
         "monitorcontrol"
-        "spotify"
         "vlc"
       ]
       ++ extraPackages;

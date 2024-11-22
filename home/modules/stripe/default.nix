@@ -15,6 +15,7 @@
       b = "work begin";
       p = "work pr show";
       r = "work review";
+      st = "~/stripe/st/bin/repo-dev";
     };
   };
 }
