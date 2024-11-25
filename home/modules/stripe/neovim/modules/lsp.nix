@@ -52,6 +52,19 @@
           on_attach = _M.lspOnAttach,
         })
 
+        local function target_contains_directory(target_path)
+          return string.find(
+            vim.fn.expand(vim.fn.getcwd()),
+            vim.fn.expand(target_path),
+            1,
+            true
+          ) ~= nil
+        end
+
+        if target_contains_directory("~/stripe/checkout") then
+          require("null-ls").disable({"prettierd"})
+        end
+
         -- -- Format on save in pay-server Ruby files.
         -- vim.api.nvim_create_autocmd("LspAttach", {
         --   group = vim.api.nvim_create_augroup("lsp", { clear = true }),
