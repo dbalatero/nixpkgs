@@ -13,12 +13,7 @@
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
       modules = [
-        {
-          home.username = "dbalatero";
-          home.homeDirectory = "/home/dbalatero";
-          home.stateVersion = "25.05";
-          programs.home-manager.enable = true;
-        }
+        ./home/hosts/racknerd-a61953
       ];
     };
   };
