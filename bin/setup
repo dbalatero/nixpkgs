@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/shared.sh"
+
+function source_nix_shell() {
+  if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  fi
+}
+
+function install_nix() {
+  if ! command_exists nix; then
+    curl --proto '=https' --tlsv1.2 -sSf \
+      -L https://install.determinate.systems/nix |
+      sh -s -- install \
+        --diagnostic-endpoint "" \
+        --no-confirm \
+        --explain
+  else
+    echo "Nix already installed, skipping"
+  fi
+}
+
+command_exists curl || (echo "curl is required to run" && exit 1)
+command_exists hostname || (echo "hostname is required to run" && exit 1)
+
+install_nix
+source_nix_shell
+
+echo "Done!"
