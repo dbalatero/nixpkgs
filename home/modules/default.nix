@@ -1,6 +1,10 @@
 { config, pkgs, ... }:
 
 {
+  imports = [
+    ./cli
+  ];
+
   programs.home-manager.enable = true;
 
   home.username = "dbalatero";
