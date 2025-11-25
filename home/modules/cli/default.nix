@@ -3,5 +3,6 @@
     ./claude
     ./core
     ./neovim
+    ./stylix
   ];
 }

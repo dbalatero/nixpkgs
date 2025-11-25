@@ -4,4 +4,6 @@
   imports = [
     ../../modules/default.nix
   ];
+
+  dconf.enable = false;
 }
