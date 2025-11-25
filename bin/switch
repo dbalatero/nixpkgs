@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/shared.sh"
+
+command_exists hostname || (echo "hostname is required to run" && exit 1)
+
+HOSTNAME="$(hostname)"
+FLAKE_PATH="${BASH_SOURCE%/*}/.."
+
+# Use home-manager if available, otherwise use nix run
+if command_exists home-manager ; then
+  home-manager switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+else
+  nix run home-manager/master -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+fi

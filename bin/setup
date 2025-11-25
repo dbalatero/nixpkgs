@@ -28,5 +28,4 @@ command_exists hostname || (echo "hostname is required to run" && exit 1)
 
 install_nix
 source_nix_shell
-
-echo "Done!"
+./bin/switch
