@@ -2,5 +2,6 @@
   imports = [
     ./claude
     ./core
+    ./neovim
   ];
 }
