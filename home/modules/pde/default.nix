@@ -4,6 +4,7 @@
     ./core
     ./git
     ./neovim
+    ./node
     ./stylix
     ./tmux
     ./zsh
