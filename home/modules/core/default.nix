@@ -9,4 +9,7 @@
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+
+  # Silence home-manager news
+  news.display = "silent";
 }
