@@ -23,9 +23,43 @@ function install_nix() {
   fi
 }
 
+function configure_default_shell() {
+  # Check if running on NixOS
+  if uname -a | grep -qi nixos || [ -f /etc/NIXOS ]; then
+    echo "Running on NixOS - shell configuration handled by home-manager"
+    return 0
+  fi
+
+  local nix_zsh="$HOME/.nix-profile/bin/zsh"
+
+  # Check if zsh is available
+  if [ ! -f "$nix_zsh" ]; then
+    echo "zsh not found in nix profile, skipping shell configuration"
+    return 0
+  fi
+
+  # Check if already in /etc/shells
+  if grep -qxF "$nix_zsh" /etc/shells 2>/dev/null; then
+    echo "zsh already in /etc/shells"
+  else
+    echo "Adding $nix_zsh to /etc/shells (requires sudo)"
+    echo "$nix_zsh" | sudo tee -a /etc/shells
+  fi
+
+  # Check if already the default shell
+  if [ "$SHELL" = "$nix_zsh" ]; then
+    echo "zsh is already your default shell"
+  else
+    echo "Changing default shell to zsh"
+    chsh -s "$nix_zsh"
+    echo "Shell changed to zsh. Please log out and back in for the change to take effect."
+  fi
+}
+
 command_exists curl || (echo "curl is required to run" && exit 1)
 command_exists hostname || (echo "hostname is required to run" && exit 1)
 
 install_nix
 source_nix_shell
 ./bin/switch
+configure_default_shell
