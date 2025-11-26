@@ -30,6 +30,7 @@
         "$hostname"
         "$directory"
         "$git_branch"
+        "$line_break"
         "$character"
       ];
 
