@@ -5,5 +5,6 @@
     ./git
     ./neovim
     ./stylix
+    ./zsh
   ];
 }
