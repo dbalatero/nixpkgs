@@ -17,7 +17,13 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixvim, stylix }: {
+  outputs = {
+    self,
+    nixpkgs,
+    home-manager,
+    nixvim,
+    stylix,
+  }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
       modules = [
