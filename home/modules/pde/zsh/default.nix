@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }: {
@@ -61,6 +62,7 @@
         {name = "dbalatero/fast-syntax-highlighting";}
         {name = "hlissner/zsh-autopair";}
         {name = "chriskempson/base16-shell";}
+        {name = "MichaelAquilina/zsh-you-should-use";}
       ];
     };
 
@@ -103,55 +105,53 @@
       dev = "tn start remote";
     };
 
-    initExtraFirst = ''
-      [ -e "~/.zshenv" ] && source ~/.zshenv
+    initContent = lib.mkMerge [
+      (lib.mkBefore ''
+        [ -e "~/.zshenv" ] && source ~/.zshenv
 
-      # Disable auto title so tmux window titles don't get messed up.
-      export DISABLE_AUTO_TITLE="true"
+        # Disable auto title so tmux window titles don't get messed up.
+        export DISABLE_AUTO_TITLE="true"
 
-      # Maintain a stack of cd directory traversals for `popd`
-      setopt AUTO_PUSHD
+        # Maintain a stack of cd directory traversals for `popd`
+        setopt AUTO_PUSHD
 
-      # Allow extended matchers like ^file, etc
-      set -o EXTENDED_GLOB
+        # Allow extended matchers like ^file, etc
+        set -o EXTENDED_GLOB
 
-      # ========= History settings =========
+        # ========= History settings =========
 
-      setopt append_history
-      setopt hist_expire_dups_first
-      setopt hist_ignore_dups
-      setopt hist_ignore_space
-      setopt inc_append_history
-      setopt extended_glob
-    '';
+        setopt append_history
+        setopt hist_expire_dups_first
+        setopt hist_ignore_dups
+        setopt hist_ignore_space
+        setopt inc_append_history
+        setopt extended_glob
+      '')
+      ''
+        # hooks
+        eval "$(fasd --init auto)"
 
-    initExtra = ''
-      # hooks
-      eval "$(fasd --init auto)"
+        # Print theme colors
+        function theme_colors() {
+          for code ({000..255}) print -P -- \
+            "$code: %F{$code}This is how your text would look like%f"
+        }
 
-      # Print theme colors
-      function theme_colors() {
-        for code ({000..255}) print -P -- \
-          "$code: %F{$code}This is how your text would look like%f"
-      }
+        # Use jk to exit insert mode on the command line
+        bindkey -M viins 'jk' vi-cmd-mode
 
-      # Use jk to exit insert mode on the command line
-      bindkey -M viins 'jk' vi-cmd-mode
+        # Set vi mode AGAIN
+        bindkey -v
 
-      # Set vi mode AGAIN
-      bindkey -v
+        if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+          . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+        fi
 
-      if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-        . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-      fi
-
-      for file in $HOME/.zsh/secrets/**/*.zsh
-      do
-        source $file
-      done
-
-      source "${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme"
-      source "$HOME/.p10k.zsh"
-    '';
+        for file in $HOME/.zsh/secrets/**/*.zsh
+        do
+          source $file
+        done
+      ''
+    ];
   };
 }
