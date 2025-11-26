@@ -21,6 +21,54 @@
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
   };
 
+  programs.starship = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = {
+      # Minimal prompt for speed
+      format = lib.concatStrings [
+        "$hostname"
+        "$directory"
+        "$git_branch"
+        "$character"
+      ];
+
+      # Show hostname
+      hostname = {
+        ssh_only = true;
+        format = "[$hostname]($style) ";
+        style = "bold green";
+      };
+
+      # Show only directory
+      directory = {
+        truncation_length = 3;
+        truncate_to_repo = true;
+      };
+
+      # Show only git branch name, nothing else
+      git_branch = {
+        format = "[$symbol$branch]($style) ";
+        symbol = "";
+        style = "bold purple";
+      };
+
+      # Disable git status entirely for speed
+      git_status.disabled = true;
+
+      # Disable all other modules for maximum speed
+      aws.disabled = true;
+      gcloud.disabled = true;
+      nodejs.disabled = true;
+      ruby.disabled = true;
+      python.disabled = true;
+      rust.disabled = true;
+      golang.disabled = true;
+      docker_context.disabled = true;
+      package.disabled = true;
+    };
+  };
+
   home.file.".zsh/secrets" = {
     recursive = true;
     source = ./secrets;
