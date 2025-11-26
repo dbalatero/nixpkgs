@@ -17,15 +17,48 @@ The repository is organized around a Nix flake (`flake.nix`) that:
 
 ### Directory Structure
 
+The repository supports different machine types:
+- **Headless servers** - terminal-based development environment only
+- **Linux desktops** - GUI apps and terminal emulators for Linux
+- **macOS desktops** - GUI apps and terminal emulators for macOS
+
 ```
 home/
 ├── hosts/           # Host-specific configurations
 │   └── {hostname}/  # Each hostname has its own directory
 │       └── default.nix  # Imports shared modules
 └── modules/         # Shared home-manager modules
-    └── cli/         # CLI-related modules
-        ├── core/    # Core CLI tools (fd, ripgrep, wget, etc.)
-        └── claude/  # Claude Code installation
+    ├── core/                    # Base home-manager settings
+    │   └── default.nix          # Username, stateVersion, allowUnfree, etc.
+    │
+    ├── pde/                     # Personal Development Environment (terminal-based)
+    │   ├── core/                # CLI tools (fd, ripgrep, wget, etc.)
+    │   ├── claude/              # Claude Code installation
+    │   ├── neovim/              # Neovim configurations
+    │   ├── shell/               # Shell configs (bash, zsh, fish)
+    │   ├── git/                 # Git configuration
+    │   ├── tmux/                # Terminal multiplexer
+    │   ├── stylix/              # Terminal theming
+    │   └── default.nix          # Imports all PDE modules
+    │
+    ├── gui/                     # GUI-related modules (only created when needed)
+    │   ├── terminal/            # Terminal emulators (only on GUI machines)
+    │   │   ├── ghostty/
+    │   │   ├── alacritty/
+    │   │   └── default.nix
+    │   │
+    │   ├── apps/                # GUI applications
+    │   │   ├── common/          # Cross-platform desktop apps
+    │   │   ├── linux/           # Linux desktop apps (firefox, etc.)
+    │   │   ├── darwin/          # macOS apps (use homebrew casks)
+    │   │   └── default.nix
+    │   │
+    │   └── default.nix
+    │
+    └── platform/                # Platform-specific system configs (only created when needed)
+        ├── linux/               # Linux-specific settings
+        ├── darwin/              # macOS-specific settings
+        └── default.nix
 ```
 
 ### Module System
@@ -33,10 +66,51 @@ home/
 The configuration uses a hierarchical import system:
 1. `flake.nix` references a host configuration in `home/hosts/{hostname}/default.nix`
 2. Host configuration imports `home/modules/default.nix`
-3. `home/modules/default.nix` sets base home-manager settings and imports category modules
-4. Category modules (e.g., `cli/default.nix`) import specific feature modules
+3. `home/modules/default.nix` imports `core` and `pde` (and optionally `gui`, `platform`)
+4. Category modules import specific feature modules
 
-All modules are auto-imported through their respective `default.nix` files. To add a new module, create the directory and add it to the appropriate `imports` list.
+All modules are auto-imported through their respective `default.nix` files.
+
+#### Module Composition by Host Type
+
+**Headless Servers** - Minimal configuration with just terminal tools:
+```nix
+imports = [
+  ../../modules/core
+  ../../modules/pde
+];
+```
+
+**Linux Desktop** - Full GUI environment with Linux-specific apps:
+```nix
+imports = [
+  ../../modules/core
+  ../../modules/pde
+  ../../modules/gui/terminal
+  ../../modules/gui/apps/common
+  ../../modules/gui/apps/linux
+  ../../modules/platform/linux
+];
+```
+
+**macOS Desktop** - Full GUI environment with macOS-specific apps:
+```nix
+imports = [
+  ../../modules/core
+  ../../modules/pde
+  ../../modules/gui/terminal
+  ../../modules/gui/apps/common
+  ../../modules/gui/apps/darwin
+  ../../modules/platform/darwin
+];
+```
+
+#### Principles
+- **PDE is self-contained** - All terminal-based development tools go here
+- **GUI is optional** - Headless servers don't need any GUI modules
+- **Platform-specific separation** - Linux and macOS apps are kept separate
+- **Composable** - Hosts can mix and match what they need
+- **Don't create empty directories** - Only create module folders when you have content for them
 
 ## Common Commands
 
@@ -66,9 +140,20 @@ homeConfigurations."{hostname}" = home-manager.lib.homeManagerConfiguration {
 };
 ```
 
-### Add New Packages
+### Add New Modules
 
-Add packages to the appropriate module in `home/modules/`. For CLI tools, add them to `home/modules/cli/core/default.nix` or create a new module directory under `home/modules/cli/`.
+1. Create a new directory under the appropriate category
+2. Add a `default.nix` file in that directory
+3. Import the new module in the parent category's `default.nix`
+
+For example, to add a new PDE tool:
+```bash
+mkdir -p home/modules/pde/fzf
+# Create home/modules/pde/fzf/default.nix
+# Add ./fzf to imports in home/modules/pde/default.nix
+```
+
+For CLI packages, add them to `home/modules/pde/core/default.nix` or create a new module as shown above.
 
 ## Configuration Details
 
