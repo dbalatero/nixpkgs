@@ -5,32 +5,6 @@ This document tracks the differences between the current Nix-based Neovim config
 ## High Priority Changes
 
 ### LSP & Formatting
-- [x] **Replace lsp-format.nvim with conform.nvim**
-  - **Git commits**:
-    - `0600e3f` - "fix: parity with nixpkgs" (adds conform.nvim)
-    - `1bab50a` - "eslint fix on save" (adds format_after_save callback)
-  - conform.nvim is more actively maintained and flexible
-  - Supports format_after_save callback for ESLint integration
-  - format_on_save with 500ms timeout, lsp_format fallback
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/formatting.lua`
-  - Location to update: `home/modules/pde/neovim/plugins/lsp.nix`
-  - Note: Remove lsp-format configuration
-
-- [x] **Add ESLint LSP with format-on-save integration**
-  - **Git commit**: `1bab50a` - "eslint fix on save"
-  - Configure eslint LSP server
-  - Integrate with conform.nvim format_after_save callback
-  - Keybinding: `<leader>le` for :EslintFixAll
-  - Auto-run EslintFixAll after save when ESLint is attached
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/eslint.lua` and `/home/dbalatero/dotfiles/nvim/lua/packages/formatting.lua`
-  - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
-
-- [x] **Add lazydev.nvim for Lua LSP improvements**
-  - **Git commit**: `07de23d` - "feat: lua_ls"
-  - Better nvim Lua development support
-  - Loads luv types for vim.uv
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:36-45`
-  - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
 
 - [ ] **Add format-ts-errors.nvim** (SKIPPED - plugin not available at specified commit)
   - **Git commit**: `269c1fa` - "feat: typescript error formatting"
@@ -41,42 +15,12 @@ This document tracks the differences between the current Nix-based Neovim config
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
   - **Note**: Repository returned 404. May need to find working commit or use nixpkgs version.
 
-- [x] **Add nvim-lint for additional diagnostics**
-  - **Git commits**:
-    - `0600e3f` - "fix: parity with nixpkgs" (adds nvim-lint with rubocop)
-    - `841e087` - "update plugins" (switches to custom fork for timeout fixes)
-  - Adds rubocop and vale linting
-  - Uses custom fork: dbalatero/nvim-lint, branch: custom-fork
-  - Runs on BufWritePost with 300ms debounce
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/diagnostics/init.lua`
-  - Location to add: `home/modules/pde/neovim/plugins/lsp.nix` or new file
-
 - [ ] **Add troublesum.nvim dependency** (SKIPPED - plugin not available at specified commits)
   - **Git commit**: `6a8211e` - "feat: more lsp"
   - Shows diagnostic counts in trouble.nvim
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:51`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
   - **Note**: Repository returned 404 for both commits tried. May need to find working commit or use nixpkgs version.
-
-- [x] **Update LSP keybindings**
-  - **Git commit**: `5b38e69` - "fix: LSP keybinds"
-  - Fix `gd` vs `gD` mappings (definition vs declaration)
-  - Move `<leader>li` to global keymap instead of per-buffer
-  - Add `<leader>lm` and `<leader>lp` temporary rename shortcuts
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/setup.lua`
-  - Location to update: `home/modules/pde/neovim/plugins/lsp.nix`
-
-- [x] **Update Trouble.nvim keybindings for v3 API**
-  - **Git commit**: `79a5566` - "fix: trouble hotkeys with new trouble API change"
-  - Updates from `TroubleToggle` to `Trouble diagnostics toggle`
-  - `<leader>xx` = Trouble diagnostics toggle
-  - `<leader>xX` = Trouble diagnostics toggle filter.buf=0 (buffer only)
-  - `<leader>xl` = Trouble loclist toggle
-  - `<leader>xq` = Trouble quickfix toggle
-  - `gR` = Trouble lsp toggle (references/definitions)
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:55-91`
-  - Location to update: `home/modules/pde/neovim/plugins/lsp.nix`
-  - Note: Nix config might have older trouble.nvim version
 
 ### AI Integration
 - [ ] **Add claudecode.nvim plugin**
