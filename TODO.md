@@ -78,10 +78,6 @@
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/testing.lua:64-82`
   - Location: `home/modules/pde/neovim/plugins/testing.nix`
 
-## Stripe-Specific (Optional for Personal Machines)
-
-These features are conditionally loaded only on Stripe machines. You may want to skip these for personal Nix configs.
-
 ## Notes
 
 ### Architecture Differences
@@ -99,14 +95,3 @@ The evolution path from basic config to current state:
 1. **Claude Code** (commit: `427d561`) - AI integration
 
 These represent the evolution path from the basic config (where the Nix repo likely started) to the current state.
-
-### Commit Analysis Summary
-
-**Total Commits Analyzed**: 47 commits in dotfiles/nvim
-
-**Matched to TODO Items**: 18+ commits
-**New TODO Items Added**: 4 high-priority items
-**Stripe-Specific Items**: 4 items (optional)
-**Maintenance Commits**: 13 commits (lock files, generic updates)
-
-All functional changes from the git history have been accounted for in this TODO list.
