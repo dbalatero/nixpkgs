@@ -7,6 +7,7 @@
 
   home.packages = with pkgs;
     [
+      proximity-sort
       tree-sitter
     ]
     ++ lib.optionals (!pkgs.stdenv.isDarwin) [
