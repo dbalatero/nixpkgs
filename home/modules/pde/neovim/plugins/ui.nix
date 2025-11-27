@@ -10,6 +10,14 @@
   helpers = config.lib.nixvim;
 in {
   programs.nixvim = {
+    # Catppuccin colorscheme
+    colorschemes.catppuccin = {
+      enable = true;
+      settings = {
+        flavor = "mocha";
+      };
+    };
+
     plugins = {
       # better inputs and selects
       dressing.enable = true;
@@ -40,6 +48,7 @@ in {
         require("lualine").setup({
           options = {
             icons_enabled = true,
+            theme = "catppuccin",
           },
           sections = {
             lualine_a = { "mode" },
