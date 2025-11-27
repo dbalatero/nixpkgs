@@ -4,21 +4,6 @@ This document tracks the differences between the current Nix-based Neovim config
 
 ## High Priority Changes
 
-### UI Modernization
-- [ ] **Add noice.nvim for modern UI**
-  - **Git commit**: `e0d9a02` - "ts-comments, todo-comments, noice"
-  - Provides modern UI for messages, cmdline, and popups
-  - Includes better LSP documentation rendering
-  - Dependencies: nui.nvim, nvim-notify
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/ui.lua:49-128`
-  - Keybindings:
-    - `<leader>snl` - Noice Last Message
-    - `<leader>snh` - Noice History
-    - `<leader>sna` - Noice All
-    - `<leader>snd` - Dismiss All
-    - `<c-f>` / `<c-b>` - Scroll in LSP hover docs
-  - Location to add: `home/modules/pde/neovim/plugins/ui.nix`
-
 ### Editing Enhancements
 - [ ] **Add flash.nvim for enhanced navigation**
   - **Git commit**: `67d0d2d` - "flash.nvim"
