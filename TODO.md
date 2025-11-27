@@ -4,17 +4,6 @@ This document tracks the differences between the current Nix-based Neovim config
 
 ## High Priority Changes
 
-### Completion System Migration
-- [x] **CRITICAL: Replace nvim-cmp with blink.cmp**
-  - **Git commit**: `b41ca95` - "switch to blink.cmp"
-  - dotfiles switched from nvim-cmp to blink.cmp for better performance
-  - Removes: nvim-cmp, cmp-buffer, cmp-nvim-lsp, cmp-under-comparator, cmp_luasnip, lspkind-nvim
-  - Adds: blink.cmp with custom Tab/Shift-Tab handlers for completion cycling
-  - blink.cmp has better snippet integration and faster completion
-  - ✅ **COMPLETED**: Migrated to blink.cmp in `home/modules/pde/neovim/plugins/completion.nix`
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/completion.lua`
-  - Location: `home/modules/pde/neovim/plugins/completion.nix`
-
 ### UI Modernization
 - [ ] **Add noice.nvim for modern UI**
   - **Git commit**: `e0d9a02` - "ts-comments, todo-comments, noice"
