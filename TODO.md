@@ -20,25 +20,6 @@
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
   - **Note**: Repository returned 404 for both commits tried. May need to find working commit or use nixpkgs version.
 
-### AI Integration
-- [ ] **Add claudecode.nvim plugin**
-  - **Git commit**: `427d561` - "feat: add claude code to neovim"
-  - Claude Code integration for Neovim
-  - Extensive keybindings under `<leader>a`
-  - Dependencies: snacks.nvim
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/ai.lua`
-  - Keybindings:
-    - `<leader>ac` - Toggle Claude
-    - `<leader>af` - Focus Claude
-    - `<leader>ar` - Resume Claude
-    - `<leader>aC` - Continue Claude
-    - `<leader>am` - Select Claude model
-    - `<leader>ab` - Add current buffer
-    - `<leader>as` - Send to Claude (visual) / Add file (tree)
-    - `<leader>aa` - Accept diff
-    - `<leader>ad` - Deny diff
-  - Location to add: New file `home/modules/pde/neovim/plugins/ai.nix`
-
 ## Medium Priority Changes
 
 ### Basic Settings & Keymaps
