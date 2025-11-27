@@ -41,7 +41,7 @@ in {
     mouse = true;
     prefix = lib.mkDefault "C-o";
     shell = "${config.home.homeDirectory}/.nix-profile/bin/zsh";
-    terminal = "xterm-256color";
+    terminal = "screen-256color";
 
     plugins = with pkgs; [
       tmuxPlugins.battery
