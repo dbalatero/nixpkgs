@@ -1,7 +1,5 @@
 # Neovim Migration TODO
 
-This document tracks the differences between the current Nix-based Neovim configuration and the `~/dotfiles/nvim` configuration.
-
 ## High Priority Changes
 
 ### LSP & Formatting
@@ -67,25 +65,6 @@ This document tracks the differences between the current Nix-based Neovim config
   - See: `/home/dbalatero/dotfiles/nvim/init.lua:170-181`
   - Location to update: `home/modules/pde/neovim/default.nix` autoCmd section
 
-### Git Integration
-- [ ] **Add unified Browse command**
-  - **Git commits**:
-    - `a14c305` - "feat: add sourcegraph link copy function"
-    - `c15d2aa` - "feat: create unified command for gbrowse"
-  - Single command that works with both GitHub and Sourcegraph
-  - Detects stripe-internal repos and uses Sgbrowse
-  - Supports visual mode line ranges
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/git.lua:22-53`
-  - Keybinding: `<leader>g` (visual mode)
-  - Location to update: `home/modules/pde/neovim/plugins/git.nix`
-  - Note: Current Nix config only has basic GBrowse
-
-- [ ] **Consider gitsigns status**
-  - dotfiles has gitsigns commented out
-  - Nix config has it enabled
-  - May want to disable in Nix to match dotfiles
-  - Location: `home/modules/pde/neovim/plugins/git.nix:6-17`
-
 ### File Navigation
 - [ ] **Add proximity-sort binary check**
   - dotfiles checks if proximity-sort binary exists before using
@@ -104,17 +83,6 @@ This document tracks the differences between the current Nix-based Neovim config
 ## Low Priority / Optional
 
 ### Treesitter
-- [ ] **Add rainbow-delimiters check**
-  - Nix config enables rainbow-delimiters
-  - dotfiles doesn't have it
-  - Decide if you want to keep it or remove it
-  - Location: `home/modules/pde/neovim/plugins/treesitter.nix:4`
-
-- [ ] **Add PHP to treesitter languages**
-  - **Git commit**: `00cc9d3` - "add php to langs"
-  - Add "php" to ensure_installed list
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/treesitter.lua:37`
-  - Location: `home/modules/pde/neovim/plugins/treesitter.nix`
 
 - [ ] **Sync treesitter language list**
   - dotfiles ensures: bash, css, dockerfile, go, graphql, java, javascript, json, lua, nix, php, python, regex, ruby, tsx, typescript, vim, yaml
