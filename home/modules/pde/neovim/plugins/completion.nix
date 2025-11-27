@@ -6,14 +6,6 @@
   helpers = config.lib.nixvim;
 in {
   programs.nixvim = {
-    extraPlugins = with pkgs; (
-      with vimPlugins; [
-        cmp-under-comparator
-        lspkind-nvim
-      ]
-    );
-
-    # reference: https://github.com/oddlama/nix-config/blob/3383fd9a142fe012461b9dc9bfa7a4a40d348aec/users/myuser/neovim/completion.nix#L14
     plugins = {
       friendly-snippets.enable = true;
 
@@ -25,134 +17,90 @@ in {
         };
       };
 
-      cmp-buffer.enable = true;
-      cmp_luasnip.enable = true;
-      cmp-nvim-lsp.enable = true;
-
-      cmp = {
+      # blink.cmp - modern completion plugin
+      blink-cmp = {
         enable = true;
+
         settings = {
-          sources = [
-            {name = "nvim_lsp";}
-            {name = "luasnip";}
-            {
-              name = "buffer";
-              option.get_bufnrs =
-                # lua
-                helpers.mkRaw ''
-                  function()
-                    return vim.api.nvim_list_bufs()
-                  end
-                '';
-            }
-          ];
+          keymap = {
+            preset = "super-tab";
 
-          formatting.format = helpers.mkRaw ''
-            require("lspkind").cmp_format({
-              mode = "symbol_text",
-              max_width = 50,
-            })
-          '';
+            # Disable super-tab's default Tab/Shift-Tab so custom handlers work
+            "<Tab>" = [];
+            "<S-Tab>" = [];
 
-          mapping = {
-            "<C-d>" =
-              # lua
-              "cmp.mapping.scroll_docs(-4)";
-
-            "<C-Space>" =
-              # lua
-              "cmp.mapping.complete({})";
-
-            "<C-f>" =
-              # lua
-              "cmp.mapping.scroll_docs(4)";
-
-            "<CR>" =
-              # lua
-              ''
-                cmp.mapping.confirm({
-                  behavior = cmp.ConfirmBehavior.Replace,
-                  select = true,
-                })
-              '';
-
-            "<S-Tab>" =
-              # lua
-              ''
-                cmp.mapping(function(fallback)
-                  if cmp.visible() then
-                    cmp.select_prev_item({
-                      behavior = cmp.SelectBehavior.Insert
-                    })
-                  elseif luasnip.jumpable(-1) then
-                    luasnip.jump(-1)
-                  else
-                    fallback()
-                  end
-                end, {"i", "s"})
-              '';
-
-            "<Tab>" =
-              # lua
-              ''
-                cmp.mapping(function(fallback)
-                  local luasnip = require("luasnip")
-                  local has_words_before = function()
-                    if vim.api.nvim_buf_get_option(0, "buftype") == "prompt" then
-                      return false
-                    end
-
-                    local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-
-                    return col ~= 0
-                      and vim.api.nvim_buf_get_text(0, line - 1, 0, line - 1, col, {})[1]:match("^%s*$") == nil
-                  end
-
-                  if cmp.visible() and has_words_before() then
-                    cmp.select_next_item({
-                      behavior = cmp.SelectBehavior.Insert
-                    })
-                  elseif luasnip.expandable() then
-                    luasnip.expand()
-                  elseif luasnip.expand_or_locally_jumpable() then
-                    luasnip.expand_or_jump()
-                  else
-                    fallback()
-                  end
-                end, { 'i', 's' })
-              '';
+            "<C-space>" = ["show" "show_documentation" "hide_documentation"];
+            "<C-e>" = ["hide"];
+            "<C-d>" = ["scroll_documentation_up" "fallback"];
+            "<C-f>" = ["scroll_documentation_down" "fallback"];
           };
 
-          sorting = {
-            priority_weight = 2;
-            comparators = [
-              # Sort by distance of the word from the cursor
-              #   https://github.com/hrsh7th/cmp-buffer#locality-bonus-comparator-distance-based-sorting
-              (helpers.mkRaw ''
-                function(...)
-                  return require("cmp_buffer"):compare_locality(...)
+          appearance = {
+            use_nvim_cmp_as_default = true;
+            nerd_font_variant = "mono";
+          };
+
+          sources = {
+            default = ["lsp" "path" "snippets" "buffer"];
+          };
+
+          completion = {
+            accept = {
+              auto_brackets = {
+                enabled = true;
+              };
+            };
+
+            menu = {
+              draw = {
+                columns = [
+                  {__unkeyed-1 = "kind_icon";}
+                  {
+                    __unkeyed-1 = "label";
+                    __unkeyed-2 = "label_description";
+                    gap = 1;
+                  }
+                ];
+              };
+            };
+
+            documentation = {
+              auto_show = true;
+              auto_show_delay_ms = 200;
+            };
+          };
+
+          snippets = {
+            expand =
+              helpers.mkRaw
+              # lua
+              ''
+                function(snippet)
+                  require("luasnip").lsp_expand(snippet)
                 end
-              '')
-              (helpers.mkRaw ''require("cmp.config.compare").offset'')
-              (helpers.mkRaw ''require("cmp.config.compare").exact'')
-              (helpers.mkRaw ''require("cmp.config.compare").score'')
-              (helpers.mkRaw ''require("cmp-under-comparator").under'')
-              (helpers.mkRaw ''require("cmp.config.compare").recently_used'')
-              (helpers.mkRaw ''require("cmp.config.compare").locality'')
-              (helpers.mkRaw ''require("cmp.config.compare").kind'')
-              (helpers.mkRaw ''require("cmp.config.compare").sort_text'')
-              (helpers.mkRaw ''require("cmp.config.compare").length'')
-              (helpers.mkRaw ''require("cmp.config.compare").order'')
-            ];
-          };
+              '';
 
-          snippet.expand =
-            # lua
-            ''
-              function(args)
-                luasnip.lsp_expand(args.body)
-              end
-            '';
+            active =
+              helpers.mkRaw
+              # lua
+              ''
+                function(filter)
+                  if filter and filter.direction then
+                    return require("luasnip").jumpable(filter.direction)
+                  end
+                  return require("luasnip").in_snippet()
+                end
+              '';
+
+            jump =
+              helpers.mkRaw
+              # lua
+              ''
+                function(direction)
+                  require("luasnip").jump(direction)
+                end
+              '';
+          };
         };
       };
     };
@@ -162,8 +110,47 @@ in {
       lua
       */
       ''
-        require("lspkind").init()
+        -- Custom Tab handler for blink.cmp
+        local function custom_tab()
+          local cmp = require("blink.cmp")
 
+          -- Handle snippet navigation first
+          if cmp.snippet_active() then
+            return cmp.snippet_forward()
+          end
+
+          -- If completion menu is visible, cycle through items
+          if cmp.is_visible() then
+            return cmp.select_next()
+          else
+            -- No menu, fallback to regular tab
+            return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Tab>", true, false, true), "n", false)
+          end
+        end
+
+        -- Custom Shift-Tab handler for blink.cmp
+        local function custom_shift_tab()
+          local cmp = require("blink.cmp")
+
+          -- Handle snippet navigation first
+          if cmp.snippet_active() then
+            return cmp.snippet_backward()
+          end
+
+          -- If completion menu is visible, cycle backwards
+          if cmp.is_visible() then
+            return cmp.select_prev()
+          else
+            -- No menu, fallback to regular shift-tab
+            return vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<S-Tab>", true, false, true), "n", false)
+          end
+        end
+
+        -- Set up custom Tab handlers
+        vim.keymap.set("i", "<Tab>", custom_tab, { desc = "Blink: Select next completion" })
+        vim.keymap.set("i", "<S-Tab>", custom_shift_tab, { desc = "Blink: Select prev completion" })
+
+        -- Add custom snippets
         local ls = require("luasnip")
         ls.add_snippets("all", {
           ls.snippet("todo", { ls.text_node("TODO(dbalatero): ") }),
