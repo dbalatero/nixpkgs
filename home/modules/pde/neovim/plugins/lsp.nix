@@ -5,20 +5,12 @@
   ...
 }: let
   helpers = config.lib.nixvim;
-
-  lsp-format-latest = pkgs.vimUtils.buildVimPlugin {
-    name = "lsp-format.nvim";
-    src = pkgs.fetchFromGitHub {
-      owner = "lukas-reineke";
-      repo = "lsp-format.nvim";
-      rev = "47de35b54ec95bb049f52016632394b914d4d9e9";
-      hash = "sha256-x9jCrtsPaGIw+hn9HZg24Iqf+2lpHqRnBJri0Jd+bdc=";
-    };
-  };
 in {
   home.packages = with pkgs; [
     alejandra
     typescript
+    shfmt
+    stylua
   ];
 
   programs.nixvim = {
@@ -82,10 +74,10 @@ in {
         };
       }
 
-      # Trouble
+      # Trouble (v3 API)
       {
         key = "<leader>xx";
-        action = "<cmd>Trouble diagnostics toggle<CR>";
+        action = "<cmd>Trouble diagnostics toggle<cr>";
         options = {
           silent = true;
           remap = false;
@@ -93,8 +85,8 @@ in {
         };
       }
       {
-        key = "<leader>xb";
-        action = "<cmd>TroubleToggle diagnostics toggle filter.buf=0<CR>";
+        key = "<leader>xX";
+        action = "<cmd>Trouble diagnostics toggle filter.buf=0<cr>";
         options = {
           silent = true;
           remap = false;
@@ -103,7 +95,7 @@ in {
       }
       {
         key = "<leader>xl";
-        action = "<cmd>Trouble loclist toggle<CR>";
+        action = "<cmd>Trouble loclist toggle<cr>";
         options = {
           silent = true;
           remap = false;
@@ -112,7 +104,7 @@ in {
       }
       {
         key = "<leader>xq";
-        action = "<cmd>Trouble qflist toggle<CR>";
+        action = "<cmd>Trouble quickfix toggle<cr>";
         options = {
           silent = true;
           remap = false;
@@ -121,7 +113,7 @@ in {
       }
       {
         key = "gR";
-        action = "<cmd>TroubleToggle lsp toggle focus=false win.position=right<CR>";
+        action = "<cmd>Trouble lsp toggle focus=false win.position=right<cr>";
         options = {
           silent = true;
           remap = false;
@@ -194,12 +186,122 @@ in {
           desc = "LSP: Restart LSP(s) in buffer";
         };
       }
+      {
+        key = "<leader>le";
+        action = ":EslintFixAll<CR>";
+        options = {
+          desc = "LSP: Fix all ESLint issues";
+        };
+      }
+      {
+        key = "<leader>lm";
+        action =
+          # lua
+          helpers.mkRaw ''
+            function()
+              vim.lsp.buf.rename("TMutationArgs")
+            end
+          '';
+        options = {
+          desc = "LSP: Rename mutation";
+        };
+      }
+      {
+        key = "<leader>lp";
+        action =
+          # lua
+          helpers.mkRaw ''
+            function()
+              local var_name = vim.fn.expand("<cWORD>")
+              if var_name:match("_") ~= nil then
+                vim.lsp.buf.rename("_args")
+              else
+                vim.lsp.buf.rename("args")
+              end
+            end
+          '';
+        options = {
+          desc = "LSP: Rename params -> args";
+        };
+      }
     ];
 
     plugins = {
-      lsp-format = {
+      # Format on save with conform.nvim
+      conform-nvim = {
         enable = true;
-        package = lsp-format-latest;
+        settings = {
+          formatters_by_ft = {
+            bash = ["shfmt"];
+            lua = ["stylua"];
+            ruby = {
+              lsp_format = "prefer";
+            };
+            javascript = ["prettierd"];
+            typescript = ["prettierd"];
+            javascriptreact = ["prettierd"];
+            typescriptreact = ["prettierd"];
+            html = ["prettierd"];
+            json = ["prettierd"];
+            jsonc = ["prettierd"];
+            graphql = ["prettierd"];
+            css = ["prettierd"];
+          };
+          format_after_save = helpers.mkRaw ''
+            function(bufnr)
+              return {
+                timeout_ms = 500,
+                lsp_format = "fallback",
+              }, function(err, did_edit)
+                if err then
+                  return
+                end
+
+                if not did_edit then
+                  return
+                end
+
+                -- Check if ESLint is attached and run EslintFixAll
+                local clients = vim.lsp.get_clients({ bufnr = bufnr or 0 })
+                for _, client in ipairs(clients) do
+                  if client.name == "eslint" then
+                    vim.api.nvim_command("EslintFixAll")
+                    break
+                  end
+                end
+              end
+            end
+          '';
+        };
+      };
+
+      # Lua LSP improvements for nvim config
+      lazydev = {
+        enable = true;
+        settings = {
+          library = [
+            {
+              path = "\${3rd}/luv/library";
+              words = ["vim%.uv"];
+            }
+          ];
+        };
+      };
+
+      # nvim-lint for additional diagnostics
+      lint = {
+        enable = true;
+        lintersByFt = {
+          ruby = ["rubocop"];
+        };
+        autoCmd = {
+          event = ["BufWritePost"];
+          callback = helpers.mkRaw ''
+            function()
+              require("lint").try_lint()
+            end
+          '';
+        };
       };
 
       web-devicons.enable = true;
@@ -232,6 +334,11 @@ in {
           bashls.enable = true;
           cssls.enable = true;
           html.enable = true;
+
+          eslint = {
+            enable = true;
+            rootMarkers = ["package.json"];
+          };
 
           jsonls = {
             enable = true;
@@ -352,5 +459,6 @@ in {
         };
       };
     };
+
   };
 }

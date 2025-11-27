@@ -4,57 +4,8 @@ This document tracks the differences between the current Nix-based Neovim config
 
 ## High Priority Changes
 
-### Editing Enhancements
-- [ ] **Add flash.nvim for enhanced navigation**
-  - **Git commit**: `67d0d2d` - "flash.nvim"
-  - Jump to any location with labels (replaces easymotion/hop)
-  - Main keybinding: `s` in normal/visual/operator-pending modes
-  - Custom label sequence, disables char mode, enables multi-window search
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:6-38`
-  - Location to add: `home/modules/pde/neovim/plugins/editing.nix`
-
-- [ ] **Add todo-comments.nvim**
-  - **Git commit**: `e0d9a02` - "ts-comments, todo-comments, noice"
-  - Highlights TODO, FIXME, NOTE, etc. in code
-  - Navigate between todos with `]t` and `[t`
-  - Search todos with `<leader>st` and `<leader>sT`
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:102-125`
-  - Location to add: `home/modules/pde/neovim/plugins/editing.nix`
-
-- [ ] **Replace comment.nvim with ts-comments.nvim**
-  - **Git commit**: `e0d9a02` - "ts-comments, todo-comments, noice"
-  - Treesitter-aware commenting (smarter than regular comment.nvim)
-  - Handles embedded languages better (e.g., JS in HTML)
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:95-99`
-  - Location to update: `home/modules/pde/neovim/plugins/editing.nix`
-
-- [ ] **Add mini.ai for extended text objects**
-  - **Git commits**:
-    - `7e5379d` - "add mini.ai" (initial implementation)
-    - `91f3895` - "fix mini.ai" (adds error handling for missing parsers)
-  - Provides powerful text object selections
-  - Custom treesitter-based text objects (functions, classes, blocks)
-  - Includes fallback wrapper when treesitter parser unavailable
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:271-309`
-  - Location to add: `home/modules/pde/neovim/plugins/editing.nix`
-
-- [ ] **Add quicker.nvim for better quickfix**
-  - **Git commit**: `cffe0f7` - "feat: add quicker"
-  - Enhanced quickfix window with expand/collapse context
-  - `>` to expand context, `<` to collapse
-  - `<leader>q` to toggle quickfix
-  - Expand with 2 lines before/after context
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:44-78`
-  - Location to add: `home/modules/pde/neovim/plugins/editing.nix`
-
-- [ ] **Add vim-eunuch for Unix file operations**
-  - **Git commit**: `65a48fe` - "vim-eunuch + updates"
-  - Provides :Delete, :Move, :Rename, :Chmod, :Mkdir, etc.
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/editing.lua:41-42`
-  - Location to add: `home/modules/pde/neovim/plugins/editing.nix`
-
 ### LSP & Formatting
-- [ ] **Replace lsp-format.nvim with conform.nvim**
+- [x] **Replace lsp-format.nvim with conform.nvim**
   - **Git commits**:
     - `0600e3f` - "fix: parity with nixpkgs" (adds conform.nvim)
     - `1bab50a` - "eslint fix on save" (adds format_after_save callback)
@@ -65,7 +16,7 @@ This document tracks the differences between the current Nix-based Neovim config
   - Location to update: `home/modules/pde/neovim/plugins/lsp.nix`
   - Note: Remove lsp-format configuration
 
-- [ ] **Add ESLint LSP with format-on-save integration**
+- [x] **Add ESLint LSP with format-on-save integration**
   - **Git commit**: `1bab50a` - "eslint fix on save"
   - Configure eslint LSP server
   - Integrate with conform.nvim format_after_save callback
@@ -74,22 +25,23 @@ This document tracks the differences between the current Nix-based Neovim config
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/eslint.lua` and `/home/dbalatero/dotfiles/nvim/lua/packages/formatting.lua`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
 
-- [ ] **Add lazydev.nvim for Lua LSP improvements**
+- [x] **Add lazydev.nvim for Lua LSP improvements**
   - **Git commit**: `07de23d` - "feat: lua_ls"
   - Better nvim Lua development support
   - Loads luv types for vim.uv
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:36-45`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
 
-- [ ] **Add format-ts-errors.nvim**
+- [ ] **Add format-ts-errors.nvim** (SKIPPED - plugin not available at specified commit)
   - **Git commit**: `269c1fa` - "feat: typescript error formatting"
   - Prettier TypeScript error messages
   - Dependency for typescript-tools
   - Custom diagnostic handler integration
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:28`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
+  - **Note**: Repository returned 404. May need to find working commit or use nixpkgs version.
 
-- [ ] **Add nvim-lint for additional diagnostics**
+- [x] **Add nvim-lint for additional diagnostics**
   - **Git commits**:
     - `0600e3f` - "fix: parity with nixpkgs" (adds nvim-lint with rubocop)
     - `841e087` - "update plugins" (switches to custom fork for timeout fixes)
@@ -99,13 +51,14 @@ This document tracks the differences between the current Nix-based Neovim config
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/diagnostics/init.lua`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix` or new file
 
-- [ ] **Add troublesum.nvim dependency**
+- [ ] **Add troublesum.nvim dependency** (SKIPPED - plugin not available at specified commits)
   - **Git commit**: `6a8211e` - "feat: more lsp"
   - Shows diagnostic counts in trouble.nvim
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/init.lua:51`
   - Location to add: `home/modules/pde/neovim/plugins/lsp.nix`
+  - **Note**: Repository returned 404 for both commits tried. May need to find working commit or use nixpkgs version.
 
-- [ ] **Update LSP keybindings**
+- [x] **Update LSP keybindings**
   - **Git commit**: `5b38e69` - "fix: LSP keybinds"
   - Fix `gd` vs `gD` mappings (definition vs declaration)
   - Move `<leader>li` to global keymap instead of per-buffer
@@ -113,7 +66,7 @@ This document tracks the differences between the current Nix-based Neovim config
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/setup.lua`
   - Location to update: `home/modules/pde/neovim/plugins/lsp.nix`
 
-- [ ] **Update Trouble.nvim keybindings for v3 API**
+- [x] **Update Trouble.nvim keybindings for v3 API**
   - **Git commit**: `79a5566` - "fix: trouble hotkeys with new trouble API change"
   - Updates from `TroubleToggle` to `Trouble diagnostics toggle`
   - `<leader>xx` = Trouble diagnostics toggle
