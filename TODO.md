@@ -31,13 +31,6 @@
   - See: `/home/dbalatero/dotfiles/nvim/init.lua:131-153`
   - Location to add: `home/modules/pde/neovim/default.nix` keymaps section
 
-- [ ] **Add Python and Node host program paths**
-  - Python 2: `~/.pyenv/versions/py2neovim/bin/python`
-  - Python 3: `~/.pyenv/versions/py3neovim/bin/python`
-  - Node: `~/.nodenv/versions/15.7.0/bin/node`
-  - See: `/home/dbalatero/dotfiles/nvim/init.lua:98-104`
-  - Location to add: `home/modules/pde/neovim/default.nix` globals section
-
 - [ ] **Improve markdown autocmd handling**
   - **Git commit**: `072f541` - "markdown word wrap in neovim"
   - Current Nix config sets wrap but doesn't handle formatoptions
