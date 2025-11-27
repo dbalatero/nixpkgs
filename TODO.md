@@ -30,19 +30,6 @@ This document tracks the differences between the current Nix-based Neovim config
     - `<c-f>` / `<c-b>` - Scroll in LSP hover docs
   - Location to add: `home/modules/pde/neovim/plugins/ui.nix`
 
-- [x] **Add catppuccin colorscheme**
-  - Currently using default theme in Nix config
-  - dotfiles uses catppuccin-mocha flavor
-  - Also update lualine theme to "catppuccin"
-  - **IMPORTANT**: Use native catppuccin.nvim plugin, NOT stylix's base16 version
-    - Stylix uses simplified 16-color base16 palette (missing full catppuccin features)
-    - Native plugin has full 26+ color palette with plugin-specific integrations
-    - Includes proper highlighting for: treesitter, LSP, completion, telescope, trouble, flash, noice, etc.
-    - Disable stylix vim target to avoid conflicts
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/ui.lua:19-31`
-  - Location: `home/modules/pde/neovim/plugins/ui.nix`
-  - Also update: `home/modules/pde/stylix/default.nix` (set `targets.vim.enable = false`)
-
 ### Editing Enhancements
 - [ ] **Add flash.nvim for enhanced navigation**
   - **Git commit**: `67d0d2d` - "flash.nvim"
