@@ -120,11 +120,9 @@ These are fundamentally different approaches. The Nix config cannot directly "im
 The evolution path from basic config to current state:
 
 1. **flash.nvim** (commit: `67d0d2d`) - Enhanced navigation
-2. **mini.ai** (commits: `91f3895`, `7e5379d`) - Extended text objects
-3. **ts-comments, todo-comments, noice** (commit: `e0d9a02`) - Modern UI and commenting
-4. **blink.cmp** (commit: `b41ca95`) - Completion system upgrade
-5. **Claude Code** (commit: `427d561`) - AI integration
-6. **quicker.nvim** (commit: `cffe0f7`) - Better quickfix
+1. **ts-comments, todo-comments, noice** (commit: `e0d9a02`) - Modern UI and commenting
+1. **blink.cmp** (commit: `b41ca95`) - Completion system upgrade
+1. **Claude Code** (commit: `427d561`) - AI integration
 
 These represent the evolution path from the basic config (where the Nix repo likely started) to the current state.
 
