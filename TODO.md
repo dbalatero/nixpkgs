@@ -122,11 +122,6 @@ This document tracks the differences between the current Nix-based Neovim config
   - Verify all languages from dotfiles are available
 
 ### Plugin Version Management
-- [ ] **Review vim-cool status**
-  - Plugin is commented out in Nix default.nix
-  - Plugin is active in dotfiles and Nix ui.nix
-  - Cleanup: Remove commented code or enable in default.nix
-  - Location: `home/modules/pde/neovim/plugins/default.nix:30-39`
 
 - [ ] **Update lualine source**
   - Nix builds from master branch of GitHub
@@ -145,40 +140,6 @@ This document tracks the differences between the current Nix-based Neovim config
 
 These features are conditionally loaded only on Stripe machines. You may want to skip these for personal Nix configs.
 
-- [ ] **Add Stripe pay-server TypeScript LSP configuration**
-  - **Git commits**:
-    - `cff78fa` - "feat: typescript support in ps"
-    - `548a738` - "feat: tsserver in ps"
-    - `caa5bbd` - "bump mem to 12gb in TS"
-  - Conditional tsserver_path for pay-server (frontend/js-scripts/node_modules/typescript/lib/tsserver.js)
-  - Auto-install js-scripts if missing (pay exec autogen-lsp-server)
-  - Memory configuration (12GB for pay-server)
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/typescript.lua`
-  - Location: Conditional in LSP setup
-
-- [ ] **Add Stripe autogen LSP server**
-  - **Git commit**: `e1b10d5` - "feat: autogen lsp"
-  - Only activates in pay-server directories
-  - Supports Ruby and YAML filetypes
-  - Handles devbox vs laptop environments
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/lsp/stripe_autogen.lua`
-  - Location: Conditional LSP setup
-
-- [ ] **Add Stripe devbox environment detection**
-  - **Git commit**: `c1237a2` - "add devbox vim support"
-  - Detect STRIPE_USER environment variable for devbox
-  - Different pay-server path for devbox (/pay/src/pay-server)
-  - Used by LSP configurations to adapt commands
-  - See: `/home/dbalatero/dotfiles/nvim/lua/custom/config.lua`
-  - Location: Conditional logic
-
-- [ ] **Add Vale linting for Stripe markdoc**
-  - **Git commit**: `86f232f` - "feat: add vale for stripe markdoc"
-  - Adds vale linter with pay-server specific config
-  - Only runs in pay-server (docs/vale/.vale.ini)
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/diagnostics/init.lua`
-  - Location: Conditional in nvim-lint setup
-
 ## Notes
 
 ### Architecture Differences
@@ -186,9 +147,6 @@ These features are conditionally loaded only on Stripe machines. You may want to
 - **Nix config**: Uses nixvim (declarative Nix-based config)
 
 These are fundamentally different approaches. The Nix config cannot directly "import" lazy.nvim plugins, but can achieve the same functionality through nixvim's plugin system.
-
-### Completion System Evolution
-Based on git history, the dotfiles recently switched from nvim-cmp to blink.cmp (commit: `b41ca95 switch to blink.cmp`). This is a significant change that should be prioritized in the Nix migration.
 
 ### Recent Major Additions (from git log)
 The evolution path from basic config to current state:
