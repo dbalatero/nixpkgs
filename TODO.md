@@ -54,30 +54,6 @@
   - See: `/home/dbalatero/dotfiles/nvim/lua/packages/fzf.lua:65-70`
   - Location to update: `home/modules/pde/neovim/plugins/fzf-lua.nix:18`
 
-## Low Priority / Optional
-
-### Treesitter
-
-- [ ] **Sync treesitter language list**
-  - dotfiles ensures: bash, css, dockerfile, go, graphql, java, javascript, json, lua, nix, php, python, regex, ruby, tsx, typescript, vim, yaml
-  - Nix config should auto-install based on nixvim defaults
-  - Verify all languages from dotfiles are available
-
-### Plugin Version Management
-
-- [ ] **Update lualine source**
-  - Nix builds from master branch of GitHub
-  - May want to pin to specific version for stability
-  - Location: `home/modules/pde/neovim/plugins/ui.nix:86-92`
-
-### Testing
-- [ ] **Verify vim-test configuration parity**
-  - Both configs look very similar
-  - Nix config appears to be missing stripe-specific test runners
-  - May need to add conditional logic for Stripe repos
-  - See: `/home/dbalatero/dotfiles/nvim/lua/packages/testing.lua:64-82`
-  - Location: `home/modules/pde/neovim/plugins/testing.nix`
-
 ## Notes
 
 ### Architecture Differences
