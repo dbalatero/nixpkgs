@@ -9,8 +9,6 @@
     gh
     git
     go-jira
-    lazygit
-
     (writeShellScriptBin "git-churn" (builtins.readFile ./bin/git-churn.sh))
     (writeShellScriptBin "git-delete-merged-branches" (builtins.readFile ./bin/git-delete-merged-branches.sh))
     (writeShellScriptBin "git-local-repos" (builtins.readFile ./bin/git-local-repos.sh))
@@ -34,6 +32,11 @@
     # Include a link to the ticket, if any.
   '';
 
+  programs.lazygit = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
   programs.diff-so-fancy = {
     enable = true;
     enableGitIntegration = true;
@@ -49,90 +52,90 @@
       };
 
       alias = {
-      # add
-      a = "add";
+        # add
+        a = "add";
 
-      # branch
-      b = "branch -v"; # branch (verbose)
-      recent-branches = "!git for-each-ref --count=5 --sort=-committerdate refs/heads/ --format='%(refname:short)'";
+        # branch
+        b = "branch -v"; # branch (verbose)
+        recent-branches = "!git for-each-ref --count=5 --sort=-committerdate refs/heads/ --format='%(refname:short)'";
 
-      # commit
-      amend = "commit --amend"; # amend your last commit
-      c = "commit -m"; # commit with message
-      ca = "commit -am"; # commit all with message
-      ci = "commit"; # commit
+        # commit
+        amend = "commit --amend"; # amend your last commit
+        c = "commit -m"; # commit with message
+        ca = "commit -am"; # commit all with message
+        ci = "commit"; # commit
 
-      # checkout
-      co = "checkout"; # checkout
-      nb = "checkout -b"; # create and switch to a new branch (mnemonic: "git new branch branchname...")
-      m = "checkout master"; # checkout main branch
+        # checkout
+        co = "checkout"; # checkout
+        nb = "checkout -b"; # create and switch to a new branch (mnemonic: "git new branch branchname...")
+        m = "checkout master"; # checkout main branch
 
-      done = "!git fetch origin $(git main-branch):$(git main-branch) && git checkout $(git main-branch)";
+        done = "!git fetch origin $(git main-branch):$(git main-branch) && git checkout $(git main-branch)";
 
-      # cherry-pick
-      cp = "cherry-pick -x"; # grab a change from a branch
+        # cherry-pick
+        cp = "cherry-pick -x"; # grab a change from a branch
 
-      # diff
-      d = "diff"; # diff unstaged changes
-      dc = "diff --cached"; # diff staged changes
-      last = "diff HEAD^"; # diff last committed change
+        # diff
+        d = "diff"; # diff unstaged changes
+        dc = "diff --cached"; # diff staged changes
+        last = "diff HEAD^"; # diff last committed change
 
-      # log
-      l = "log --graph --date=short";
-      changes = "log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\" --name-status";
-      short = "log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\"";
-      simple = "log --pretty=format:\" * %s\"";
-      shortnocolor = "log --pretty=format:\"%h %cr %cn %s\"";
+        # log
+        l = "log --graph --date=short";
+        changes = "log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\" --name-status";
+        short = "log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\"";
+        simple = "log --pretty=format:\" * %s\"";
+        shortnocolor = "log --pretty=format:\"%h %cr %cn %s\"";
 
-      # pull
-      pl = "pull"; # pull
+        # pull
+        pl = "pull"; # pull
 
-      # push
-      ps = "push -u"; # push
-      p = "push -u --force-with-lease";
-      please = "push -u --force-with-lease";
+        # push
+        ps = "push -u"; # push
+        p = "push -u --force-with-lease";
+        please = "push -u --force-with-lease";
 
-      # rebase
-      rc = "rebase --continue"; # continue rebase
-      rs = "rebase --skip"; # skip rebase
+        # rebase
+        rc = "rebase --continue"; # continue rebase
+        rs = "rebase --skip"; # skip rebase
 
-      # remote
-      r = "remote -v"; # show remotes (verbose)
+        # remote
+        r = "remote -v"; # show remotes (verbose)
 
-      ### sync
-      # Quick sync (non-interactive mode)
-      qsync = "!git fetch origin $(git main-branch):$(git main-branch) && git rebase --no-keep-empty $(git main-branch)";
+        ### sync
+        # Quick sync (non-interactive mode)
+        qsync = "!git fetch origin $(git main-branch):$(git main-branch) && git rebase --no-keep-empty $(git main-branch)";
 
-      # interactive sync your current branch with master
-      sync = "!git fetch origin $(git main-branch):$(git main-branch) && git rebase --no-keep-empty -i $(git main-branch)";
+        # interactive sync your current branch with master
+        sync = "!git fetch origin $(git main-branch):$(git main-branch) && git rebase --no-keep-empty -i $(git main-branch)";
 
-      take-master = "!git checkout --ours $1 && git add $1 && git status";
+        take-master = "!git checkout --ours $1 && git add $1 && git status";
 
-      # respond to PR feedback
-      respond = "!git commit --amend --no-edit && git push --force-with-lease";
+        # respond to PR feedback
+        respond = "!git commit --amend --no-edit && git push --force-with-lease";
 
-      # fix your branch when it's missing upstream
-      upstream = "!git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)";
+        # fix your branch when it's missing upstream
+        upstream = "!git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)";
 
-      # reset
-      unstage = "reset HEAD"; # remove files from index (tracking)
+        # reset
+        unstage = "reset HEAD"; # remove files from index (tracking)
 
-      # switch branches interactive
-      si = "switch-interactive";
+        # switch branches interactive
+        si = "switch-interactive";
 
-      # stash
-      ss = "stash"; # stash changes
-      sl = "stash list"; # list stashes
-      sa = "stash apply"; # apply stash (restore changes)
-      sd = "stash drop"; # drop stashes (destory changes)
+        # stash
+        ss = "stash"; # stash changes
+        sl = "stash list"; # list stashes
+        sa = "stash apply"; # apply stash (restore changes)
+        sd = "stash drop"; # drop stashes (destory changes)
 
-      # status
-      s = "status"; # status
-      st = "status"; # status
-      stat = "status"; # status
+        # status
+        s = "status"; # status
+        st = "status"; # status
+        stat = "status"; # status
 
-      # tag
-      t = "tag -n"; # show tags with <n> lines of each tag message
+        # tag
+        t = "tag -n"; # show tags with <n> lines of each tag message
       };
 
       github.user = "dbalatero";
