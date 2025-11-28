@@ -3,9 +3,6 @@
 {
   nix.enable = false;
 
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
   # Primary user for system defaults
   system.primaryUser = "dbalatero";
 
@@ -26,7 +23,4 @@
 
   # Used for backwards compatibility
   system.stateVersion = 5;
-
-  # The platform the configuration will be used on
-  nixpkgs.hostPlatform = "aarch64-darwin"; # or "x86_64-darwin"
 }

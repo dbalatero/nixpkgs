@@ -25,7 +25,7 @@
     };
   };
 
-  outputs = {
+  outputs = inputs @ {
     self,
     nixpkgs,
     darwin,
@@ -47,23 +47,31 @@
       system = "aarch64-darwin";
       modules = [
         ./darwin/hosts/lion
+        {
+          networking.localHostName = "lion";
+        }
         home-manager.darwinModules.home-manager
         {
+          # Allow unfree packages at the system level
+          nixpkgs.config.allowUnfree = true;
+
           home-manager = {
             users.dbalatero = {
               imports = [
-                ./home/hosts/lion
+                (import ./home/hosts/lion)
                 nixvim.homeManagerModules.nixvim
                 stylix.homeManagerModules.stylix
               ];
             };
             useGlobalPkgs = true;
-            extraSpecialArgs = { inherit nixpkgs; };
+            extraSpecialArgs = {inherit inputs;};
           };
+
           users.users.dbalatero.home = "/Users/dbalatero";
         }
       ];
-      specialArgs = { inherit nixpkgs; };
+
+      specialArgs = {inherit inputs;};
     };
   };
 }
