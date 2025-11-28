@@ -15,6 +15,8 @@
 
     casks = [
       "ghostty"
+      "hammerspoon"
+      "karabiner-elements"
     ];
   };
 

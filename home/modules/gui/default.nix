@@ -1,9 +1,8 @@
 {
-  config,
-  pkgs,
   ...
 }: {
-  imports = [
-    ./terminal
-  ];
+  imports =
+    [
+      ./terminal
+    ];
 }
