@@ -392,6 +392,7 @@ in {
             enable = true;
             settings = {
               formatting.command = [(lib.getExe pkgs.alejandra) "--quiet"];
+              nix.flake.autoArchive = true;
             };
           };
 
