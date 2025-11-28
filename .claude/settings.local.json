@@ -8,7 +8,8 @@
       "Bash(nvim --version:*)",
       "Bash(nvim:*)",
       "Bash(nix build:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

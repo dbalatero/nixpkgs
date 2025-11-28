@@ -2,6 +2,8 @@
   description = "Monorepo for dbalatero system configurations";
 
   inputs = {
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     darwin = {
@@ -32,6 +34,7 @@
     home-manager,
     nixvim,
     stylix,
+    nix-homebrew,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
@@ -46,6 +49,16 @@
     darwinConfigurations."lion" = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
       modules = [
+        nix-homebrew.darwinModules.nix-homebrew
+        {
+          nix-homebrew = {
+            # Install Homebrew under the default prefix
+            enable = true;
+            
+            # User owning the Homebrew prefix
+            user = "dbalatero";
+          };
+        }
         ./darwin/hosts/lion
         {
           networking.localHostName = "lion";

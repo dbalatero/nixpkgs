@@ -3,6 +3,7 @@
 {
   imports = [
     ../../modules/default.nix
+    ../../modules/gui
   ];
 
   home.homeDirectory = "/Users/dbalatero";
