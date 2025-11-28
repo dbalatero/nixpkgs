@@ -54,7 +54,7 @@
           nix-homebrew = {
             # Install Homebrew under the default prefix
             enable = true;
-            
+
             # User owning the Homebrew prefix
             user = "dbalatero";
           };
@@ -72,8 +72,8 @@
             users.dbalatero = {
               imports = [
                 (import ./home/hosts/lion)
-                nixvim.homeManagerModules.nixvim
-                stylix.homeManagerModules.stylix
+                nixvim.homeModules.nixvim
+                stylix.homeModules.stylix
               ];
             };
             useGlobalPkgs = true;
