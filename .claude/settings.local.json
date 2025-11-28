@@ -6,7 +6,8 @@
       "Bash(git add:*)",
       "Bash(git rm:*)",
       "Bash(nvim --version:*)",
-      "Bash(nvim:*)"
+      "Bash(nvim:*)",
+      "Bash(nix build:*)"
     ],
     "deny": [],
     "ask": []

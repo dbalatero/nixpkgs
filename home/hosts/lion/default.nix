@@ -5,8 +5,6 @@
     ../../modules/default.nix
   ];
 
-  home.homeDirectory = "/home/dbalatero";
+  home.homeDirectory = "/Users/dbalatero";
   home.username = "dbalatero";
-
-  dconf.enable = false;
 }

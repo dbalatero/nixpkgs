@@ -6,12 +6,27 @@ source "${BASH_SOURCE%/*}/shared.sh"
 
 command_exists hostname || (echo "hostname is required to run" && exit 1)
 
+source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
 HOSTNAME="$(hostname)"
 FLAKE_PATH="${BASH_SOURCE%/*}/.."
 
-# Use home-manager if available, otherwise use nix run
-if command_exists home-manager ; then
-  home-manager switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  # Strip .local suffix on macOS (e.g. lion.local -> lion)
+  HOSTNAME="${HOSTNAME%.local}"
+
+  # MacOS
+  if command_exists darwin-rebuild ; then
+    sudo darwin-rebuild switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  else
+    echo "Bootstrapping nix-darwin for the first time..."
+    sudo nix run nix-darwin -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  fi
 else
-  nix run home-manager/master -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  # Generic Linux
+  if command_exists home-manager ; then
+    home-manager switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  else
+    nix run home-manager/master -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  fi
 fi
