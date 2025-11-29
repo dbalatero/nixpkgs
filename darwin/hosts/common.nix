@@ -17,6 +17,7 @@
       "ghostty"
       "hammerspoon"
       "karabiner-elements"
+      "slack"
     ];
   };
 
