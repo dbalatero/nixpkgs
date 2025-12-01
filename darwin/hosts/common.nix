@@ -149,9 +149,8 @@
 
         "com.apple.sound.beep.feedback" = 0;
 
-        # Use the function keys as default F1-F12, hold Fn + function key to
-        # use the special Apple things like brightness/volume.
-        "com.apple.keyboard.fnState" = true;
+        # Don't use the function keys as F1-F12, hold Fn + function key
+        "com.apple.keyboard.fnState" = false;
       };
     };
   };
