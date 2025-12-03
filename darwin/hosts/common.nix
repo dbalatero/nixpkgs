@@ -18,6 +18,7 @@
       "hammerspoon"
       "karabiner-elements"
       "slack"
+      "vlc"
     ];
   };
 
