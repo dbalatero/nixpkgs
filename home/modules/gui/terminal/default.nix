@@ -1,6 +1,9 @@
-{...}: {
+{
+  ...
+}: {
   imports = [
     ./audio
+    ./backups
     ./ghostty
   ];
 }
