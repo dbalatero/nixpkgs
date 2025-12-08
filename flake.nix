@@ -86,5 +86,48 @@
 
       specialArgs = {inherit inputs;};
     };
+
+    # work laptop
+    darwinConfigurations."jaguar" = darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        nix-homebrew.darwinModules.nix-homebrew
+        {
+          nix-homebrew = {
+            # Install Homebrew under the default prefix
+            enable = true;
+
+            # User owning the Homebrew prefix
+            user = "dbalatero";
+          };
+        }
+        ./darwin/hosts/jaguar
+        {
+          networking.localHostName = "jaguar";
+        }
+        home-manager.darwinModules.home-manager
+        {
+          # Allow unfree packages at the system level
+          nixpkgs.config.allowUnfree = true;
+
+          home-manager = {
+            users.dbalatero = {
+              imports = [
+                (import ./home/hosts/jaguar)
+                nixvim.homeModules.nixvim
+                stylix.homeModules.stylix
+              ];
+            };
+            useGlobalPkgs = true;
+            extraSpecialArgs = {inherit inputs;};
+          };
+
+          users.users.dbalatero.home = "/Users/dbalatero";
+        }
+      ];
+
+      specialArgs = {inherit inputs;};
+    };
+
   };
 }

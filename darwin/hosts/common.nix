@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{...}: {
   nix.enable = false;
 
   # Enable sudo with Touch ID
@@ -14,6 +9,7 @@
     onActivation.cleanup = "zap";
 
     casks = [
+      "fantastical"
       "ghostty"
       "hammerspoon"
       "karabiner-elements"
