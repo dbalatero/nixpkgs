@@ -10,6 +10,7 @@
 
     casks = [
       "fantastical"
+      "google-chrome"
       "ghostty"
       "hammerspoon"
       "karabiner-elements"
