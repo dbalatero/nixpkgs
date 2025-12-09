@@ -45,6 +45,10 @@
     };
 
     defaults = {
+      controlcenter = {
+        Bluetooth = true; # Show in menu bar
+      };
+
       dock = {
         autohide-delay = 0.0;
         autohide-time-modifier = 0.25;
