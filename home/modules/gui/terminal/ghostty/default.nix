@@ -27,6 +27,7 @@
       window-save-state = "default";
       shell-integration = "zsh";
       mouse-hide-while-typing = true;
+      window-colorspace = "display-p3";
 
       # Match spacing "feel" from Alacritty/iTerm
       adjust-cell-width = "-5%";
@@ -37,8 +38,7 @@
       scrollback-limit = 50000000;
       bell-features = "no-audio,no-system,no-attention,no-title,no-border";
 
-      # Catppuccin Mocha Theme
-      theme = "Catppuccin Mocha";
+      theme = "Catppuccin Macchiato";
 
       # Optional local config file
       config-file = "?config.local";

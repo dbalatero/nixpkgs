@@ -2,10 +2,12 @@
   stylix = {
     enable = true;
 
-    # https://github.com/tinted-theming/schemes/blob/spec-0.11/base16/catppuccin-mocha.yaml
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    # https://github.com/tinted-theming/schemes/blob/spec-0.11/base16/catppuccin-macchiato.yaml
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-macchiato.yaml";
 
     targets = {
+      ghostty.enable = false;
+
       # Use a overridden tmux scheme for now
       tmux.enable = false;
 
