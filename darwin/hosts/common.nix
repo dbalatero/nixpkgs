@@ -1,4 +1,4 @@
-{...}: {
+{lib, ...}: {
   nix.enable = false;
 
   # Enable sudo with Touch ID
@@ -27,7 +27,7 @@
     # Used for backwards compatibility
     stateVersion = 5;
 
-    primaryUser = "dbalatero";
+    primaryUser = lib.mkDefault "dbalatero";
 
     # Set Git commit hash for darwin-version
     configurationRevision = null;

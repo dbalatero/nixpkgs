@@ -98,7 +98,7 @@
             enable = true;
 
             # User owning the Homebrew prefix
-            user = "dbalatero";
+            user = "db";
           };
         }
         ./darwin/hosts/jaguar
@@ -111,7 +111,7 @@
           nixpkgs.config.allowUnfree = true;
 
           home-manager = {
-            users.dbalatero = {
+            users.db = {
               imports = [
                 (import ./home/hosts/jaguar)
                 nixvim.homeModules.nixvim
@@ -122,7 +122,7 @@
             extraSpecialArgs = {inherit inputs;};
           };
 
-          users.users.dbalatero.home = "/Users/dbalatero";
+          users.users.db.home = "/Users/db";
         }
       ];
 
