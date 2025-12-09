@@ -26,7 +26,12 @@
       sha256 = "sha256-GXqlwl1TPgXX1Je/ORjGFwfCyz17ZgdsoyOK1P3XF18=";
     };
   };
+
+  isDarwin = pkgs.stdenv.isDarwin;
 in {
+  home.packages = lib.optionals isDarwin [
+    pkgs.reattach-to-user-namespace
+  ];
   xdg.configFile."tmux/tmux.theme.conf".source = ./tmux.theme.conf;
   xdg.configFile."tmuxinator".source = ./tmuxinator;
 
@@ -50,7 +55,20 @@ in {
       tmuxPlugins.open
       {
         plugin = tmuxPlugins.yank;
-        extraConfig = "set -g set-clipboard on";
+        extraConfig = ''
+          set -g set-clipboard on
+
+          # macOS clipboard integration
+          ${lib.optionalString isDarwin ''
+            # Use reattach-to-user-namespace for clipboard access
+            set -g default-command "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace -l ${config.home.homeDirectory}/.nix-profile/bin/zsh"
+
+            # Copy mode bindings for macOS
+            bind -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
+            bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
+            bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
+          ''}
+        '';
       }
       {
         plugin = tmux-pain-control;

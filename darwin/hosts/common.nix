@@ -8,11 +8,18 @@
     enable = true;
     onActivation.cleanup = "zap";
 
+    brews = [
+      "nodenv"
+      "node-build"
+    ];
+
     casks = [
+      "1password-cli"
       "fantastical"
       "google-chrome"
       "ghostty"
       "hammerspoon"
+      "monitorcontrol"
       "karabiner-elements"
       "slack"
       "vlc"

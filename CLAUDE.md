@@ -126,6 +126,8 @@ Installs Nix (if not present) and runs the initial home-manager switch.
 ```
 Applies the home-manager configuration for the current hostname. The script automatically detects the hostname and uses either `home-manager` (if installed) or `nix run home-manager/master`.
 
+**IMPORTANT**: DO NOT run `./bin/switch` automatically. The user will always run this command themselves because it requires sudo password input. After making configuration changes, inform the user to run `./bin/switch` to apply them.
+
 ### Add a New Host
 
 1. Create a new directory: `home/hosts/{hostname}/`
