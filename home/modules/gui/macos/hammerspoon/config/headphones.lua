@@ -9,6 +9,7 @@ local function getDeviceId()
   local deviceOverrides = {
     -- Work WH-1000XM5 headphones
     ambient = "88-c9-e8-59-08-81",
+    jaguar = "88-c9-e8-59-08-81",
     ["st-dbalatero1"] = "88-c9-e8-59-08-81",
   }
 
@@ -23,9 +24,14 @@ local blueUtil = resolvePath({
 
 local function disconnectHeadphones()
   hs.task
-    .new(blueUtil, function()
-      p("Unpairing device: " .. getDeviceId() .. " with " .. blueUtil)
-      hs.alert("Disconnected headphones")
+    .new(blueUtil, function(exitCode, stdout, stderr)
+      if exitCode == 0 then
+        p("Unpaired device: " .. getDeviceId() .. " with " .. blueUtil)
+        hs.alert("Disconnected headphones")
+      else
+        p("Failed to disconnect: " .. stderr)
+        hs.alert("Failed to disconnect: " .. stderr)
+      end
     end, {
       "--disconnect",
       getDeviceId(),
@@ -35,9 +41,14 @@ end
 
 local function connectHeadphones()
   hs.task
-    .new(blueUtil, function()
-      p("Pairing device: " .. getDeviceId() .. " with " .. blueUtil)
-      hs.alert("Connected headphones")
+    .new(blueUtil, function(exitCode, stdout, stderr)
+      if exitCode == 0 then
+        p("Paired device: " .. getDeviceId() .. " with " .. blueUtil)
+        hs.alert("Connected headphones")
+      else
+        p("Failed to connect: " .. stderr)
+        hs.alert("Failed to connect: " .. stderr)
+      end
     end, {
       "--connect",
       getDeviceId(),
