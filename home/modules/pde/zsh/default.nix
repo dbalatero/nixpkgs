@@ -143,6 +143,7 @@
       "6" = "exec zsh";
       j = "z"; # autojump style for fasd
       l = "ls -al";
+      p = "gt pr";
 
       tk = "tmux kill-session";
       tn = "tmuxinator";
