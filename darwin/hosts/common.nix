@@ -22,6 +22,7 @@
       "monitorcontrol"
       "karabiner-elements"
       "slack"
+      "spotify"
       "vlc"
     ];
   };
