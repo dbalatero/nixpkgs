@@ -15,6 +15,7 @@
 
     casks = [
       "1password-cli"
+      "bartender"
       "fantastical"
       "google-chrome"
       "ghostty"
