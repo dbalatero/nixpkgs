@@ -1,0 +1,18 @@
+name: graphite
+root: ~/code/monologue
+windows:
+  - main:
+      layout: 0692,426x73,0,0{298x73,0,0,2,127x73,299,0,4}
+      panes:
+        - vim
+        - #
+  - servers:
+      layout: main-vertical
+      panes:
+        - #
+        - #
+  - dotfiles:
+      layout: 0692,426x73,0,0{298x73,0,0,2,127x73,299,0,4}
+      panes:
+        - cd ~/.config/nixpkgs && vim
+        - cd ~/.config/nixpkgs
