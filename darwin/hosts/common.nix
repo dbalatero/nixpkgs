@@ -134,6 +134,9 @@
         # Disable auto-correct
         NSAutomaticSpellingCorrectionEnabled = false;
 
+        # Disable period substitution on double-space
+        NSAutomaticPeriodSubstitutionEnabled = false;
+
         # Expand save panel by default
         NSNavPanelExpandedStateForSaveMode = true;
 
