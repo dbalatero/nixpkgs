@@ -8,6 +8,7 @@
 in {
   home.packages = with pkgs; [
     alejandra
+    deadnix
     typescript
     shfmt
     stylua
@@ -292,6 +293,7 @@ in {
       lint = {
         enable = true;
         lintersByFt = {
+          nix = ["deadnix"];
           ruby = ["rubocop"];
         };
         autoCmd = {
@@ -308,15 +310,6 @@ in {
 
       fidget = {
         enable = true;
-
-        settings = {
-          progress = {
-            ignore = [
-              "none-ls"
-              "null-ls"
-            ];
-          };
-        };
       };
 
       trouble = {
@@ -432,33 +425,6 @@ in {
         };
       };
 
-      none-ls = {
-        enable = true;
-
-        sources = {
-          diagnostics = {
-            deadnix.enable = true;
-            rubocop = {
-              enable = true;
-            };
-          };
-
-          formatting = {
-            alejandra.enable = true; # nix
-            prettierd = {
-              enable = true;
-              settings = {
-                disabled_filetypes = [
-                  "markdown"
-                  "yaml"
-                ];
-              };
-            };
-            shfmt.enable = true;
-            stylua.enable = true;
-          };
-        };
-      };
     };
   };
 }
