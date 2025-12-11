@@ -56,7 +56,7 @@ if hs.host.localizedName() == "sorny" then
   require("vim-mode")
 end
 
-if hs.host.localizedName() == "st-dbalatero1" then
+if hs.host.localizedName() == "jaguar" then
   require("vim-mode")
 end
 
@@ -68,24 +68,6 @@ require("qmk-layer-indicator")
 -- local WhichKey = require('which-key')
 -- local cmdKey = WhichKey:new({'cmd'})
 -- cmdKey:bind('t'):toFunction('Hi', function() hs.alert.show('hi') end)
-
-hs.hotkey.bind(hyper, "7", function()
-  hs.eventtap.keyStroke({ "cmd" }, "l")
-  hs.eventtap.keyStrokes("https://admin.corp.stripe.com/migrations/new", 0)
-  hs.eventtap.keyStroke({}, "return", 0)
-end)
-
-hs.hotkey.bind(hyper, "8", function()
-  hs.eventtap.keyStrokes(
-    "replace_shipment_references_with_shipping_rate_references"
-  )
-  hs.eventtap.keyStroke({}, "return", 0)
-  hs.eventtap.keyStroke({}, "tab", 0)
-  hs.eventtap.keyStroke({}, "tab", 0)
-  hs.eventtap.keyStroke({}, "tab", 0)
-  hs.eventtap.keyStroke({}, "tab", 0)
-  hs.eventtap.keyStroke({ "cmd" }, "v", 0)
-end)
 
 -- Require private hammerspoon config if exists
 pcall(dofile, os.getenv("HOME") .. "/.hammerspoon_experiments.lua")
