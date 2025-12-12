@@ -8,6 +8,7 @@
 in {
   home.packages = with pkgs; [
     alejandra
+    biome
     deadnix
     typescript
     shfmt
@@ -238,13 +239,13 @@ in {
             ruby = {
               lsp_format = "prefer";
             };
-            javascript = ["prettierd"];
-            typescript = ["prettierd"];
-            javascriptreact = ["prettierd"];
-            typescriptreact = ["prettierd"];
+            javascript = ["biome"];
+            typescript = ["biome"];
+            javascriptreact = ["biome"];
+            typescriptreact = ["biome"];
             html = ["prettierd"];
-            json = ["prettierd"];
-            jsonc = ["prettierd"];
+            json = ["biome"];
+            jsonc = ["biome"];
             graphql = ["prettierd"];
             css = ["prettierd"];
           };

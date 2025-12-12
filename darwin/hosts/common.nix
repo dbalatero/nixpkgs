@@ -23,6 +23,7 @@
       "hammerspoon"
       "monitorcontrol"
       "karabiner-elements"
+      "obsidian"
       "slack"
       "spotify"
       "vlc"

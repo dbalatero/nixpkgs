@@ -7,6 +7,7 @@
 
   home.packages = with pkgs;
     [
+      editorconfig-checker
       proximity-sort
       tree-sitter
     ]
