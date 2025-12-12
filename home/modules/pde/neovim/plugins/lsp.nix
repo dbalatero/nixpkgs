@@ -294,6 +294,12 @@ in {
       lint = {
         enable = true;
         lintersByFt = {
+          javascript = ["biomejs"];
+          javascriptreact = ["biomejs"];
+          typescript = ["biomejs"];
+          typescriptreact = ["biomejs"];
+          json = ["biomejs"];
+          jsonc = ["biomejs"];
           nix = ["deadnix"];
           ruby = ["rubocop"];
         };
