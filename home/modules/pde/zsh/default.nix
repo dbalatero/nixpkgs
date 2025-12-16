@@ -139,6 +139,12 @@
       TERM = "xterm-256color";
     };
 
+    # zshenv
+    envExtra = ''
+      export XDG_CONFIG_HOME="$HOME/.config"
+      export XDG_DATA_HOME="$HOME/.local/share"
+    '';
+
     shellAliases = {
       "6" = "exec zsh";
       j = "z"; # autojump style for fasd
