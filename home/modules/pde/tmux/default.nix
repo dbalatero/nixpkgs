@@ -7,6 +7,7 @@
   tmux-pain-control = pkgs.tmuxPlugins.mkTmuxPlugin {
     pluginName = "tmux-pain-control";
     version = "097f09dabd64084ab0c72ae75df4b5a89bb431a6";
+    rtpFilePath = "pain_control.tmux";
     src = pkgs.fetchFromGitHub {
       owner = "dbalatero";
       repo = "tmux-pain-control";
@@ -24,6 +25,18 @@
       repo = "tmux-prefix-highlight";
       rev = "489a96189778a21d2f5f4dbbbc0ad2cec8f6c854";
       sha256 = "sha256-GXqlwl1TPgXX1Je/ORjGFwfCyz17ZgdsoyOK1P3XF18=";
+    };
+  };
+
+  better-vim-tmux-resizer = pkgs.tmuxPlugins.mkTmuxPlugin {
+    pluginName = "better-vim-tmux-resizer";
+    version = "a791fe5b4433ac43a4dad921e94b7b5f88751048";
+    rtpFilePath = "better-vim-tmux-resizer.tmux";
+    src = pkgs.fetchFromGitHub {
+      owner = "RyanMillerC";
+      repo = "better-vim-tmux-resizer";
+      rev = "a791fe5b4433ac43a4dad921e94b7b5f88751048";
+      sha256 = "sha256-1uHcQQUnViktDBZt+aytlBF1ZG+/Ifv5VVoKSyM9ML0=";
     };
   };
 
@@ -102,13 +115,6 @@ in {
           bind -Tcopy-mode-vi 'C-k' if-shell "$is_vim_emacs" "send-keys C-k" "select-pane -U"
           bind -Tcopy-mode-vi 'C-l' if-shell "$is_vim_emacs" "send-keys C-l" "select-pane -R"
           bind -Tcopy-mode-vi 'C-\' if-shell "$is_vim_emacs" "send-keys C-\\\\" "select-pane -l"
-
-          # TODO: replace this with the better-vim-tmux-resizer plugin
-          # Resize panes with meta+hjkl
-          bind -n M-h if-shell "$is_vim_emacs" "send-keys M-h" "resize-pane -L 10"
-          bind -n M-l if-shell "$is_vim_emacs" "send-keys M-l" "resize-pane -R 10"
-          bind -n M-k if-shell "$is_vim_emacs" "send-keys M-k" "resize-pane -U 5"
-          bind -n M-j if-shell "$is_vim_emacs" "send-keys M-j" "resize-pane -D 5"
         '';
       }
       {
@@ -130,6 +136,9 @@ in {
           set -g @mode_indicator_copy_prompt   ' Copy '
           set -g @mode_indicator_sync_prompt   ' Sync '
         '';
+      }
+      {
+        plugin = better-vim-tmux-resizer;
       }
     ];
 

@@ -7,7 +7,7 @@
     extraPlugins = (
       map pkgs.vimUtils.buildVimPlugin [
         {
-          name = "vim-tmux-resizer";
+          name = "better-vim-tmux-resizer";
           src = pkgs.fetchFromGitHub {
             owner = "RyanMillerC";
             repo = "better-vim-tmux-resizer";
@@ -17,10 +17,6 @@
         }
       ]
     );
-
-    globals = {
-      tmux_resizer_no_mappings = 0;
-    };
 
     opts = {
       # set our shell to be bash for fast tmux switching times
