@@ -10,9 +10,9 @@ in {
     alejandra
     biome
     deadnix
-    typescript
     shfmt
     stylua
+    typescript
   ];
 
   programs.nixvim = {
@@ -415,6 +415,14 @@ in {
 
         settings = {
           # expose_as_code_action = "all";
+          onAttach =
+            # lua
+            ''
+              function(client, bufnr)
+                client.server_capabilities.documentFormattingProvider = false
+                client.server_capabilities.documentRangeFormattingProvider = false
+              end
+            '';
 
           settings = {
             tsserver_file_preferences = {
@@ -431,7 +439,6 @@ in {
           };
         };
       };
-
     };
   };
 }
