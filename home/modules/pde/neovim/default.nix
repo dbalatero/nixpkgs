@@ -1,8 +1,11 @@
 {
+  config,
   lib,
   pkgs,
   ...
-}: {
+}: let
+  helpers = config.lib.nixvim;
+in {
   imports = [./plugins];
 
   home.packages = with pkgs;
@@ -84,6 +87,60 @@
         key = "<Space>";
         action = "<Nop>";
         options = {silent = true;};
+      }
+
+      # Copy file paths to clipboard
+      {
+        key = "<leader>yf";
+        action = helpers.mkRaw ''
+          function()
+            local relative_path = vim.fn.expand("%")
+            vim.fn.setreg("*", relative_path)
+            vim.notify("Copied relative path: " .. relative_path)
+          end
+        '';
+        options = {
+          desc = "Copy relative filepath to clipboard";
+        };
+      }
+      {
+        key = "<leader>yF";
+        action = helpers.mkRaw ''
+          function()
+            local absolute_path = vim.fn.expand("%:p")
+            vim.fn.setreg("*", absolute_path)
+            vim.notify("Copied absolute path: " .. absolute_path)
+          end
+        '';
+        options = {
+          desc = "Copy absolute filepath to clipboard";
+        };
+      }
+      {
+        key = "<leader>yt";
+        action = helpers.mkRaw ''
+          function()
+            local filename = vim.fn.expand("%:t")
+            vim.fn.setreg("*", filename)
+            vim.notify("Copied filename: " .. filename)
+          end
+        '';
+        options = {
+          desc = "Copy filename to clipboard";
+        };
+      }
+      {
+        key = "<leader>yh";
+        action = helpers.mkRaw ''
+          function()
+            local directory = vim.fn.expand("%:p:h")
+            vim.fn.setreg("*", directory)
+            vim.notify("Copied directory path: " .. directory)
+          end
+        '';
+        options = {
+          desc = "Copy directory path to clipboard";
+        };
       }
     ];
 
@@ -206,6 +263,11 @@
         event = ["BufNewFile" "BufRead"];
         pattern = "*.md";
         command = "set formatoptions-=t";
+      }
+      {
+        event = ["BufNewFile" "BufRead"];
+        pattern = "*.md";
+        command = "set textwidth=0";
       }
     ];
   };
