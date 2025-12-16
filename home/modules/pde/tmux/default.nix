@@ -58,15 +58,26 @@ in {
         extraConfig = ''
           set -g set-clipboard on
 
+          # Copy mode bindings
+          unbind p
+          bind p paste-buffer
+          bind -T copy-mode-vi 'v' send -X begin-selection
+          bind -T copy-mode-vi 'r' send -X rectangle-toggle
+
           # macOS clipboard integration
           ${lib.optionalString isDarwin ''
             # Use reattach-to-user-namespace for clipboard access
             set -g default-command "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace -l ${config.home.homeDirectory}/.nix-profile/bin/zsh"
 
             # Copy mode bindings for macOS
+            unbind -T copy-mode-vi Enter
             bind -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
             bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
             bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
+
+            # Clipboard shortcuts
+            bind C-c run "tmux save-buffer - | ${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbcopy"
+            bind C-v run "${pkgs.reattach-to-user-namespace}/bin/reattach-to-user-namespace pbpaste | tmux load-buffer - && tmux paste-buffer"
           ''}
         '';
       }
