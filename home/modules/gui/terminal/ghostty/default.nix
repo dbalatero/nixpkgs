@@ -15,6 +15,10 @@
       font-family = "BerkeleyMono Nerd Font Mono";
       font-style = "Normal";
       font-size = 18;
+
+      # Disable ligatures
+      font-feature = "-calt, -liga, -dlig";
+
       cursor-style = "block";
       window-theme = "dark";
       background-opacity = 1.0;
