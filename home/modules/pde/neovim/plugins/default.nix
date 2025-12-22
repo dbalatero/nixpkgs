@@ -4,6 +4,7 @@
   ...
 }: {
   imports = [
+    ./claude.nix
     ./completion.nix
     ./editing.nix
     ./fzf-lua.nix
