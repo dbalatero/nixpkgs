@@ -5,6 +5,7 @@
     ./git
     ./neovim
     ./node
+    ./ssh
     ./stylix
     ./tmux
     ./zsh

@@ -107,7 +107,6 @@
       plugins = [
         {name = "dbalatero/fzf-git";}
         {name = "wookayin/fzf-fasd";}
-        {name = "twang817/zsh-ssh-agent";}
         {name = "dbalatero/fast-syntax-highlighting";}
         {name = "hlissner/zsh-autopair";}
         {name = "chriskempson/base16-shell";}
