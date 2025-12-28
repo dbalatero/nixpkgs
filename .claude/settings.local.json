@@ -16,7 +16,13 @@
       "Bash(journalctl:*)",
       "Bash(hyprctl clients:*)",
       "Bash(systemctl:*)",
-      "Bash(busctl --user call:*)"
+      "Bash(busctl --user call:*)",
+      "Bash(busctl --user list:*)",
+      "Bash(xlsclients:*)",
+      "Bash(wmctrl -l:*)",
+      "Bash(DISPLAY=:0 xdotool:*)",
+      "Bash(env)",
+      "Bash(hyprctl monitors:*)"
     ],
     "deny": [],
     "ask": []

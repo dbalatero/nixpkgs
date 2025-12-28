@@ -115,6 +115,22 @@
     xwayland.enable = true;
   };
 
+  # XDG Desktop Portal configuration for proper window/UI support
+  xdg.portal = {
+    enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk  # Provides FileChooser and other missing interfaces
+    ];
+    config = {
+      common = {
+        default = [ "gtk" ];
+      };
+      hyprland = {
+        default = [ "gtk" "hyprland" ];
+      };
+    };
+  };
+
   # Enable zsh system-wide (required when setting user shell to zsh)
   programs.zsh.enable = true;
 
@@ -123,7 +139,7 @@
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
-    gamescopeSession.enable = true; # Better compatibility
+    # gamescopeSession.enable = true; # Disabled - trying without it
   };
 
   # Fix fontconfig warnings
