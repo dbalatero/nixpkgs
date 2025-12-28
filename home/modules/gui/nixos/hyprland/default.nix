@@ -20,8 +20,9 @@
         "waybar"
       ];
 
-      # Input settings - keyboard repeat rate
+      # Input settings - keyboard repeat rate and caps lock as control
       input = {
+        kb_options = "ctrl:nocaps";
         repeat_delay = 200;
         repeat_rate = 33;
       };
