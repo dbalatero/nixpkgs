@@ -13,7 +13,10 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "Bash(mv:*)",
-      "Bash(journalctl:*)"
+      "Bash(journalctl:*)",
+      "Bash(hyprctl clients:*)",
+      "Bash(systemctl:*)",
+      "Bash(busctl --user call:*)"
     ],
     "deny": [],
     "ask": []
