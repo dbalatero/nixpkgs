@@ -24,7 +24,9 @@
       "Bash(env)",
       "Bash(hyprctl monitors:*)",
       "Bash(curl:*)",
-      "Bash(cursor --list-extensions:*)"
+      "Bash(cursor --list-extensions:*)",
+      "Bash(pkill steam:*)",
+      "WebFetch(domain:wiki.hypr.land)"
     ],
     "deny": [],
     "ask": []
