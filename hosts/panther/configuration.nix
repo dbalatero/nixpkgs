@@ -106,6 +106,16 @@
   # Enable zsh system-wide (required when setting user shell to zsh)
   programs.zsh.enable = true;
 
+  # Steam
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+  };
+
+  # GameMode for better gaming performance
+  programs.gamemode.enable = true;
+
   # Keyboard configuration
   services.xserver.xkb.options = "ctrl:nocaps";
 

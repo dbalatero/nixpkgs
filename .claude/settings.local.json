@@ -12,7 +12,8 @@
       "Bash(mkdir:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(journalctl:*)"
     ],
     "deny": [],
     "ask": []
