@@ -159,6 +159,9 @@
     pulse.enable = true;
   };
 
+  # Allow wheel group to use sudo without password
+  security.sudo.wheelNeedsPassword = false;
+
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
