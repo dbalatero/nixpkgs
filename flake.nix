@@ -45,6 +45,32 @@
       ];
     };
 
+    # NixOS machines
+    nixosConfigurations.panther = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+      	./hosts/panther/configuration.nix
+	./hosts/panther/hardware-configuration.nix
+	home-manager.nixosModules.home-manager
+	{
+	  nixpkgs.config.allowUnfree = true;
+
+	  home-manager = {
+	    users.dbalatero = {
+	      imports = [
+	        ./home/hosts/panther
+		nixvim.homeModules.nixvim
+		stylix.homeModules.stylix
+	      ];
+	    };
+
+	    useGlobalPkgs = true;
+	    extraSpecialArgs = {inherit inputs;};
+	  };
+	}
+      ];
+    };
+
     # Macbook Air
     darwinConfigurations."lion" = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
