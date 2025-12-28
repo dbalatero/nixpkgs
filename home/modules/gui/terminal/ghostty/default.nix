@@ -33,6 +33,9 @@
       mouse-hide-while-typing = true;
       window-colorspace = "display-p3";
 
+      # Enable mouse reporting for tmux pane switching
+      mouse-shift-capture = false;
+
       # Match spacing "feel" from Alacritty/iTerm
       adjust-cell-width = "-5%";
       adjust-cell-height = "5%";
