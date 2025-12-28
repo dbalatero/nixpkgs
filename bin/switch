@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Pass --option eval-cache false to this script if you get an error like `error:
+# cached failure of attribute...`
+
 set -e
 
 source "${BASH_SOURCE%/*}/shared.sh"
@@ -19,24 +22,24 @@ if is_darwin; then
   HOSTNAME="${HOSTNAME%.local}"
 
   # MacOS
-  if command_exists darwin-rebuild ; then
-    sudo darwin-rebuild switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  if command_exists darwin-rebuild; then
+    sudo darwin-rebuild switch --flake "${FLAKE_PATH}#${HOSTNAME}" "$@"
   else
     echo "Bootstrapping nix-darwin for the first time..."
     sudo nix run nix-darwin -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
   fi
 elif is_nixos; then
   # NixOS
-  if command_exists nixos-rebuild ; then
-    sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  if command_exists nixos-rebuild; then
+    sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${HOSTNAME}" "$@"
   else
     echo "Bootstrapping NixOS for the first time..."
     sudo nix run nixpkgs#nixos-rebuild -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
   fi
 else
   # Generic Linux (home-manager standalone)
-  if command_exists home-manager ; then
-    home-manager switch --flake "${FLAKE_PATH}#${HOSTNAME}"
+  if command_exists home-manager; then
+    home-manager switch --flake "${FLAKE_PATH}#${HOSTNAME}" "$@"
   else
     nix run home-manager/master -- switch --flake "${FLAKE_PATH}#${HOSTNAME}"
   fi
