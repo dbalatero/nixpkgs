@@ -30,9 +30,20 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true; # Required for Steam
+
+    # Extra packages for AMD GPU support
+    # Note: RADV (open-source AMD Vulkan) is enabled by default
+    extraPackages = with pkgs; [
+      rocmPackages.clr.icd  # OpenCL support
+    ];
   };
 
   services.xserver.videoDrivers = ["amdgpu"];
+
+  # AMD GPU boot parameters for better performance
+  boot.kernelParams = [
+    "amdgpu.ppfeaturemask=0xffffffff"  # Enable all GPU features
+  ];
 
   networking.hostName = "panther"; # Define your hostname.
 
@@ -175,12 +186,18 @@
     wget
     wofi # app launcher
 
-    # Steam
+    # Gaming
     mangohud
     protonup-qt
     lutris
     bottles
     heroic
+
+    # AMD GPU utilities
+    radeontop      # GPU monitoring tool
+    clinfo         # OpenCL info
+    vulkan-tools   # Vulkan utilities (vulkaninfo, etc.)
+    lshw           # Hardware info
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
