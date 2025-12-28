@@ -21,7 +21,7 @@
     opts = {
       # set our shell to be bash for fast tmux switching times
       # see: https://github.com/christoomey/vim-tmux-navigator/issues/72
-      shell = "/bin/bash --norc -i";
+      shell = "${pkgs.bash}/bin/bash --norc -i";
     };
   };
 }
