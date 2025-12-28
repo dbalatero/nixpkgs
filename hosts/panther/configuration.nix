@@ -88,8 +88,12 @@
   # Enable zsh system-wide (required when setting user shell to zsh)
   programs.zsh.enable = true;
 
-  # caps as control
+  # Keyboard configuration
   services.xserver.xkb.options = "ctrl:nocaps";
+
+  # Keyboard repeat rate (delay in ms, rate in repeats/sec)
+  services.xserver.autoRepeatDelay = 200;
+  services.xserver.autoRepeatInterval = 30;
 
   services.greetd = {
     enable = true;
