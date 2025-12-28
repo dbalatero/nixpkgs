@@ -10,6 +10,15 @@
     wireplumber  # Includes wpctl for CLI control
   ];
 
+  # Cursor theme
+  home.pointerCursor = {
+    gtk.enable = true;
+    x11.enable = true;
+    package = pkgs.bibata-cursors;
+    name = "Bibata-Modern-Classic";
+    size = 24;
+  };
+
   wayland.windowManager.hyprland = {
     enable = true;
     xwayland.enable = true;
@@ -24,6 +33,13 @@
       # Autostart
       exec-once = [
         "waybar"
+        "hyprctl setcursor Bibata-Modern-Classic 24"
+      ];
+
+      # Cursor settings
+      env = [
+        "XCURSOR_SIZE,24"
+        "XCURSOR_THEME,Bibata-Modern-Classic"
       ];
 
       # Input settings - keyboard repeat rate and caps lock as control
