@@ -89,8 +89,10 @@
         };
 
         pulseaudio = {
-          format = "{icon} {volume}%";
-          format-muted = " Muted";
+          format = "{icon} {volume}% {format_source}";
+          format-muted = " Muted {format_source}";
+          format-source = "";
+          format-source-muted = "";
           format-icons = {
             headphone = "";
             hands-free = "";
@@ -100,7 +102,10 @@
             car = "";
             default = [ "" "" "" ];
           };
-          on-click = "pavucontrol";
+          on-click = "pwvucontrol";
+          on-click-right = "wpctl set-default $(wpctl status | grep -A 100 'Audio' | grep -m 1 -A 100 'Sinks:' | tail -n +2 | grep -v '*' | head -n 1 | awk '{print $2}' | tr -d '.')";
+          scroll-step = 5;
+          tooltip-format = "{desc}\nVolume: {volume}%";
         };
 
         tray = {
