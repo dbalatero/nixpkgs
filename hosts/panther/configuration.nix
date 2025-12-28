@@ -32,6 +32,8 @@
     enable32Bit = true; # Required for Steam
   };
 
+  services.xserver.videoDrivers = ["amdgpu"];
+
   networking.hostName = "panther"; # Define your hostname.
 
   # Configure network connections interactively with nmcli or nmtui.
@@ -110,7 +112,11 @@
     enable = true;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
+    gamescopeSession.enable = true; # Better compatibility
   };
+
+  # Fix fontconfig warnings
+  fonts.fontconfig.enable = true;
 
   # GameMode for better gaming performance
   programs.gamemode.enable = true;
@@ -165,6 +171,13 @@
     waybar # status bar
     wget
     wofi # app launcher
+
+    # Steam
+    mangohud
+    protonup-qt
+    lutris
+    bottles
+    heroic
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
