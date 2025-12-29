@@ -1,4 +1,4 @@
-{...}: {
+{pkgs, ...}: {
   imports = [
     ../../modules/default.nix
     ../../modules/gui
@@ -17,4 +17,8 @@
       };
     };
   };
+
+  home.packages = with pkgs; [
+    caddy
+  ];
 }

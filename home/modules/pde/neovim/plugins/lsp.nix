@@ -8,7 +8,6 @@
 in {
   home.packages = with pkgs; [
     alejandra
-    biome
     deadnix
     shfmt
     stylua
