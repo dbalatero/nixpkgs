@@ -1,4 +1,6 @@
 *
 !.gitignore
+!EmmyLua.spoon/
+!EmmyLua.spoon/**
 !SpoonInstall.spoon/
 !SpoonInstall.spoon/**
