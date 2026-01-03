@@ -206,6 +206,10 @@
         do
           source $file
         done
+
+        if [ -f "$HOME/.zsh.experimental" ]; then
+          source "$HOME/.zsh.experimental"
+        fi
       ''
     ];
   };
