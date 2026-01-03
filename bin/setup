@@ -56,10 +56,36 @@ function configure_default_shell() {
   fi
 }
 
+function clone_spoon() {
+  local spoon_name="$1"
+  local spoons_dir="$HOME/.config/nixpkgs/home/modules/gui/macos/hammerspoon/config/Spoons"
+  local spoon_path="$spoons_dir/$spoon_name"
+
+  if [ ! -d "$spoon_path" ]; then
+    echo "Cloning $spoon_name..."
+    git clone "https://github.com/dbalatero/$spoon_name.git" "$spoon_path"
+  else
+    echo "$spoon_name already exists"
+  fi
+}
+
+function clone_hammerspoon_spoons() {
+  # Only run on macOS
+  if [[ "$(uname)" != "Darwin" ]]; then
+    return 0
+  fi
+
+  echo "Setting up Hammerspoon spoons..."
+  clone_spoon "HyperKey.spoon"
+  clone_spoon "VimMode.spoon"
+  clone_spoon "SkyRocket.spoon"
+}
+
 command_exists curl || (echo "curl is required to run" && exit 1)
 command_exists hostname || (echo "hostname is required to run" && exit 1)
 
 install_nix
 source_nix_shell
+clone_hammerspoon_spoons
 ./bin/switch
 configure_default_shell

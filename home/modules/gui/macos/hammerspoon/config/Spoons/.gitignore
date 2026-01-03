@@ -1,2 +1,4 @@
 *
 !.gitignore
+!SpoonInstall.spoon/
+!SpoonInstall.spoon/**
