@@ -5,6 +5,11 @@
 }: let
   helpers = config.lib.nixvim;
 in {
+  # ImageMagick is required for snacks.nvim image module
+  home.packages = with pkgs; [
+    imagemagick
+  ];
+
   programs.nixvim = {
     plugins.which-key.settings.spec = [
       {
@@ -14,14 +19,14 @@ in {
     ];
 
     extraPlugins = with pkgs; [
-      # snacks.nvim - required dependency for claudecode
+      # snacks.nvim - required dependency for claudecode and fzf-lua image previews
       (vimUtils.buildVimPlugin {
         name = "snacks.nvim";
         src = fetchFromGitHub {
           owner = "folke";
           repo = "snacks.nvim";
-          rev = "v2.14.0";
-          hash = "sha256-BpTN7tkIHo07Mb3g07OQDfNdfLeh48f8NNPXYM8eQCk=";
+          rev = "v2.30.0";
+          hash = "sha256-5m65Gvc6DTE9v7noOfm0+iQjDrqnrXYYV9QPnmr1JGY=";
         };
         # Skip the require check - snacks.nvim has many optional dependencies
         doCheck = false;
@@ -44,6 +49,12 @@ in {
       lua
       */
       ''
+        -- Configure snacks.nvim (required by claudecode and used by fzf-lua for image previews)
+        require("snacks").setup({
+          terminal = {},  -- Required for claudecode
+          image = {},     -- Enable image support for fzf-lua previews
+        })
+
         -- Configure claudecode.nvim
         require("claudecode").setup({
           -- Use default Claude binary from PATH
