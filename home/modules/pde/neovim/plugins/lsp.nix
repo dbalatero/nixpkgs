@@ -125,7 +125,40 @@ in {
       # LSP
       {
         key = "gd";
-        action = helpers.mkRaw "vim.lsp.buf.definition";
+        action = helpers.mkRaw ''
+          function()
+            -- Custom definition handler that filters out node_modules/@types
+            local params = vim.lsp.util.make_position_params()
+            vim.lsp.buf_request(0, 'textDocument/definition', params, function(err, result, ctx, config)
+              if err or not result or vim.tbl_isempty(result) then
+                vim.notify("No definition found", vim.log.levels.INFO)
+                return
+              end
+
+              -- Normalize result to always be a list
+              local locations = vim.islist(result) and result or { result }
+
+              -- Filter out node_modules/@types/ entries
+              local filtered = vim.tbl_filter(function(loc)
+                local uri = loc.uri or loc.targetUri
+                return not (uri and uri:match("node_modules/@types/"))
+              end, locations)
+
+              -- If we filtered everything out, use original results
+              if vim.tbl_isempty(filtered) then
+                filtered = locations
+              end
+
+              -- Jump directly if only one result
+              if #filtered == 1 then
+                vim.lsp.util.jump_to_location(filtered[1], 'utf-8')
+              else
+                -- Show picker with multiple results
+                vim.lsp.util.show_document_range(filtered, 'utf-8')
+              end
+            end)
+          end
+        '';
         options = {
           desc = "LSP: [G]o to [d]efinition";
         };
