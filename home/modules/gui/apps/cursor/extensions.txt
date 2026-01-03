@@ -1,0 +1,9 @@
+arcanis.vscode-zipfs
+asvetliakov.vscode-neovim
+biomejs.biome
+dbaeumer.vscode-eslint
+mattpocock.ts-error-translator
+oxc.oxc-vscode
+streetsidesoftware.code-spell-checker
+stylelint.vscode-stylelint
+vunguyentuan.vscode-css-variables

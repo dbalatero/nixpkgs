@@ -2,6 +2,7 @@
   ...
 }: {
   imports = [
+    ./cursor
     ./vlc
   ];
 }

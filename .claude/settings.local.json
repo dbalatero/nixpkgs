@@ -22,7 +22,9 @@
       "Bash(wmctrl -l:*)",
       "Bash(DISPLAY=:0 xdotool:*)",
       "Bash(env)",
-      "Bash(hyprctl monitors:*)"
+      "Bash(hyprctl monitors:*)",
+      "Bash(curl:*)",
+      "Bash(cursor --list-extensions:*)"
     ],
     "deny": [],
     "ask": []

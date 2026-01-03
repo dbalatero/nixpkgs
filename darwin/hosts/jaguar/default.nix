@@ -7,6 +7,7 @@
 
   homebrew.casks = [
     "chromium"
+    "cursor"
     "linear-linear"
     "notion"
   ];
