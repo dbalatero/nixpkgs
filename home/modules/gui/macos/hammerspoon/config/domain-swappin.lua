@@ -46,20 +46,13 @@ end
 
 -- I use a super special keybind system for jerks
 superKey:bind("1"):toFunction(
-  "Swap to local devapp",
-  swapToDomain("dbalatero-stripejs-demos.tunnel.stripe.me", "https")
+  "Swap to localhost Graphite",
+  swapToDomain("localhost:3000", "https")
 )
 superKey:bind("2"):toFunction(
-  "Swap to staging devapp",
-  swapToDomain("stripejsdevapp.corp.stripe.com", "https")
+  "Swap to staging Graphite",
+  swapToDomain("app.stg.graphite.com", "https")
 )
-
-superKey
-  :bind("3")
-  :toFunction(
-    "Swap to localhost devapp",
-    swapToDomain("localhost:3000", "http")
-  )
 
 -- But you can just use this for standard keybinding by uncommenting the
 -- following lines & deleting the 2 lines above:
