@@ -88,5 +88,7 @@
     "optional-object-property"
   ],
   "totalTypeScript.hideBasicTips": true,
-  "totalTypeScript.hideAllTips": true
+  "totalTypeScript.hideAllTips": true,
+  "oxc.path.oxlint": "/Users/db/code/monologue/node_modules/.bin/oxlint",
+  "oxc.requireConfig": true
 }
