@@ -3,6 +3,7 @@
     # ./hyprland  # Keeping Hyprland config available but not active
     ./kde-plasma
     # ./waybar  # KDE Plasma has its own panel
+    ./apps
   ];
 
   # Override Steam desktop entry to use systemd-run (which we verified works)
