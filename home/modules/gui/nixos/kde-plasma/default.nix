@@ -96,6 +96,14 @@
         };
       };
 
+      # Keyboard layout and options (caps lock as control)
+      kxkbrc = {
+        Layout = {
+          Options = "ctrl:nocaps";
+          ResetOldOptions = true;
+        };
+      };
+
       # Keyboard repeat settings
       kcminputrc = {
         Keyboard = {
@@ -104,8 +112,7 @@
         };
 
         Mouse = {
-          XLbInptPointerAcceleration = 3.0; # Mouse speed multiplier (default is 1.0)
-          XLbInptAccelProfileFlat = false; # Use acceleration curve
+          XLbInptAccelProfileFlat = true; # Disable acceleration (flat/linear response)
         };
       };
     };

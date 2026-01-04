@@ -146,6 +146,22 @@
   # GameMode for better gaming performance
   programs.gamemode.enable = true;
 
+  # Kernel-level keyboard remapping with keyd (works for all apps including games)
+  services.keyd = {
+    enable = true;
+    keyboards = {
+      default = {
+        ids = ["*"];
+        settings = {
+          main = {
+            # Remap capslock to control (hold) or enter (tap)
+            capslock = "overload(control, enter)";
+          };
+        };
+      };
+    };
+  };
+
   # Keyboard configuration
   services.xserver.xkb.options = "ctrl:nocaps";
 
@@ -186,6 +202,9 @@
     pulse.enable = true;
   };
 
+  # Gaming mouse configuration (ratbagd for Logitech G502)
+  services.ratbagd.enable = true;
+
   # Allow wheel group to use sudo without password
   security.sudo.wheelNeedsPassword = false;
 
@@ -214,6 +233,13 @@
     clinfo         # OpenCL info
     vulkan-tools   # Vulkan utilities (vulkaninfo, etc.)
     lshw           # Hardware info
+
+    # Mouse configuration
+    piper          # GUI for configuring gaming mice
+    libratbag      # Includes ratbagctl CLI tool
+
+    # KDE config tools
+    libsForQt5.kconfig  # Includes kreadconfig5 and kwriteconfig5
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

@@ -28,7 +28,11 @@
       "Bash(pkill steam:*)",
       "WebFetch(domain:wiki.hypr.land)",
       "WebSearch",
-      "WebFetch(domain:wiki.nixos.org)"
+      "WebFetch(domain:wiki.nixos.org)",
+      "Bash(ratbagctl:*)",
+      "Bash(qdbus:*)",
+      "Bash(glxinfo:*)",
+      "Bash(vulkaninfo:*)"
     ],
     "deny": [],
     "ask": []

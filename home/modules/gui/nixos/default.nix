@@ -4,6 +4,7 @@
     ./kde-plasma
     # ./waybar  # KDE Plasma has its own panel
     ./apps
+    ../gaming
   ];
 
   # Override Steam desktop entry to use systemd-run (which we verified works)
