@@ -48,5 +48,27 @@
   {
     "key": "cmd+i",
     "command": "composerMode.agent"
+  },
+  {
+    "key": "ctrl+v",
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "workbench.action.splitEditorRight",
+        "workbench.action.acceptSelectedQuickOpenItem"
+      ]
+    },
+    "when": "inQuickOpen"
+  },
+  {
+    "key": "ctrl+x",
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "workbench.action.splitEditorDown",
+        "workbench.action.acceptSelectedQuickOpenItem"
+      ]
+    },
+    "when": "inQuickOpen"
   }
 ]
