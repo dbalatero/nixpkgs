@@ -29,7 +29,7 @@
   "window.nativeFullScreen": false,
   "window.newWindowDimensions": "maximized",
   "window.zoomLevel": 3,
-  "workbench.colorTheme": "Cursor Dark High Contrast",
+  "workbench.colorTheme": "Catppuccin Macchiato",
   "workbench.panel.defaultLocation": "right",
   "workbench.statusBar.visible": true,
   "zenMode.fullScreen": false,
