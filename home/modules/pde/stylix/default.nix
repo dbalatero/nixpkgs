@@ -15,10 +15,11 @@
       # (provides full 26+ color palette vs stylix's base16 simplified 16-color version)
       vim.enable = false;
 
-      # Disable ALL Qt/KDE theming - Kvantum breaks Plasma 6
+      # Disable ALL Qt/KDE/GTK theming - Kvantum breaks Plasma 6
       # See: https://github.com/nix-community/stylix/issues/835
       kde.enable = false;
       qt.enable = false;
+      gtk.enable = false;  # Disable GTK theming to avoid .gtkrc-2.0 conflicts
     };
   };
 }
