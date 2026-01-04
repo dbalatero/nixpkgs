@@ -20,6 +20,10 @@
     "key": "ctrl+p"
   },
   {
+    "key": "ctrl+b",
+    "command": "workbench.action.showAllEditors"
+  },
+  {
     "command": "workbench.action.terminal.resizePaneLeft",
     "key": "alt+left",
     "when": "terminalFocus"

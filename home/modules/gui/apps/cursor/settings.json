@@ -78,5 +78,8 @@
   "telemetry.telemetryLevel": "off",
   "ruby.rubocop.executePath": "/bin/false",
   "gitlens.ai.enabled": false,
-  "window.commandCenter": true
+  "window.commandCenter": true,
+  "workbench.editor.revealIfOpen": false,
+  "workbench.editor.focusRecentEditorAfterClose": false,
+  "workbench.editor.enablePreview": false
 }
