@@ -26,7 +26,9 @@
       "Bash(curl:*)",
       "Bash(cursor --list-extensions:*)",
       "Bash(pkill steam:*)",
-      "WebFetch(domain:wiki.hypr.land)"
+      "WebFetch(domain:wiki.hypr.land)",
+      "WebSearch",
+      "WebFetch(domain:wiki.nixos.org)"
     ],
     "deny": [],
     "ask": []

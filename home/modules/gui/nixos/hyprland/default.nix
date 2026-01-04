@@ -6,8 +6,8 @@
 }: {
   # Install audio control tools
   home.packages = with pkgs; [
-    pwvucontrol  # Modern PipeWire volume control GUI
-    wireplumber  # Includes wpctl for CLI control
+    pwvucontrol # Modern PipeWire volume control GUI
+    wireplumber # Includes wpctl for CLI control
   ];
 
   # Cursor theme
@@ -21,6 +21,14 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
+
+    # Use packages from NixOS module, not home-manager
+    # from: https://wiki.hypr.land/Nix/Hyprland-on-Home-Manager/
+    package = null;
+    portalPackage = null;
+
+    systemd.enable = true; # Import environment into systemd user session
+    systemd.variables = ["--all"]; # Import ALL environment variables (fixes desktop entries)
     xwayland.enable = true;
 
     settings = {

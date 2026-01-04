@@ -25,6 +25,12 @@
       url = "github:danth/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
   };
 
   outputs = inputs @ {
@@ -34,6 +40,7 @@
     home-manager,
     nixvim,
     stylix,
+    plasma-manager,
     nix-homebrew,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
@@ -61,6 +68,7 @@
 	        ./home/hosts/panther
 		nixvim.homeModules.nixvim
 		stylix.homeModules.stylix
+		plasma-manager.homeManagerModules.plasma-manager
 	      ];
 	    };
 

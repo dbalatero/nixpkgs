@@ -78,8 +78,8 @@
   #   useXkbConfig = true; # use xkb.options in tty.
   # };
 
-  # Enable the X11 windowing system.
-  # services.xserver.enable = true;
+  # Enable the X11 windowing system (required even for Wayland desktop environments)
+  services.xserver.enable = true;
 
   # Configure keymap in X11
   # services.xserver.xkb.layout = "us";
@@ -110,25 +110,23 @@
 
   # programs.firefox.enable = true;
 
-  programs.hyprland = {
-    enable = true;
-    xwayland.enable = true;
-  };
+  # Hyprland (keeping available but not active)
+  # programs.hyprland = {
+  #   enable = true;
+  #   xwayland.enable = true;
+  # };
 
-  # XDG Desktop Portal configuration for proper window/UI support
+  # KDE Plasma desktop environment
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.desktopManager.plasma6.enable = true;
+
+  # XDG Desktop Portal configuration for KDE Plasma
   xdg.portal = {
     enable = true;
     extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk  # Provides FileChooser and other missing interfaces
+      xdg-desktop-portal-gtk
     ];
-    config = {
-      common = {
-        default = [ "gtk" ];
-      };
-      hyprland = {
-        default = [ "gtk" "hyprland" ];
-      };
-    };
   };
 
   # Enable zsh system-wide (required when setting user shell to zsh)
@@ -155,14 +153,15 @@
   services.xserver.autoRepeatDelay = 200;
   services.xserver.autoRepeatInterval = 30;
 
-  services.greetd = {
-    enable = true;
-    settings = {
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd hyprland";
-      };
-    };
-  };
+  # greetd login manager (used with Hyprland, not needed with SDDM)
+  # services.greetd = {
+  #   enable = true;
+  #   settings = {
+  #     default_session = {
+  #       command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd hyprland";
+  #     };
+  #   };
+  # };
 
   users.users.dbalatero = {
     isNormalUser = true;
@@ -174,6 +173,7 @@
       "wheel"
       "video"
       "audio"
+      "render"  # For modern GPU/DRM access
     ];
   };
 
