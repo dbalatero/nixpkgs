@@ -99,13 +99,13 @@
       # Keyboard repeat settings
       kcminputrc = {
         Keyboard = {
-          RepeatDelay = 200;  # Delay before repeat starts (ms)
-          RepeatRate = 33;    # Repeat rate (repeats per second)
+          RepeatDelay = 200; # Delay before repeat starts (ms)
+          RepeatRate = 33; # Repeat rate (repeats per second)
         };
 
         Mouse = {
-          XLbInptPointerAcceleration = 2.0;  # Mouse speed multiplier (default is 1.0)
-          XLbInptAccelProfileFlat = false;   # Use acceleration curve
+          XLbInptPointerAcceleration = 3.0; # Mouse speed multiplier (default is 1.0)
+          XLbInptAccelProfileFlat = false; # Use acceleration curve
         };
       };
     };
