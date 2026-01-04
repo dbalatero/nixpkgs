@@ -68,7 +68,7 @@
 	        ./home/hosts/panther
 		nixvim.homeModules.nixvim
 		stylix.homeModules.stylix
-		plasma-manager.homeManagerModules.plasma-manager
+		plasma-manager.homeModules.plasma-manager
 	      ];
 	    };
 
