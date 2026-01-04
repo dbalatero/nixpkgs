@@ -81,5 +81,12 @@
   "window.commandCenter": true,
   "workbench.editor.revealIfOpen": false,
   "workbench.editor.focusRecentEditorAfterClose": false,
-  "workbench.editor.enablePreview": false
+  "workbench.editor.enablePreview": false,
+  "totalTypeScript.hiddenTips": [
+    "ts-object-type",
+    "basic-types",
+    "optional-object-property"
+  ],
+  "totalTypeScript.hideBasicTips": true,
+  "totalTypeScript.hideAllTips": true
 }
