@@ -138,10 +138,26 @@
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
     # gamescopeSession.enable = true; # Disabled - trying without it
+
+    # Add GE-Proton for better game compatibility (includes Battle.net fixes)
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin
+    ];
   };
 
-  # Fix fontconfig warnings
-  fonts.fontconfig.enable = true;
+  # Font configuration
+  fonts = {
+    fontconfig.enable = true;
+    packages = with pkgs; [
+      noto-fonts
+      noto-fonts-cjk-sans
+      noto-fonts-color-emoji
+      liberation_ttf
+      dejavu_fonts
+      ubuntu-classic
+      corefonts  # Includes Verdana, Arial, Times New Roman (used by many websites)
+    ];
+  };
 
   # GameMode for better gaming performance
   programs.gamemode.enable = true;
