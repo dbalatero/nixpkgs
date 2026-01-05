@@ -32,7 +32,9 @@
       "Bash(ratbagctl:*)",
       "Bash(qdbus:*)",
       "Bash(glxinfo:*)",
-      "Bash(vulkaninfo:*)"
+      "Bash(vulkaninfo:*)",
+      "Bash(lspci:*)",
+      "WebFetch(domain:www.reddit.com)"
     ],
     "deny": [],
     "ask": []

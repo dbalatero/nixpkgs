@@ -126,7 +126,9 @@ Installs Nix (if not present) and runs the initial home-manager switch.
 ```
 Applies the home-manager configuration for the current hostname. The script automatically detects the hostname and uses either `home-manager` (if installed) or `nix run home-manager/master`.
 
-**IMPORTANT**: DO NOT run `./bin/switch` automatically. The user will always run this command themselves because it requires sudo password input. After making configuration changes, inform the user to run `./bin/switch` to apply them.
+**IMPORTANT**:
+- On **NixOS machines** (where system configuration is managed via NixOS): You CAN run `./bin/switch` automatically as it may require sudo for system-level changes.
+- On **non-NixOS machines** (macOS, or Linux machines using only home-manager): DO NOT run `./bin/switch` automatically. The user will run this command themselves. After making configuration changes, inform the user to run `./bin/switch` to apply them.
 
 ### Add a New Host
 
@@ -163,3 +165,8 @@ For CLI packages, add them to `home/modules/pde/core/default.nix` or create a ne
 - Unfree packages are allowed (`nixpkgs.config.allowUnfree = true`)
 - Base username: `dbalatero`
 - Home directory: `/home/dbalatero`
+
+## Desktop Environment
+
+- **Window Manager/Desktop**: KDE Plasma (not Hyprland)
+- Gaming configurations (Steam, etc.) should be configured for KDE Plasma window rules
