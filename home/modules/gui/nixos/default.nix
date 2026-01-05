@@ -1,10 +1,18 @@
-{
+{pkgs, ...}: {
   imports = [
     # ./hyprland  # Keeping Hyprland config available but not active
     ./kde-plasma
     # ./waybar  # KDE Plasma has its own panel
     ./apps
+    ./lutris
     ../gaming
+  ];
+
+  # GPU diagnostic and info tools
+  home.packages = with pkgs; [
+    mesa-demos # OpenGL info (provides glxinfo)
+    vulkan-tools # Vulkan info (provides vulkaninfo)
+    pciutils # PCI device info (provides lspci)
   ];
 
   # Override Steam desktop entry to use systemd-run (which we verified works)
