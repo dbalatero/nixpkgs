@@ -17,6 +17,7 @@
       "1password-cli"
       "alfred"
       "bartender"
+      "discord"
       "fantastical"
       "google-chrome"
       "ghostty"
