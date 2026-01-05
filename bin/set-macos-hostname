@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+HOSTNAME="$1"
+
+if [ "$HOSTNAME" = "" ]; then
+  echo "Usage: bin/set-macos-hostname [hostname]"
+  echo
+  echo "Sets this macOS computer's hostname in the places it's needed."
+  echo "Needs to be ran before bin/setup."
+  exit 1
+fi
+
+echo "Setting hostname to $HOSTNAME"
+sudo scutil --set HostName "$HOSTNAME"
+
+echo "Setting Bonjour hostname to $HOSTNAME.local"
+sudo scutil --set LocalHostName "$HOSTNAME"
+
+dscacheutil -flushcache
