@@ -5,6 +5,7 @@
     # ./waybar  # KDE Plasma has its own panel
     ./apps
     ./lutris
+    ./mangohud
     ../gaming
   ];
 

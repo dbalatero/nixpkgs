@@ -130,6 +130,20 @@ Applies the home-manager configuration for the current hostname. The script auto
 - On **NixOS machines** (where system configuration is managed via NixOS): You CAN run `./bin/switch` automatically as it may require sudo for system-level changes.
 - On **non-NixOS machines** (macOS, or Linux machines using only home-manager): DO NOT run `./bin/switch` automatically. The user will run this command themselves. After making configuration changes, inform the user to run `./bin/switch` to apply them.
 
+### Git Workflow for Nix Configuration Changes
+
+**NEVER create commits automatically.** When making Nix configuration changes:
+1. Use `git add` to stage new files and directories (required for flakes to see them)
+2. Let the user review and commit changes themselves
+
+Example:
+```bash
+# After creating new Nix modules
+git add home/modules/gui/nixos/mangohud/
+git add home/modules/gui/nixos/default.nix
+# User will commit when ready
+```
+
 ### Add a New Host
 
 1. Create a new directory: `home/hosts/{hostname}/`

@@ -162,6 +162,9 @@
   # GameMode for better gaming performance
   programs.gamemode.enable = true;
 
+  # CPU governor for maximum performance
+  powerManagement.cpuFreqGovernor = "performance";
+
   # Kernel-level keyboard remapping with keyd (works for all apps including games)
   services.keyd = {
     enable = true;
