@@ -173,8 +173,8 @@
         ids = ["*"];
         settings = {
           main = {
-            # Remap capslock to control (hold) or enter (tap)
-            capslock = "overload(control, enter)";
+            # Remap capslock to control
+            capslock = "leftcontrol";
           };
         };
       };
