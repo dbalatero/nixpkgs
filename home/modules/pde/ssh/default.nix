@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{...}: {
   # Enable ssh-agent service
   services.ssh-agent.enable = true;
 
