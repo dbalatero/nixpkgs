@@ -8,7 +8,7 @@
   home.homeDirectory = "/Users/db";
   home.username = "db";
 
-  programs.git.settings.user.email = "db@graphite.dev";
+  programs.git.settings.user.email = "db@graphite.com";
 
   programs.ssh = {
     matchBlocks = {
