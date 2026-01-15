@@ -1,6 +1,7 @@
 arcanis.vscode-zipfs
 asvetliakov.vscode-neovim
 biomejs.biome
+catppuccin.catppuccin-vsc
 dbaeumer.vscode-eslint
 mattpocock.ts-error-translator
 oxc.oxc-vscode
