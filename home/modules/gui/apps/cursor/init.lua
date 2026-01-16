@@ -1,4 +1,5 @@
 vim.opt.clipboard:append("unnamedplus")
+vim.g.mapleader = " "
 
 -- ╭─────────────────────────────────────────────────────────╮
 -- │ Fast vertical/horizontal splits                         │
@@ -20,4 +21,19 @@ end)
 
 vim.keymap.set({ "n" }, "gk", function()
   vim.cmd([[call VSCodeNotify('editor.action.marker.prev')]])
+end)
+
+-- ╭─────────────────────────────────────────────────────────╮
+-- │ Panel navigation                                        │
+-- ╰─────────────────────────────────────────────────────────╯
+vim.keymap.set({ "n" }, "<leader>a", function()
+  vim.cmd([[call VSCodeNotify('workbench.action.focusAuxiliaryBar')]])
+end)
+
+vim.keymap.set({ "n" }, "<leader>e", function()
+  vim.cmd([[call VSCodeNotify('workbench.action.focusSideBar')]])
+end)
+
+vim.keymap.set({ "n" }, "<leader><leader>", function()
+  vim.cmd([[call VSCodeNotify('workbench.action.quickOpen')]])
 end)
