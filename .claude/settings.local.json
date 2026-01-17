@@ -35,7 +35,8 @@
       "Bash(vulkaninfo:*)",
       "Bash(lspci:*)",
       "WebFetch(domain:www.reddit.com)",
-      "Bash(kreadconfig6:*)"
+      "Bash(kreadconfig6:*)",
+      "Bash(kwriteconfig6:*)"
     ],
     "deny": [],
     "ask": []

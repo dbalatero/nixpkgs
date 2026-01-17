@@ -253,3 +253,26 @@ macOS system-level configuration:
 
 - **Window Manager/Desktop**: KDE Plasma (not Hyprland)
 - Gaming configurations (Steam, etc.) should be configured for KDE Plasma window rules
+
+## CRITICAL: Configuration Management Philosophy
+
+**NEVER configure settings directly using imperative commands like `kwriteconfig6`, `gsettings`, editing dotfiles manually, etc.**
+
+ALL configuration must be declared in Nix files so it's:
+- Reproducible across rebuilds
+- Version controlled
+- Documented in code
+- Survives system upgrades
+
+### Examples of what NOT to do:
+- ❌ `kwriteconfig6 --file kcminputrc ...` (use plasma-manager in home-manager instead)
+- ❌ `gsettings set ...` (declare in home-manager instead)
+- ❌ Manually editing `~/.config/...` files (use home.file or program-specific options)
+- ❌ System-wide configs with `echo "foo" | sudo tee /etc/...` (declare in NixOS configuration)
+
+### What TO do:
+- ✅ Use home-manager modules for user configs (including plasma-manager for KDE)
+- ✅ Use NixOS system configuration for system-level settings
+- ✅ Use nix-darwin for macOS system settings
+
+If a user asks for a configuration change, ALWAYS add it to the appropriate Nix configuration file.
