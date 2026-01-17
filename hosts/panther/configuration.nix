@@ -240,6 +240,9 @@
     wget
     wofi # app launcher
 
+    # Network utilities
+    net-tools  # ifconfig, netstat, route, etc.
+
     # Gaming
     mangohud
     protonup-qt
