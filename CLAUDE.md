@@ -276,3 +276,16 @@ ALL configuration must be declared in Nix files so it's:
 - ✅ Use nix-darwin for macOS system settings
 
 If a user asks for a configuration change, ALWAYS add it to the appropriate Nix configuration file.
+
+## Code Style
+
+### Indentation
+**ALWAYS use 2 spaces for indentation in ALL languages**, including:
+- Nix
+- Bash/Shell scripts
+- Python
+- JavaScript/TypeScript
+- YAML
+- Any other language
+
+Never use tabs. Never use 4 spaces. Always 2 spaces.
