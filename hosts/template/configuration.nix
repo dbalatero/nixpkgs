@@ -28,6 +28,9 @@
     };
   };
 
+  # Automatically grow root partition to fill available disk space (useful for VMs)
+  boot.growPartition = true;
+
   # Static IP configuration
   networking.interfaces.eth0.ipv4.addresses = [
     {
