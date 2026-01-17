@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Nix flake-based home-manager configuration monorepo for system configurations. It uses home-manager to manage user environments across different hosts.
+This is a Nix flake-based configuration monorepo that manages BOTH:
+- **NixOS system configurations** - System-level configs in `hosts/{hostname}/configuration.nix` for NixOS machines
+- **home-manager user configurations** - User environment configs in `home/hosts/{hostname}/` for all machines
+- **nix-darwin system configurations** - System-level configs in `darwin/hosts/{hostname}/` for macOS machines
+
+**IMPORTANT**: This repository manages full system configurations for NixOS and nix-darwin hosts, not just home-manager. System services like sshd, networking, and kernel configs go in the appropriate system configuration file.
 
 ## Architecture
 
@@ -23,41 +28,51 @@ The repository supports different machine types:
 - **macOS desktops** - GUI apps and terminal emulators for macOS
 
 ```
-home/
-├── hosts/           # Host-specific configurations
-│   └── {hostname}/  # Each hostname has its own directory
-│       └── default.nix  # Imports shared modules
-└── modules/         # Shared home-manager modules
-    ├── core/                    # Base home-manager settings
-    │   └── default.nix          # Username, stateVersion, allowUnfree, etc.
+hosts/                          # NixOS system configurations
+├── {hostname}/
+│   ├── configuration.nix       # System-level NixOS config (services, kernel, hardware, etc.)
+│   └── hardware-configuration.nix
+│
+darwin/                         # nix-darwin system configurations
+├── hosts/
+│   └── {hostname}/
+│       └── default.nix         # System-level macOS config
+│
+home/                           # home-manager user configurations
+├── hosts/                      # Host-specific configurations
+│   └── {hostname}/             # Each hostname has its own directory
+│       └── default.nix         # Imports shared modules
+└── modules/                    # Shared home-manager modules
+    ├── core/                   # Base home-manager settings
+    │   └── default.nix         # Username, stateVersion, allowUnfree, etc.
     │
-    ├── pde/                     # Personal Development Environment (terminal-based)
-    │   ├── core/                # CLI tools (fd, ripgrep, wget, etc.)
-    │   ├── claude/              # Claude Code installation
-    │   ├── neovim/              # Neovim configurations
-    │   ├── shell/               # Shell configs (bash, zsh, fish)
-    │   ├── git/                 # Git configuration
-    │   ├── tmux/                # Terminal multiplexer
-    │   ├── stylix/              # Terminal theming
-    │   └── default.nix          # Imports all PDE modules
+    ├── pde/                    # Personal Development Environment (terminal-based)
+    │   ├── core/               # CLI tools (fd, ripgrep, wget, etc.)
+    │   ├── claude/             # Claude Code installation
+    │   ├── neovim/             # Neovim configurations
+    │   ├── shell/              # Shell configs (bash, zsh, fish)
+    │   ├── git/                # Git configuration
+    │   ├── tmux/               # Terminal multiplexer
+    │   ├── stylix/             # Terminal theming
+    │   └── default.nix         # Imports all PDE modules
     │
-    ├── gui/                     # GUI-related modules (only created when needed)
-    │   ├── terminal/            # Terminal emulators (only on GUI machines)
+    ├── gui/                    # GUI-related modules (only created when needed)
+    │   ├── terminal/           # Terminal emulators (only on GUI machines)
     │   │   ├── ghostty/
     │   │   ├── alacritty/
     │   │   └── default.nix
     │   │
-    │   ├── apps/                # GUI applications
-    │   │   ├── common/          # Cross-platform desktop apps
-    │   │   ├── linux/           # Linux desktop apps (firefox, etc.)
-    │   │   ├── darwin/          # macOS apps (use homebrew casks)
+    │   ├── apps/               # GUI applications
+    │   │   ├── common/         # Cross-platform desktop apps
+    │   │   ├── linux/          # Linux desktop apps (firefox, etc.)
+    │   │   ├── darwin/         # macOS apps (use homebrew casks)
     │   │   └── default.nix
     │   │
     │   └── default.nix
     │
-    └── platform/                # Platform-specific system configs (only created when needed)
-        ├── linux/               # Linux-specific settings
-        ├── darwin/              # macOS-specific settings
+    └── platform/               # Platform-specific system configs (only created when needed)
+        ├── linux/              # Linux-specific settings
+        ├── darwin/             # macOS-specific settings
         └── default.nix
 ```
 
@@ -146,6 +161,7 @@ git add home/modules/gui/nixos/default.nix
 
 ### Add a New Host
 
+#### For home-manager only (headless server):
 1. Create a new directory: `home/hosts/{hostname}/`
 2. Create `home/hosts/{hostname}/default.nix` that imports `../../modules/default.nix`
 3. Add the homeConfiguration to `flake.nix`:
@@ -157,6 +173,33 @@ homeConfigurations."{hostname}" = home-manager.lib.homeManagerConfiguration {
   ];
 };
 ```
+
+#### For NixOS system (with home-manager):
+1. Create `hosts/{hostname}/configuration.nix` for system config
+2. Create `hosts/{hostname}/hardware-configuration.nix` (usually generated)
+3. Create `home/hosts/{hostname}/default.nix` for user config
+4. Add the nixosConfiguration to `flake.nix`:
+```nix
+nixosConfigurations.{hostname} = nixpkgs.lib.nixosSystem {
+  system = "x86_64-linux";
+  modules = [
+    ./hosts/{hostname}/configuration.nix
+    ./hosts/{hostname}/hardware-configuration.nix
+    home-manager.nixosModules.home-manager
+    {
+      nixpkgs.config.allowUnfree = true;
+      home-manager.users.dbalatero = {
+        imports = [./home/hosts/{hostname}];
+      };
+    }
+  ];
+};
+```
+
+#### For nix-darwin system (macOS with home-manager):
+1. Create `darwin/hosts/{hostname}/default.nix` for system config
+2. Create `home/hosts/{hostname}/default.nix` for user config
+3. Add the darwinConfiguration to `flake.nix` (see existing examples)
 
 ### Add New Modules
 
@@ -179,6 +222,32 @@ For CLI packages, add them to `home/modules/pde/core/default.nix` or create a ne
 - Unfree packages are allowed (`nixpkgs.config.allowUnfree = true`)
 - Base username: `dbalatero`
 - Home directory: `/home/dbalatero`
+
+## System vs User Configuration
+
+**CRITICAL - Where to put different types of configuration:**
+
+### NixOS System Configuration (`hosts/{hostname}/configuration.nix`)
+System-level services and hardware configuration that require root privileges:
+- **Services**: sshd, nginx, postgresql, docker, etc.
+- **Networking**: firewall, DNS, hostname
+- **Hardware**: GPU drivers, kernel modules, boot loader
+- **System packages**: packages available to all users
+- **Desktop environments**: KDE Plasma, GNOME, etc.
+- **Security**: sudo rules, PAM configuration
+
+### home-manager Configuration (`home/hosts/{hostname}/`)
+User-level dotfiles and applications:
+- **User packages**: CLI tools, development tools
+- **Dotfiles**: shell configs, git config, vim/neovim
+- **User services**: systemd user services
+- **Application configs**: terminal emulators, editors
+
+### nix-darwin Configuration (`darwin/hosts/{hostname}/`)
+macOS system-level configuration:
+- **System settings**: keyboard, trackpad, dock
+- **Homebrew**: casks and formulas
+- **System packages**: packages available to all users
 
 ## Desktop Environment
 
