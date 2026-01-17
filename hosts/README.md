@@ -48,6 +48,28 @@ All NixOS hosts automatically include:
 
 ## Adding a New Host
 
+### Quick Start (Recommended)
+
+Use the `bin/new-host` script to automate the entire setup process:
+
+```bash
+./bin/new-host myserver
+```
+
+This interactive script will:
+1. Copy the template to `hosts/myserver`
+2. Optionally generate hardware configuration
+3. Optionally configure a static IP (192.168.1.2XX range)
+4. Update the hostname in configuration files
+5. Add the host to `flake.nix`
+6. Create home-manager configuration
+7. Stage all files with git
+8. Optionally deploy the configuration
+
+### Manual Setup (Alternative)
+
+If you prefer to set things up manually:
+
 ### Step 1: Copy the Template
 
 ```bash

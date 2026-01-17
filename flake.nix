@@ -53,6 +53,33 @@
     };
 
     # NixOS machines
+    # NEW_HOST_SENTINEL - Do not remove this comment (used by bin/new-host)
+
+    nixosConfigurations.test-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./hosts/test-host/configuration.nix
+        ./hosts/test-host/hardware-configuration.nix
+        home-manager.nixosModules.home-manager
+        {
+          nixpkgs.config.allowUnfree = true;
+
+          home-manager = {
+            users.dbalatero = {
+              imports = [
+                ./home/hosts/test-host
+                nixvim.homeModules.nixvim
+                stylix.homeModules.stylix
+              ];
+            };
+
+            useGlobalPkgs = true;
+            extraSpecialArgs = {inherit inputs;};
+          };
+        }
+      ];
+    };
+
     nixosConfigurations.panther = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
