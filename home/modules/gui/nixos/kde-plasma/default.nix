@@ -113,6 +113,7 @@
 
         Mouse = {
           XLbInptAccelProfileFlat = true; # Disable acceleration (flat/linear response)
+          NaturalScroll = true; # Inverted scrolling like macOS
         };
       };
     };
