@@ -1,0 +1,7 @@
+# This is a placeholder file.
+#
+# When setting up a new host, run:
+#   nixos-generate-config --show-hardware-config > hardware-configuration.nix
+#
+# This will generate the actual hardware configuration for your machine.
+# Delete this file once you've generated the real hardware-configuration.nix.
