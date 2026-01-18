@@ -33,6 +33,11 @@ fi
 echo -e "${GREEN}Setting up NixOS host: $HOSTNAME${NC}"
 echo
 
+# Pull latest changes from git
+echo "Pulling latest changes from git..."
+git pull --rebase
+echo
+
 # Get description
 read -p "Brief description of this machine: " DESCRIPTION
 if [ -z "$DESCRIPTION" ]; then
