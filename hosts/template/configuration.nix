@@ -16,16 +16,9 @@
   networking.hostName = "__NIXOS_HOSTNAME__";
 
   # Boot loader configuration
-  # Adjust based on your boot setup (UEFI vs BIOS)
-  boot.loader = {
-    efi.canTouchEfiVariables = true;
-
-    grub = {
-      enable = true;
-      device = "nodev"; # For UEFI systems
-      efiSupport = true;
-      # useOSProber = true;  # Uncomment to detect other OSes (Windows, etc.)
-    };
+  boot.loader.grub = {
+    enable = true;
+    device = "/dev/sda";
   };
 
   # Automatically grow root partition to fill available disk space (useful for VMs)
