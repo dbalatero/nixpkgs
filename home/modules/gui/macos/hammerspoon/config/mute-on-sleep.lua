@@ -3,6 +3,7 @@ local function isDeviceAllowlisted(device)
   local allowedDevices = {
     "Schiit",
     "WH-1000",
+    "BTD 700",
   }
 
   for _, allowedPattern in ipairs(allowedDevices) do
