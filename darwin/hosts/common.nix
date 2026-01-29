@@ -102,6 +102,10 @@
       };
 
       CustomSystemPreferences = {
+        "com.apple.WindowManager" = {
+          EnableTilingByEdgeDrag = false; # Disable drag windows to screen edges to tile
+        };
+
         "com.apple.Safari" = {
           IncludeInternalDebugMenu = true;
         };
