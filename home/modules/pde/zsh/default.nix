@@ -202,6 +202,10 @@
           . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
         fi
 
+        if [ -f "$HOME/.cargo/env" ]; then
+          source "$HOME/.cargo/env"
+        fi
+
         for file in $HOME/.zsh/secrets/**/*.zsh
         do
           source $file
