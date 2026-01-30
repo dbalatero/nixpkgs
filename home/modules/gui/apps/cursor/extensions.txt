@@ -5,6 +5,8 @@ catppuccin.catppuccin-vsc
 dbaeumer.vscode-eslint
 mattpocock.ts-error-translator
 oxc.oxc-vscode
+rust-lang.rust-analyzer
 streetsidesoftware.code-spell-checker
 stylelint.vscode-stylelint
+tamasfe.even-better-toml
 vunguyentuan.vscode-css-variables
