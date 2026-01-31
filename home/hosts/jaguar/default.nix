@@ -1,4 +1,4 @@
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   imports = [
     ../../modules/default.nix
     ../../modules/gui
@@ -22,4 +22,8 @@
     caddy
     cursor-cli
   ];
+
+  programs.zsh.initContent = lib.mkAfter ''
+    export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+  '';
 }
