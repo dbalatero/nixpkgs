@@ -3,6 +3,7 @@
     ../../modules/default.nix
     ../../modules/gui
     ../../modules/gui/macos
+    ../../modules/pde/claude/ai-usage-sync.nix
   ];
 
   home.homeDirectory = "/Users/db";

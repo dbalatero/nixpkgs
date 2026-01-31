@@ -1,7 +1,7 @@
 # Personal Claude Code Instructions
 
-## Search Tools
+## Search tools
 
 Never use `grep` or `find` for searching. Always use:
-- `fd` for finding files
+- `fd` for finding file paths
 - `rg` (ripgrep) for searching file contents
