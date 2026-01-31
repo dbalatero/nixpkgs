@@ -1,29 +1,17 @@
-{pkgs, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   home.packages = with pkgs; [
     claude-code
   ];
 
-  home.file.".claude/CLAUDE.md".text = ''
-    # Personal Claude Code Instructions
+  # Writable symlinks to claude config - allows direct editing without Nix rebuilds
+  # Note: global-instructions.md is renamed to avoid Claude interpreting it in this repo
+  home.file.".claude/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink
+    "${config.home.homeDirectory}/.config/nixpkgs/home/modules/pde/claude/config/global-instructions.md";
 
-    ## Search Tools
-
-    Never use `grep` or `find` for searching. Always use:
-    - `fd` for finding files
-    - `rg` (ripgrep) for searching file contents
-  '';
-
-  home.file.".claude/keybindings.json".text = builtins.toJSON {
-    "$schema" = "https://platform.claude.com/docs/schemas/claude-code/keybindings.json";
-    "$docs" = "https://code.claude.com/docs/en/keybindings";
-    bindings = [
-      {
-        context = "Global";
-        bindings = {
-          "alt+t" = "app:toggleTranscript";
-          "ctrl+o" = null; # unbind default
-        };
-      }
-    ];
-  };
+  home.file.".claude/keybindings.json".source = config.lib.file.mkOutOfStoreSymlink
+    "${config.home.homeDirectory}/.config/nixpkgs/home/modules/pde/claude/config/keybindings.json";
 }
