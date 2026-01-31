@@ -31,6 +31,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+
+    nix-flatpak = {
+      url = "github:gmodena/nix-flatpak";
+    };
   };
 
   outputs = inputs @ {
@@ -42,6 +46,7 @@
     stylix,
     plasma-manager,
     nix-homebrew,
+    nix-flatpak,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
@@ -70,6 +75,7 @@
 		nixvim.homeModules.nixvim
 		stylix.homeModules.stylix
 		plasma-manager.homeModules.plasma-manager
+		nix-flatpak.homeManagerModules.nix-flatpak
 	      ];
 	    };
 

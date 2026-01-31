@@ -4,6 +4,7 @@
     ./kde-plasma
     # ./waybar  # KDE Plasma has its own panel
     ./apps
+    ./bluebubbles
     ./lutris
     ./mangohud
     ../gaming

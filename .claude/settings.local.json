@@ -36,7 +36,8 @@
       "Bash(lspci:*)",
       "WebFetch(domain:www.reddit.com)",
       "Bash(kreadconfig6:*)",
-      "Bash(kwriteconfig6:*)"
+      "Bash(kwriteconfig6:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

@@ -87,12 +87,16 @@
   # Gaming mouse configuration (ratbagd for Logitech G502)
   services.ratbagd.enable = true;
 
+  # Flatpak support for installing apps
+  services.flatpak.enable = true;
+
   # Desktop packages
   environment.systemPackages = with pkgs; [
     # Desktop apps
     dunst # notifications
     firefox
     ghostty
+    spotify
     waybar # status bar
     wofi # app launcher
 
