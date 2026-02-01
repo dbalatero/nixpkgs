@@ -23,12 +23,16 @@
       fi
 
       echo "Found ai-usage repo, copying Claude config files..."
-      mkdir -p "$AI_USAGE_DIR/db"
+      NIXPKGS_CLAUDE="${config.home.homeDirectory}/.config/nixpkgs/home/modules/pde/claude/config"
+      mkdir -p "$AI_USAGE_DIR/db/commands" "$AI_USAGE_DIR/db/agents"
 
-      cp "${config.home.homeDirectory}/.config/nixpkgs/home/modules/pde/claude/config/global-instructions.md" \
-         "$AI_USAGE_DIR/db/CLAUDE.md"
-      cp "${config.home.homeDirectory}/.config/nixpkgs/home/modules/pde/claude/config/keybindings.json" \
-         "$AI_USAGE_DIR/db/keybindings.json"
+      # Copy individual config files
+      cp "$NIXPKGS_CLAUDE/global-instructions.md" "$AI_USAGE_DIR/db/CLAUDE.md"
+      cp "$NIXPKGS_CLAUDE/keybindings.json" "$AI_USAGE_DIR/db/keybindings.json"
+
+      # Copy commands and agents directories
+      cp "$NIXPKGS_CLAUDE/commands/"*.md "$AI_USAGE_DIR/db/commands/" 2>/dev/null || true
+      cp "$NIXPKGS_CLAUDE/agents/"*.md "$AI_USAGE_DIR/db/agents/" 2>/dev/null || true
 
       echo "Claude config files copied to $AI_USAGE_DIR/db/"
 

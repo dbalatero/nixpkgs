@@ -37,7 +37,8 @@
       "WebFetch(domain:www.reddit.com)",
       "Bash(kreadconfig6:*)",
       "Bash(kwriteconfig6:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:awesomeclaude.ai)"
     ],
     "deny": [],
     "ask": []
