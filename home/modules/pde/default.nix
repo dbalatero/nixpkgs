@@ -5,6 +5,7 @@
     ./git
     ./neovim
     ./node
+    ./psql
     ./ssh
     ./stylix
     ./tmux
