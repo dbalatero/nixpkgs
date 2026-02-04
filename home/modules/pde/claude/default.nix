@@ -24,4 +24,8 @@ in {
   # Agents - custom agents for specialized tasks
   home.file.".claude/agents".source = config.lib.file.mkOutOfStoreSymlink
     "${configDir}/agents";
+
+  # Settings - Claude Code settings
+  home.file.".claude/settings.json".source = config.lib.file.mkOutOfStoreSymlink
+    "${configDir}/settings.json";
 }

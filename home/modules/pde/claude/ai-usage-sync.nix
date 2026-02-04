@@ -29,6 +29,7 @@
       # Copy individual config files
       cp "$NIXPKGS_CLAUDE/global-instructions.md" "$AI_USAGE_DIR/db/CLAUDE.md"
       cp "$NIXPKGS_CLAUDE/keybindings.json" "$AI_USAGE_DIR/db/keybindings.json"
+      cp "$NIXPKGS_CLAUDE/settings.json" "$AI_USAGE_DIR/db/settings.json"
 
       # Copy commands and agents directories
       cp "$NIXPKGS_CLAUDE/commands/"*.md "$AI_USAGE_DIR/db/commands/" 2>/dev/null || true
