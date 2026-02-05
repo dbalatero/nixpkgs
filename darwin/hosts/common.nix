@@ -102,6 +102,10 @@
       };
 
       CustomSystemPreferences = {
+        "com.apple.HIToolbox" = {
+          AppleDictationAutoEnable = 0; # Disable dictation hotkey prompt
+        };
+
         "com.apple.WindowManager" = {
           EnableTilingByEdgeDrag = false; # Disable drag windows to screen edges to tile
         };
