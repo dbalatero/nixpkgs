@@ -2,10 +2,9 @@
   description = "Monorepo for dbalatero system configurations";
 
   inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
-
-    # TODO: flip back to nixpkgs-unstable once this PR lands
-    nixpkgs.url = "github:nixos/nixpkgs/f4a9cd4f7cfa0ada33acab7d17eb3a6af3f6ba3b";
+    claude-code.url = "github:sadjow/claude-code-nix";
 
     darwin = {
       url = "github:lnl7/nix-darwin";
@@ -48,10 +47,12 @@
     plasma-manager,
     nix-homebrew,
     nix-flatpak,
+    claude-code,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
       modules = [
+        {nixpkgs.overlays = [claude-code.overlays.default];}
         nixvim.homeModules.nixvim
         stylix.homeModules.stylix
         ./home/hosts/racknerd-a61953
@@ -63,27 +64,28 @@
     nixosConfigurations.panther = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-      	./hosts/panther/configuration.nix
-	./hosts/panther/hardware-configuration.nix
-	home-manager.nixosModules.home-manager
-	{
-	  nixpkgs.config.allowUnfree = true;
+        ./hosts/panther/configuration.nix
+        ./hosts/panther/hardware-configuration.nix
+        home-manager.nixosModules.home-manager
+        {
+          nixpkgs.config.allowUnfree = true;
+          nixpkgs.overlays = [claude-code.overlays.default];
 
-	  home-manager = {
-	    users.dbalatero = {
-	      imports = [
-	        ./home/hosts/panther
-		nixvim.homeModules.nixvim
-		stylix.homeModules.stylix
-		plasma-manager.homeModules.plasma-manager
-		nix-flatpak.homeManagerModules.nix-flatpak
-	      ];
-	    };
+          home-manager = {
+            users.dbalatero = {
+              imports = [
+                ./home/hosts/panther
+                nixvim.homeModules.nixvim
+                stylix.homeModules.stylix
+                plasma-manager.homeModules.plasma-manager
+                nix-flatpak.homeManagerModules.nix-flatpak
+              ];
+            };
 
-	    useGlobalPkgs = true;
-	    extraSpecialArgs = {inherit inputs;};
-	  };
-	}
+            useGlobalPkgs = true;
+            extraSpecialArgs = {inherit inputs;};
+          };
+        }
       ];
     };
 
@@ -109,6 +111,7 @@
         {
           # Allow unfree packages at the system level
           nixpkgs.config.allowUnfree = true;
+          nixpkgs.overlays = [claude-code.overlays.default];
 
           home-manager = {
             users.dbalatero = {
@@ -151,6 +154,7 @@
         {
           # Allow unfree packages at the system level
           nixpkgs.config.allowUnfree = true;
+          nixpkgs.overlays = [claude-code.overlays.default];
 
           home-manager = {
             users.db = {
@@ -170,6 +174,5 @@
 
       specialArgs = {inherit inputs;};
     };
-
   };
 }
