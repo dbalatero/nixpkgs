@@ -4,7 +4,8 @@
   inputs = {
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    # TODO: flip back to nixpkgs-unstable once this PR lands
+    nixpkgs.url = "github:nixos/nixpkgs/f4a9cd4f7cfa0ada33acab7d17eb3a6af3f6ba3b";
 
     darwin = {
       url = "github:lnl7/nix-darwin";
