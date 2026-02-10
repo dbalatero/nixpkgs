@@ -54,6 +54,9 @@
       echo "Cloning $SOURCE -> $TARGET..."
       ${lib.getExe pkgs.git} clone "$SOURCE" "$TARGET"
 
+      echo "Setting origin to github..."
+      ${lib.getExe pkgs.git} -C "$TARGET" remote set-url origin git@github.com:withgraphite/monologue.git
+
       echo "Symlinking .envrc..."
       ln -sf "$SOURCE/.envrc" "$TARGET/.envrc"
 
