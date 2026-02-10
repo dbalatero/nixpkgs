@@ -94,6 +94,11 @@
           Number = 4;
           Rows = 1;
         };
+
+        # Disable the Invert effect that causes color inversion after sleep/wake
+        Plugins = {
+          invertEnabled = false;
+        };
       };
 
       # Keyboard layout and options (caps lock as control)
@@ -125,6 +130,10 @@
       "kwin"."Switch to Desktop 2" = "Meta+2";
       "kwin"."Switch to Desktop 3" = "Meta+3";
       "kwin"."Switch to Desktop 4" = "Meta+4";
+
+      # Disable invert shortcuts to prevent accidental color inversion
+      "kwin"."Invert" = [];
+      "kwin"."InvertScreen" = [];
     };
   };
 }
