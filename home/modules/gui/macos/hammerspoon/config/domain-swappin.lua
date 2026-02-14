@@ -45,12 +45,11 @@ local function swapToDomain(domain, protocol)
 end
 
 -- I use a super special keybind system for jerks
-superKey:bind("1"):toFunction(
-  "Swap to localhost Graphite",
-  swapToDomain("localhost:3000", "https")
-)
+superKey
+  :bind("1")
+  :toFunction("Swap: localhost:3000", swapToDomain("localhost:3000", "https"))
 superKey:bind("2"):toFunction(
-  "Swap to staging Graphite",
+  "Swap: app.stg.graphite.com",
   swapToDomain("app.stg.graphite.com", "https")
 )
 

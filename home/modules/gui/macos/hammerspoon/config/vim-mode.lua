@@ -61,6 +61,6 @@ vim:enterWithSequence("jk", 100)
 --------------------------------
 --
 
-hyperKey
-  :bind("2")
-  :toFunction("Test accessibility", VimMode.utils.debug.testAccessibilityField)
+-- hyperKey
+--   :bind("2")
+--   :toFunction("Test accessibility", VimMode.utils.debug.testAccessibilityField)
