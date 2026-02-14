@@ -71,3 +71,5 @@ require("qmk-layer-indicator")
 
 -- Require private hammerspoon config if exists
 pcall(dofile, os.getenv("HOME") .. "/.hammerspoon_experiments.lua")
+
+hyperKey:documentExternalKey("m", "Mute Zoom")
