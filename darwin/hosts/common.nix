@@ -9,8 +9,6 @@
     onActivation.cleanup = "none";
 
     brews = [
-      "nodenv"
-      "node-build"
     ];
 
     casks = [

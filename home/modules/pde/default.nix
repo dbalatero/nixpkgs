@@ -4,7 +4,7 @@
     ./core
     ./git
     ./neovim
-    ./node
+    ./mise
     ./psql
     ./ssh
     ./stylix

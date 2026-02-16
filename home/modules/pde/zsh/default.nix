@@ -8,7 +8,6 @@
     fasd
     fd
     neofetch
-    nodenv
     ripgrep
     zsh
   ];
