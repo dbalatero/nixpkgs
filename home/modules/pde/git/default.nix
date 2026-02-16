@@ -5,7 +5,6 @@
   ...
 }: {
   home.packages = with pkgs; [
-    diff-so-fancy
     gh
     git
     go-jira
@@ -37,7 +36,7 @@
     enableZshIntegration = true;
   };
 
-  programs.diff-so-fancy = {
+  programs.delta = {
     enable = true;
     enableGitIntegration = true;
   };
