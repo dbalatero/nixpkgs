@@ -11,10 +11,11 @@
     globalConfig = {
       tools = {
         node = "lts";
+        python = "latest";
         ruby = "latest";
       };
       settings = {
-        idiomatic_version_file_enable_tools = ["node" "ruby"];
+        idiomatic_version_file_enable_tools = ["node" "python" "ruby"];
         not_found_auto_install = true;
       };
     };
