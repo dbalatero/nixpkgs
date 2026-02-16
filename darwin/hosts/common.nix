@@ -9,6 +9,7 @@
     onActivation.cleanup = "none";
 
     brews = [
+      "libyaml"
     ];
 
     casks = [
