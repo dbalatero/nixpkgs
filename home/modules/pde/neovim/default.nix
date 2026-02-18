@@ -22,6 +22,8 @@ in {
 
   programs.nixvim = {
     enable = true;
+
+    package = pkgs.neovim-unwrapped;
     defaultEditor = true;
     viAlias = false;
     vimAlias = true;

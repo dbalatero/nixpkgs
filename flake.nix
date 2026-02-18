@@ -5,6 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     claude-code.url = "github:sadjow/claude-code-nix";
+    neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
 
     darwin = {
       url = "github:lnl7/nix-darwin";
@@ -47,6 +48,7 @@
     plasma-manager,
     nix-homebrew,
     nix-flatpak,
+    neovim-nightly-overlay,
     claude-code,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
@@ -69,7 +71,10 @@
         home-manager.nixosModules.home-manager
         {
           nixpkgs.config.allowUnfree = true;
-          nixpkgs.overlays = [claude-code.overlays.default];
+          nixpkgs.overlays = [
+            claude-code.overlays.default
+            neovim-nightly-overlay.overlays.default
+          ];
 
           home-manager = {
             users.dbalatero = {
@@ -111,7 +116,10 @@
         {
           # Allow unfree packages at the system level
           nixpkgs.config.allowUnfree = true;
-          nixpkgs.overlays = [claude-code.overlays.default];
+          nixpkgs.overlays = [
+            claude-code.overlays.default
+            neovim-nightly-overlay.overlays.default
+          ];
 
           home-manager = {
             users.dbalatero = {
@@ -154,7 +162,10 @@
         {
           # Allow unfree packages at the system level
           nixpkgs.config.allowUnfree = true;
-          nixpkgs.overlays = [claude-code.overlays.default];
+          nixpkgs.overlays = [
+            claude-code.overlays.default
+            neovim-nightly-overlay.overlays.default
+          ];
 
           home-manager = {
             users.db = {
