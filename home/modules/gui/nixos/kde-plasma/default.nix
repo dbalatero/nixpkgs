@@ -14,15 +14,15 @@
   home.pointerCursor = {
     gtk.enable = true;
     x11.enable = true;
-    package = pkgs.bibata-cursors;
-    name = "Bibata-Modern-Classic";
+    package = pkgs.apple-cursor;
+    name = "macOS";
     size = 24;
   };
 
   # Set environment variables for KDE
   home.sessionVariables = {
     XCURSOR_SIZE = "24";
-    XCURSOR_THEME = "Bibata-Modern-Classic";
+    XCURSOR_THEME = "macOS";
   };
 
   # KDE Plasma configuration via plasma-manager
