@@ -40,7 +40,9 @@
       "Bash(echo:*)",
       "WebFetch(domain:awesomeclaude.ai)",
       "Bash(mise settings:*)",
-      "WebFetch(domain:mise.jdx.dev)"
+      "WebFetch(domain:mise.jdx.dev)",
+      "WebFetch(domain:awesomeclaude.ai)",
+      "WebFetch(domain:discourse.nixos.org)"
     ],
     "deny": [],
     "ask": []
