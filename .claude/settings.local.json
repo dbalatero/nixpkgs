@@ -38,7 +38,9 @@
       "Bash(kreadconfig6:*)",
       "Bash(kwriteconfig6:*)",
       "Bash(echo:*)",
-      "WebFetch(domain:awesomeclaude.ai)"
+      "WebFetch(domain:awesomeclaude.ai)",
+      "Bash(mise settings:*)",
+      "WebFetch(domain:mise.jdx.dev)"
     ],
     "deny": [],
     "ask": []

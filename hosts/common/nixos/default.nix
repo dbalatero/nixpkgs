@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [
+    ./nix-ld.nix
     ./ssh.nix
     ./users.nix
     ./packages.nix
