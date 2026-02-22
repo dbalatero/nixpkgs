@@ -3,6 +3,8 @@ asvetliakov.vscode-neovim
 biomejs.biome
 catppuccin.catppuccin-vsc
 dbaeumer.vscode-eslint
+firsttris.vscode-jest-runner
+golang.go
 mattpocock.ts-error-translator
 oxc.oxc-vscode
 rust-lang.rust-analyzer
