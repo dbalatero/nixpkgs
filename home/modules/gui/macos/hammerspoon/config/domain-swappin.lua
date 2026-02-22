@@ -57,10 +57,17 @@ local function swapGithubGraphite()
 
   local newUrl = nil
 
+  -- app.graphite.com -> app.stg.graphite.com (one-way redirect)
+  if url:match("app%.graphite%.com/") and not url:match("app%.stg%.graphite%.com/") then
+    newUrl = url:gsub("app%.graphite%.com", "app.stg.graphite.com")
+  end
+
   -- Graphite -> GitHub
-  local org, repo, number = url:match("app%.stg%.graphite%.com/github/pr/([^/]+)/([^/]+)/(%d+)")
-  if org then
-    newUrl = "https://github.com/" .. org .. "/" .. repo .. "/pull/" .. number
+  if not newUrl then
+    local org, repo, number = url:match("app%.stg%.graphite%.com/github/pr/([^/]+)/([^/]+)/(%d+)")
+    if org then
+      newUrl = "https://github.com/" .. org .. "/" .. repo .. "/pull/" .. number
+    end
   end
 
   -- GitHub -> Graphite
