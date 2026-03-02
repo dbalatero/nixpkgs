@@ -128,7 +128,9 @@ in {
         action = helpers.mkRaw ''
           function()
             -- Custom definition handler that filters out node_modules/@types
-            local params = vim.lsp.util.make_position_params()
+            local client = vim.lsp.get_clients({ bufnr = 0, name = 'vtsls' })[1]
+              or vim.lsp.get_clients({ bufnr = 0 })[1]
+            local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
             vim.lsp.buf_request(0, 'textDocument/definition', params, function(err, result, ctx, config)
               if err or not result or vim.tbl_isempty(result) then
                 vim.notify("No definition found", vim.log.levels.INFO)
@@ -149,12 +151,17 @@ in {
                 filtered = locations
               end
 
-              -- Jump directly if only one result
               if #filtered == 1 then
-                vim.lsp.util.jump_to_location(filtered[1], 'utf-8')
+                local loc = filtered[1]
+                local uri = loc.uri or loc.targetUri
+                local range = loc.range or loc.targetSelectionRange or loc.targetRange
+                vim.lsp.util.show_document({ uri = uri, range = range }, 'utf-8', { focus = true })
               else
-                -- Show picker with multiple results
-                vim.lsp.util.show_document_range(filtered, 'utf-8')
+                vim.fn.setqflist({}, ' ', {
+                  title = 'LSP Definitions',
+                  items = vim.lsp.util.locations_to_items(filtered, 'utf-8'),
+                })
+                vim.cmd('copen')
               end
             end)
           end
@@ -428,6 +435,33 @@ in {
             };
           };
 
+          vtsls = {
+            enable = true;
+            onAttach.function = ''
+              client.server_capabilities.documentFormattingProvider = false
+              client.server_capabilities.documentRangeFormattingProvider = false
+            '';
+            settings = let
+              inlayHints = {
+                parameterNames = {
+                  enabled = "all";
+                  suppressWhenArgumentMatchesName = false;
+                };
+                parameterTypes.enabled = true;
+                variableTypes = {
+                  enabled = true;
+                  suppressWhenTypeMatchesName = false;
+                };
+                propertyDeclarationTypes.enabled = true;
+                functionLikeReturnTypes.enabled = true;
+                enumMemberValues.enabled = true;
+              };
+            in {
+              typescript.inlayHints = inlayHints;
+              javascript.inlayHints = inlayHints;
+            };
+          };
+
           yamlls = {
             enable = true;
             settings = {
@@ -437,36 +471,6 @@ in {
                 "https://json.schemastore.org/github-workflow" = ".github/workflows/*.{yml,yaml}";
                 "https://json.schemastore.org/github-action" = ".github/action.{yml,yaml}";
               };
-            };
-          };
-        };
-      };
-
-      typescript-tools = {
-        enable = true;
-
-        settings = {
-          # expose_as_code_action = "all";
-          onAttach =
-            # lua
-            ''
-              function(client, bufnr)
-                client.server_capabilities.documentFormattingProvider = false
-                client.server_capabilities.documentRangeFormattingProvider = false
-              end
-            '';
-
-          settings = {
-            tsserver_file_preferences = {
-              # Inlay Hints
-              includeInlayParameterNameHints = "all";
-              includeInlayParameterNameHintsWhenArgumentMatchesName = true;
-              includeInlayFunctionParameterTypeHints = true;
-              includeInlayVariableTypeHints = true;
-              includeInlayVariableTypeHintsWhenTypeMatchesName = true;
-              includeInlayPropertyDeclarationTypeHints = true;
-              includeInlayFunctionLikeReturnTypeHints = true;
-              includeInlayEnumMemberValueHints = true;
             };
           };
         };
