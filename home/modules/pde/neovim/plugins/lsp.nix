@@ -457,7 +457,15 @@ in {
                 enumMemberValues.enabled = true;
               };
             in {
-              typescript.inlayHints = inlayHints;
+              vtsls = {
+                autoUseWorkspaceTsdk = true;
+                experimental.completion.enableServerSideFuzzyMatch = true;
+              };
+              typescript = {
+                inlayHints = inlayHints;
+                preferences.includePackageJsonAutoImports = "off";
+                tsserver.maxTsServerMemory = 8192;
+              };
               javascript.inlayHints = inlayHints;
             };
           };
