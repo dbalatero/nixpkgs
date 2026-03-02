@@ -9,9 +9,6 @@
   "editor.formatOnSave": true,
   "editor.minimap.enabled": false,
   "editor.tabSize": 2,
-  "extensions.experimental.affinity": {
-    "asvetliakov.vscode-neovim": 1
-  },
   "security.workspace.trust.enabled": false,
   "terminal.external.linuxExec": "xterm-256color",
   "terminal.integrated.fontFamily": "'JetBrainsMono'",
