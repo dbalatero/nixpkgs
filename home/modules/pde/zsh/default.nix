@@ -145,6 +145,7 @@
 
     shellAliases = {
       "6" = "exec zsh";
+      c = "cursor-agent";
       j = "z"; # autojump style for fasd
       l = "ls -al";
       p = "gt pr";
