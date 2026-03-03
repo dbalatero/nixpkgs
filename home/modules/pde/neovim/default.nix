@@ -144,6 +144,46 @@ in {
           desc = "Copy directory path to clipboard";
         };
       }
+
+      {
+        mode = "n";
+        key = "<leader>yr";
+        action = helpers.mkRaw ''
+          function()
+            local ref = "@" .. vim.fn.expand("%")
+            vim.fn.setreg("*", ref)
+            vim.notify("Copied reference: " .. ref)
+          end
+        '';
+        options = {
+          desc = "Copy @file reference for AI";
+        };
+      }
+      {
+        mode = "v";
+        key = "<leader>yr";
+        action = helpers.mkRaw ''
+          function()
+            local start_line = vim.fn.line("v")
+            local end_line = vim.fn.line(".")
+            if start_line > end_line then
+              start_line, end_line = end_line, start_line
+            end
+            local ref
+            if start_line == end_line then
+              ref = "@" .. vim.fn.expand("%") .. " (line " .. start_line .. ")"
+            else
+              ref = "@" .. vim.fn.expand("%") .. " (lines " .. start_line .. " to " .. end_line .. ")"
+            end
+            vim.fn.setreg("*", ref)
+            vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
+            vim.notify("Copied reference: " .. ref)
+          end
+        '';
+        options = {
+          desc = "Copy @file:lines reference for AI";
+        };
+      }
     ];
 
     opts = {
