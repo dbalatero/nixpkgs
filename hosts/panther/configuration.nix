@@ -50,11 +50,31 @@
     "amdgpu.ppfeaturemask=0xffffffff"  # Enable all GPU features
   ];
 
+  # Printing
+  services.printing = {
+    enable = true;
+    drivers = with pkgs; [
+      brlaser              # Open-source Brother laser driver
+      brgenml1lpr          # Brother generic LPR driver
+      brgenml1cupswrapper  # Brother generic CUPS wrapper
+    ];
+  };
+
+  # Network printer discovery (Avahi/mDNS)
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
+
   # AMD GPU utilities
   environment.systemPackages = with pkgs; [
     radeontop      # GPU monitoring tool
     clinfo         # OpenCL info
     vulkan-tools   # Vulkan utilities (vulkaninfo, etc.)
     lshw           # Hardware info
+
+    # Printing
+    system-config-printer  # KDE printer management backend
   ];
 }
