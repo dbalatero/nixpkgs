@@ -269,6 +269,13 @@ in {
     };
 
     extraConfigLua = ''
+      vim.filetype.add({
+        filename = {
+          ["${config.home.homeDirectory}/.config/graphite/auth"] = "json",
+          ["${config.home.homeDirectory}/.config/graphite/user_config"] = "json",
+        },
+      })
+
       vim.o.undodir = vim.fn.stdpath("data") .. "/backups"
 
       --  ╭──────────────────────────────────────────────────────────╮
