@@ -48,7 +48,6 @@
     export MONOLOGUE_SHELL_HOOKS_SKIP_MISE=1
 
     [ -f "$HOME/code/monologue/tools/vpn/bin/shell-integration.sh" ] && source "$HOME/code/monologue/tools/vpn/bin/shell-integration.sh"
-
-    eval "$($HOME/code/monologue/dev/shell-init zsh)" # monologue-shellrc
+    [ -f "$HOME/code/monologue/dev/shell-init" ] && eval "$("$HOME/code/monologue/dev/shell-init" zsh)"
   '';
 }
