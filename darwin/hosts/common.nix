@@ -107,6 +107,10 @@
 
         "com.apple.WindowManager" = {
           EnableTilingByEdgeDrag = false; # Disable drag windows to screen edges to tile
+          EnableTopTilingByEdgeDrag = false; # Disable drag windows to top edge to tile
+          EnableTilingOptionAccelerator = false; # Disable option-key tiling accelerator
+          GloballyEnabled = false; # Disable Stage Manager
+          EnableStandardClickToShowDesktop = false; # Disable click wallpaper to show desktop
         };
 
         "com.apple.Safari" = {
