@@ -135,6 +135,9 @@
 
       PATH = "./node_modules/.bin:$HOME/.config/base16-shell:$PATH";
       TERM = "xterm-256color";
+
+      MONOREPO_MERGE_EVERYSPHERE_PATH = "$HOME/code/everysphere-playground";
+      MONOREPO_MERGE_MONOLOGUE_PATH = "$HOME/code/monologue";
     };
 
     # zshenv
