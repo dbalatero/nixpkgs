@@ -73,6 +73,7 @@
     clinfo         # OpenCL info
     vulkan-tools   # Vulkan utilities (vulkaninfo, etc.)
     lshw           # Hardware info
+    ffmpeg         # Audio/video processing
 
     # Printing
     system-config-printer  # KDE printer management backend
