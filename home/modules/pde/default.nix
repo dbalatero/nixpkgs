@@ -3,6 +3,7 @@
     ./claude
     ./core
     ./git
+    ./graphite
     ./neovim
     ./mise
     ./psql
