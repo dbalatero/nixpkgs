@@ -90,5 +90,6 @@
   "oxc.requireConfig": true,
   "extensions.experimental.affinity": {
     "asvetliakov.vscode-neovim": 1
-  }
+  },
+  "extensions.ignoreRecommendations": true
 }

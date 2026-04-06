@@ -11,4 +11,5 @@ rust-lang.rust-analyzer
 streetsidesoftware.code-spell-checker
 stylelint.vscode-stylelint
 tamasfe.even-better-toml
+typescriptteam.native-preview
 vunguyentuan.vscode-css-variables
