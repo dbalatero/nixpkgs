@@ -67,6 +67,9 @@
     openFirewall = true;
   };
 
+  # Flipper Zero
+  hardware.flipperzero.enable = true;
+
   # AMD GPU utilities
   environment.systemPackages = with pkgs; [
     radeontop      # GPU monitoring tool
