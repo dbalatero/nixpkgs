@@ -8,6 +8,10 @@
     enable = true;
     onActivation.cleanup = "none";
 
+    taps = [
+      "dannystewart/apps"
+    ];
+
     brews = [
       "libyaml"
     ];
@@ -27,6 +31,7 @@
       "slack"
       "spotify"
       "vlc"
+      "volumehud"
     ];
   };
 
