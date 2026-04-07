@@ -49,5 +49,11 @@
 
     [ -f "$HOME/code/monologue/tools/vpn/bin/shell-integration.sh" ] && source "$HOME/code/monologue/tools/vpn/bin/shell-integration.sh"
     [ -f "$HOME/code/monologue/dev/shell-init" ] && eval "$("$HOME/code/monologue/dev/shell-init" zsh)"
+
+    if [ -f "$HOME/code/everysphere/scripts/setup/rcfiles/zshrc" ]; then
+      ### AnySphere Setup ###
+      source "$HOME/code/everysphere/scripts/setup/rcfiles/zshrc"
+      ### End AnySphere Setup ###
+    fi
   '';
 }
