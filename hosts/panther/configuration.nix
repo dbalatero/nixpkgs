@@ -80,5 +80,7 @@
 
     # Printing
     system-config-printer  # KDE printer management backend
+
+    unrar
   ];
 }
