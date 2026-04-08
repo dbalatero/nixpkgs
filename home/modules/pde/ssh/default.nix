@@ -13,6 +13,11 @@
       "github.com" = {
         identityFile = "~/.ssh/id_github";
       };
+
+      "pumpkin" = {
+        hostname = "pumpkin.whatbox.ca";
+        user = "dbalatero";
+      };
     };
   };
 }
