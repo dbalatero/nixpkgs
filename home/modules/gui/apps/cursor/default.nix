@@ -15,6 +15,10 @@
     config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/.config/nixpkgs/home/modules/gui/apps/cursor/keybindings.json";
 
+  home.file.".cursor/mcp.json".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/.config/nixpkgs/home/modules/gui/apps/cursor/mcp.json";
+
   # Sync extensions bidirectionally
   home.activation.syncCursorExtensions = lib.hm.dag.entryAfter ["writeBoundary"] ''
     EXTENSIONS_FILE="${config.home.homeDirectory}/.config/nixpkgs/home/modules/gui/apps/cursor/extensions.txt"
