@@ -1,3 +1,4 @@
+anysphere.cursor-keyword-checker
 arcanis.vscode-zipfs
 asvetliakov.vscode-neovim
 biomejs.biome
