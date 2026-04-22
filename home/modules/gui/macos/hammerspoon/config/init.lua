@@ -50,15 +50,9 @@ sky = SkyRocket:new({
 -- Require private hammerspoon config if exists
 pcall(require, "private.init")
 
--- only do vim3 dev on my desktop
-if hs.host.localizedName() == "sorny" then
-  -- require "vim3"
-  require("vim-mode")
-end
-
-if hs.host.localizedName() == "jaguar" then
-  require("vim-mode")
-end
+-- if hs.host.localizedName() == "jaguar" then
+--   require("vim-mode")
+-- end
 
 require("spotify")
 require("rich-link-copy")
