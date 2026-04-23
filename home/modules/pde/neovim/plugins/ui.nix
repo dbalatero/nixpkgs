@@ -8,13 +8,14 @@
     group = "${group}";
   };
   helpers = config.lib.nixvim;
+  catppuccinFlavor = "macchiato";
 in {
   programs.nixvim = {
     # Catppuccin colorscheme
     colorschemes.catppuccin = {
       enable = true;
       settings = {
-        flavor = "macchiato";
+        flavor = catppuccinFlavor;
       };
     };
 
@@ -70,11 +71,11 @@ in {
       lua
       */
       ''
-        -- Configure lualine
+        -- Configure lualine (catppuccin theme lives in catppuccin.nvim, not lualine's bundled themes)
         require("lualine").setup({
           options = {
             icons_enabled = true,
-            theme = "catppuccin",
+            theme = require("catppuccin.utils.lualine")("${catppuccinFlavor}"),
           },
           sections = {
             lualine_a = { "mode" },

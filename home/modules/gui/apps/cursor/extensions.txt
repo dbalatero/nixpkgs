@@ -1,4 +1,5 @@
 anysphere.cursor-keyword-checker
+anysphere.remote-ssh
 arcanis.vscode-zipfs
 asvetliakov.vscode-neovim
 biomejs.biome
