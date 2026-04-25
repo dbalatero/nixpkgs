@@ -82,5 +82,8 @@
     system-config-printer  # KDE printer management backend
 
     unrar
+    zip
+    unzip
+    flips
   ];
 }
