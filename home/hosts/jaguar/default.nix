@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   ...
@@ -13,7 +14,13 @@
   home.homeDirectory = "/Users/db";
   home.username = "db";
 
-  programs.git.settings.user.email = "db@graphite.com";
+  programs.git = {
+    settings.user.email = "db@graphite.com";
+    maintenance = {
+      enable = true;
+      repositories = [ "${config.home.homeDirectory}/code/everysphere" ];
+    };
+  };
 
   programs.ssh = {
     matchBlocks = {
