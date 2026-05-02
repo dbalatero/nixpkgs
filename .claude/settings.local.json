@@ -42,7 +42,10 @@
       "Bash(mise settings:*)",
       "WebFetch(domain:mise.jdx.dev)",
       "WebFetch(domain:awesomeclaude.ai)",
-      "WebFetch(domain:discourse.nixos.org)"
+      "WebFetch(domain:discourse.nixos.org)",
+      "Bash(xset q:*)",
+      "WebFetch(domain:wiki.archlinux.org)",
+      "WebFetch(domain:blogs.kde.org)"
     ],
     "deny": [],
     "ask": []
