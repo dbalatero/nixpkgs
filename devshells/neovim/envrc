@@ -1,3 +1,4 @@
 use flake $HOME/.config/nixpkgs/devshells/neovim
 
 export CMAKE_BUILD_TYPE=RelWithDebInfo
+export VIMRUNTIME="$PWD/runtime"
