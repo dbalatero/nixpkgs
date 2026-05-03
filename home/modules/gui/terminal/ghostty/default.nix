@@ -47,8 +47,8 @@
 
       theme = "Catppuccin Macchiato";
 
-      # shift+enter sends F12, used for newline in Codex
-      keybind = "shift+enter=text:\\x1b[24~";
+      # shift+enter sends ctrl+q (\x11), used for newline in Claude Code and Codex
+      keybind = "shift+enter=text:\\x11";
 
       # Optional local config file
       config-file = "?config.local";
