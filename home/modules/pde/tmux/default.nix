@@ -65,6 +65,7 @@ in {
       tmuxPlugins.battery
       tmuxPlugins.better-mouse-mode
       tmuxPlugins.copycat
+      tmuxPlugins.fzf-tmux-url
       tmuxPlugins.open
       {
         plugin = tmuxPlugins.yank;
