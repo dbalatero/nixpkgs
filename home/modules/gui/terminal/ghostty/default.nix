@@ -47,6 +47,9 @@
 
       theme = "Catppuccin Macchiato";
 
+      # shift+enter sends F12, used for newline in Codex
+      keybind = "shift+enter=text:\\x1b[24~";
+
       # Optional local config file
       config-file = "?config.local";
     };
