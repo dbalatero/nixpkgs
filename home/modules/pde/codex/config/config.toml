@@ -9,3 +9,6 @@ trust_level = "trusted"
 
 [projects."/home/dbalatero/code/neovim"]
 trust_level = "trusted"
+
+[projects."/Users/dbalatero/.config/nixpkgs"]
+trust_level = "trusted"
