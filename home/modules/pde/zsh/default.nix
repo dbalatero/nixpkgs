@@ -155,6 +155,7 @@
       tk = "tmux kill-session";
       tn = "tmuxinator";
       vim = "nvim";
+      nvim-dev = "VIMRUNTIME=$HOME/code/neovim/runtime $HOME/code/neovim/build/bin/nvim";
 
       weather = "curl wttr.in";
 
