@@ -1,3 +1,5 @@
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "context-remaining", "context-used", "fast-mode"]
 [tui.keymap.editor]
 insert_newline = "ctrl-q"
 
@@ -11,4 +13,7 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/Users/dbalatero/.config/nixpkgs"]
+trust_level = "trusted"
+
+[projects."/Users/dbalatero/code/ynab"]
 trust_level = "trusted"
