@@ -1,0 +1,11 @@
+[tui.keymap.editor]
+insert_newline = "f12"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[projects."/home/dbalatero/.config/nixpkgs"]
+trust_level = "trusted"
+
+[projects."/home/dbalatero/code/neovim"]
+trust_level = "trusted"

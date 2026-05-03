@@ -8,6 +8,12 @@
         "alt+t": "app:toggleTranscript",
         "ctrl+o": null
       }
+    },
+    {
+      "context": "Chat",
+      "bindings": {
+        "f12": "chat:newline"
+      }
     }
   ]
 }

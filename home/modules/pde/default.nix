@@ -1,6 +1,7 @@
 {
   imports = [
     ./claude
+    ./codex
     ./core
     ./git
     ./graphite

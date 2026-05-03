@@ -7,7 +7,6 @@
 in {
   home.packages = with pkgs; [
     claude-code
-    codex
   ];
 
   # Writable symlinks to claude config - allows direct editing without Nix rebuilds
