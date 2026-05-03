@@ -12,7 +12,8 @@
     {
       "context": "Chat",
       "bindings": {
-        "f12": "chat:newline"
+        "f12": "chat:newline",
+        "ctrl+q": "chat:newline"
       }
     }
   ]

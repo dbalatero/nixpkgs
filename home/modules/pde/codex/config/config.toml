@@ -1,5 +1,5 @@
 [tui.keymap.editor]
-insert_newline = "f12"
+insert_newline = "ctrl-q"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4

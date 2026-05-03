@@ -197,9 +197,6 @@
         # Use jk to exit insert mode on the command line
         bindkey -M viins 'jk' vi-cmd-mode
 
-        # Bind F12 (\x1b[24~, sent by Ghostty for shift+enter) to a no-op in
-        # vi insert mode so it doesn't trigger vi-cmd-mode via the ESC prefix
-        bindkey -M viins '\e[24~' undefined-key
 
         # Set vi mode AGAIN
         bindkey -v
