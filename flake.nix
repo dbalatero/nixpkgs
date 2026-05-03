@@ -5,6 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     claude-code.url = "github:sadjow/claude-code-nix";
+    codex-cli.url = "github:sadjow/codex-cli-nix";
     neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
 
     darwin = {
@@ -50,11 +51,12 @@
     nix-flatpak,
     neovim-nightly-overlay,
     claude-code,
+    codex-cli,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
       modules = [
-        {nixpkgs.overlays = [claude-code.overlays.default];}
+        {nixpkgs.overlays = [claude-code.overlays.default codex-cli.overlays.default];}
         nixvim.homeModules.nixvim
         stylix.homeModules.stylix
         ./home/hosts/racknerd-a61953
@@ -73,6 +75,7 @@
           nixpkgs.config.allowUnfree = true;
           nixpkgs.overlays = [
             claude-code.overlays.default
+            codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
           ];
 
@@ -118,6 +121,7 @@
           nixpkgs.config.allowUnfree = true;
           nixpkgs.overlays = [
             claude-code.overlays.default
+            codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
           ];
 
@@ -164,6 +168,7 @@
           nixpkgs.config.allowUnfree = true;
           nixpkgs.overlays = [
             claude-code.overlays.default
+            codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
           ];
 
