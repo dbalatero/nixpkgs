@@ -45,7 +45,8 @@
       "WebFetch(domain:discourse.nixos.org)",
       "Bash(xset q:*)",
       "WebFetch(domain:wiki.archlinux.org)",
-      "WebFetch(domain:blogs.kde.org)"
+      "WebFetch(domain:blogs.kde.org)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []
