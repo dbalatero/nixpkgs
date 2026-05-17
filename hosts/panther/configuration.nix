@@ -19,6 +19,12 @@
   # Hostname
   networking.hostName = "panther";
 
+  # Leave one logical CPU free during local Nix builds to keep the desktop responsive.
+  nix.settings = {
+    max-jobs = 15;
+    cores = 1;
+  };
+
   # Boot loader configuration
   boot.loader = {
     efi.canTouchEfiVariables = true;
