@@ -20,3 +20,6 @@ trust_level = "trusted"
 
 [projects."/home/dbalatero/Downloads/Berkeley Mono Font"]
 trust_level = "trusted"
+
+[projects."/home/dbalatero"]
+trust_level = "trusted"

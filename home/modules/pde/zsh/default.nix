@@ -80,6 +80,7 @@
 
   programs.zsh = {
     enable = true;
+    dotDir = config.home.homeDirectory;
     enableCompletion = true;
 
     defaultKeymap = "viins"; # vi mode

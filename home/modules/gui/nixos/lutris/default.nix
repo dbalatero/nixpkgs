@@ -11,7 +11,7 @@
     (lutris.override {
       extraPkgs = pkgs: [
         # Wine with full 32/64-bit support
-        wineWowPackages.stagingFull
+        wineWow64Packages.stagingFull
 
         # Wine helper tools
         winetricks

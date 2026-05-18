@@ -19,10 +19,20 @@
   # Hostname
   networking.hostName = "panther";
 
-  # Leave one logical CPU free during local Nix builds to keep the desktop responsive.
+  # Keep local Nix builds from overwhelming the desktop during large nixpkgs updates.
   nix.settings = {
-    max-jobs = 15;
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    max-jobs = 4;
     cores = 1;
+  };
+
+  # Panther has no disk swap configured; zram gives rebuilds a compressed memory cushion.
+  zramSwap = {
+    enable = true;
+    memoryPercent = 50;
   };
 
   # Boot loader configuration

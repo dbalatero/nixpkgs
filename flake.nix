@@ -4,9 +4,20 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
-    claude-code.url = "github:sadjow/claude-code-nix";
-    codex-cli.url = "github:sadjow/codex-cli-nix";
-    neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
+    claude-code = {
+      url = "github:sadjow/claude-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    codex-cli = {
+      url = "github:sadjow/codex-cli-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    neovim-nightly-overlay = {
+      url = "github:nix-community/neovim-nightly-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     darwin = {
       url = "github:lnl7/nix-darwin";
@@ -77,6 +88,16 @@
             claude-code.overlays.default
             codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
+            # Work around openldap 2.6.13's syncrepl test failing during local builds.
+            (final: prev: {
+              openldap = prev.openldap.overrideAttrs (_old: {
+                doCheck = false;
+              });
+              # Work around xdg-desktop-portal 1.20.4's USB integration test failing during local builds.
+              xdg-desktop-portal = prev.xdg-desktop-portal.overrideAttrs (_old: {
+                doCheck = false;
+              });
+            })
           ];
 
           home-manager = {

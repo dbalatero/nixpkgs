@@ -112,7 +112,6 @@
     libratbag      # Includes ratbagctl CLI tool
 
     # KDE config tools
-    libsForQt5.kconfig  # Includes kreadconfig5 and kwriteconfig5
     kdePackages.kconfig # Includes kreadconfig6 and kwriteconfig6
   ];
 }
