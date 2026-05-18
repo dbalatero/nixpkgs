@@ -20,5 +20,6 @@
     # Communication
     discord
     slack
+    zoom-us
   ];
 }
