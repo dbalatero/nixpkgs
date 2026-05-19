@@ -8,7 +8,12 @@
 in {
   home.packages = with pkgs; [
     alejandra
+    cargo
+    clippy
     deadnix
+    rust-analyzer
+    rustc
+    rustfmt
     shfmt
     stylua
     typescript
@@ -287,6 +292,7 @@ in {
             jsonc = ["biome"];
             graphql = ["prettierd"];
             css = ["prettierd"];
+            rust = ["rustfmt"];
           };
           format_after_save = helpers.mkRaw ''
             function(bufnr)
@@ -341,14 +347,6 @@ in {
           jsonc = ["biomejs"];
           nix = ["deadnix"];
           ruby = ["rubocop"];
-        };
-        autoCmd = {
-          event = ["BufWritePost"];
-          callback = helpers.mkRaw ''
-            function()
-              require("lint").try_lint()
-            end
-          '';
         };
       };
 
@@ -432,6 +430,18 @@ in {
             settings = {
               formatting.command = [(lib.getExe pkgs.alejandra) "--quiet"];
               nix.flake.autoArchive = true;
+            };
+          };
+
+          rust_analyzer = {
+            enable = true;
+            package = null;
+            cmd = ["rust-analyzer"];
+            installCargo = false;
+            installRustc = false;
+            rootMarkers = ["Cargo.toml"];
+            settings = {
+              check.command = "clippy";
             };
           };
 
