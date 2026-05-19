@@ -89,6 +89,8 @@ in {
 
         vim.g.vimfiler_force_overwrite_statusline = 0
         vim.g.vimfiler_as_default_explorer = 1
+        vim.g.vimfiler_data_directory = vim.fn.stdpath("cache") .. "/vimfiler-nocache"
+        vim.g.vimfiler_min_cache_files = 1000000000
         vim.g.vimshell_force_overwrite_statusline = 0
 
         vim.fn["vimfiler#custom#profile"]("default", "context", { safe = 0 })
