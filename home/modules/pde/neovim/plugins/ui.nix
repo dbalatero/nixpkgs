@@ -58,6 +58,7 @@ in {
             (keyGroup "<leader>l" "+lsp")
             (keyGroup "<leader>m" "+marks")
             (keyGroup "<leader>n" "+a[n]notations")
+            (keyGroup "<leader>r" "+rust")
             (keyGroup "<leader>s" "+search")
             (keyGroup "<leader>sn" "+noice")
             (keyGroup "<leader>x" "+trouble")

@@ -42,6 +42,8 @@
           nmap <silent> <leader>t :TestFile<CR>
 
           let g:test#preserve_screen = 1
+          let g:VimuxOrientation = "h"
+          let g:VimuxRunnerQuery = {'pane': '{bottom-right}'}
           let test#neovim#term_position = "vert"
           let test#vim#term_position = "vert"
 
@@ -65,6 +67,30 @@
           call add(test#enabled_runners, "ruby#rspec")
           call add(test#enabled_runners, "javascript#jest")
         ]])
+
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = "rust",
+          callback = function(event)
+            local opts = function(desc)
+              return {
+                buffer = event.buf,
+                desc = desc,
+              }
+            end
+
+            vim.keymap.set("n", "<leader>rr", function()
+              vim.fn.VimuxRunCommand("cargo run")
+            end, opts("Rust: cargo run"))
+
+            vim.keymap.set("n", "<leader>rb", function()
+              vim.fn.VimuxRunCommand("cargo build")
+            end, opts("Rust: cargo build"))
+
+            vim.keymap.set("n", "<leader>rt", function()
+              vim.fn.VimuxRunCommand("cargo test")
+            end, opts("Rust: cargo test"))
+          end,
+        })
       '';
   };
 }
