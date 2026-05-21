@@ -26,10 +26,43 @@ in {
             preset = "default";
 
             "<C-space>" = ["show" "show_documentation" "hide_documentation"];
-            "<C-e>" = ["hide"];
+            "<C-e>" = ["cancel" "fallback"];
             "<CR>" = ["accept" "fallback"];
-            "<Tab>" = ["select_next" "snippet_forward" "fallback"];
-            "<S-Tab>" = ["select_prev" "snippet_backward" "fallback"];
+            "<Tab>" = [
+              (helpers.mkRaw
+                # lua
+                ''
+                  function(cmp)
+                    local list = require("blink.cmp.completion.list")
+                    if cmp.is_menu_visible() and list.selected_item_idx ~= nil and list.preview_undo == nil then
+                      vim.schedule(function()
+                        list.select(list.selected_item_idx, { auto_insert = true })
+                      end)
+                      return true
+                    end
+                  end
+                '')
+              (helpers.mkRaw
+                # lua
+                ''
+                  function(cmp)
+                    return cmp.select_next({ auto_insert = true })
+                  end
+                '')
+              "snippet_forward"
+              "fallback"
+            ];
+            "<S-Tab>" = [
+              (helpers.mkRaw
+                # lua
+                ''
+                  function(cmp)
+                    return cmp.select_prev({ auto_insert = true })
+                  end
+                '')
+              "snippet_backward"
+              "fallback"
+            ];
             "<C-d>" = ["scroll_documentation_up" "fallback"];
             "<C-f>" = ["scroll_documentation_down" "fallback"];
           };
