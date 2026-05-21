@@ -15,7 +15,8 @@ in {
       tree-sitter
     ]
     ++ lib.optionals (!pkgs.stdenv.isDarwin) [
-      # libgcc
+      wl-clipboard
+      xclip
     ];
 
   programs.bat.enable = true;
@@ -97,7 +98,7 @@ in {
         action = helpers.mkRaw ''
           function()
             local relative_path = vim.fn.expand("%")
-            vim.fn.setreg("*", relative_path)
+            vim.fn.setreg("+", relative_path)
             vim.notify("Copied relative path: " .. relative_path)
           end
         '';
@@ -110,7 +111,7 @@ in {
         action = helpers.mkRaw ''
           function()
             local absolute_path = vim.fn.expand("%:p")
-            vim.fn.setreg("*", absolute_path)
+            vim.fn.setreg("+", absolute_path)
             vim.notify("Copied absolute path: " .. absolute_path)
           end
         '';
@@ -123,7 +124,7 @@ in {
         action = helpers.mkRaw ''
           function()
             local filename = vim.fn.expand("%:t")
-            vim.fn.setreg("*", filename)
+            vim.fn.setreg("+", filename)
             vim.notify("Copied filename: " .. filename)
           end
         '';
@@ -136,7 +137,7 @@ in {
         action = helpers.mkRaw ''
           function()
             local directory = vim.fn.expand("%:p:h")
-            vim.fn.setreg("*", directory)
+            vim.fn.setreg("+", directory)
             vim.notify("Copied directory path: " .. directory)
           end
         '';
@@ -151,7 +152,7 @@ in {
         action = helpers.mkRaw ''
           function()
             local ref = "@" .. vim.fn.expand("%")
-            vim.fn.setreg("*", ref)
+            vim.fn.setreg("+", ref)
             vim.notify("Copied reference: " .. ref)
           end
         '';
@@ -175,7 +176,7 @@ in {
             else
               ref = "@" .. vim.fn.expand("%") .. " (lines " .. start_line .. " to " .. end_line .. ")"
             end
-            vim.fn.setreg("*", ref)
+            vim.fn.setreg("+", ref)
             vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
             vim.notify("Copied reference: " .. ref)
           end
