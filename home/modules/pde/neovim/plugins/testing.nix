@@ -78,16 +78,45 @@
               }
             end
 
+            local cargo_root_for_buffer = function(bufnr)
+              local filename = vim.api.nvim_buf_get_name(bufnr)
+              if filename == "" then
+                return nil
+              end
+
+              local cargo_toml = vim.fs.find("Cargo.toml", {
+                upward = true,
+                path = vim.fs.dirname(filename),
+              })[1]
+
+              if cargo_toml == nil then
+                return nil
+              end
+
+              return vim.fs.dirname(cargo_toml)
+            end
+
+            local run_cargo_command = function(command)
+              local cargo_root = cargo_root_for_buffer(event.buf)
+              if cargo_root == nil then
+                vim.notify("No Cargo.toml found for current buffer", vim.log.levels.WARN)
+                return
+              end
+
+              vim.cmd.write()
+              vim.fn.VimuxRunCommand("(cd " .. vim.fn.shellescape(cargo_root) .. " && " .. command .. ")")
+            end
+
             vim.keymap.set("n", "<leader>rr", function()
-              vim.fn.VimuxRunCommand("cargo run")
+              run_cargo_command("cargo run")
             end, opts("Rust: cargo run"))
 
             vim.keymap.set("n", "<leader>rb", function()
-              vim.fn.VimuxRunCommand("cargo build")
+              run_cargo_command("cargo build")
             end, opts("Rust: cargo build"))
 
             vim.keymap.set("n", "<leader>rt", function()
-              vim.fn.VimuxRunCommand("cargo test")
+              run_cargo_command("cargo test")
             end, opts("Rust: cargo test"))
           end,
         })
