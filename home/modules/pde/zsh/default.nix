@@ -11,6 +11,10 @@
     zsh
   ];
 
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.cargo/bin"
+  ];
+
   programs.direnv.enable = true;
   programs.eza.enable = true;
   programs.fzf = {
