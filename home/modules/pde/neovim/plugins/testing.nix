@@ -107,8 +107,30 @@
               vim.fn.VimuxRunCommand("(cd " .. vim.fn.shellescape(cargo_root) .. " && " .. command .. ")")
             end
 
+            local build_cargo_run_command = function()
+              local cargo_root = cargo_root_for_buffer(event.buf)
+              if cargo_root == nil then
+                return "cargo run"
+              end
+
+              local filename = vim.api.nvim_buf_get_name(event.buf)
+              local relative_filename = vim.fs.relpath(cargo_root, filename)
+              if relative_filename == nil then
+                return "cargo run"
+              end
+
+              local bin_name = relative_filename:match("^src/bin/([^/%.]+)%.[^/]+$")
+                or relative_filename:match("^src/bin/([^/]+)/main%.[^/]+$")
+
+              if bin_name == nil then
+                return "cargo run"
+              end
+
+              return "cargo run --bin " .. vim.fn.shellescape(bin_name)
+            end
+
             vim.keymap.set("n", "<leader>rr", function()
-              run_cargo_command("cargo run")
+              run_cargo_command(build_cargo_run_command())
             end, opts("Rust: cargo run"))
 
             vim.keymap.set("n", "<leader>rb", function()
