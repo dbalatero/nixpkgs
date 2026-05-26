@@ -115,6 +115,10 @@
               run_cargo_command("cargo build")
             end, opts("Rust: cargo build"))
 
+            vim.keymap.set("n", "<leader>rc", function()
+              run_cargo_command("cargo check")
+            end, opts("Rust: cargo check"))
+
             vim.keymap.set("n", "<leader>rt", function()
               run_cargo_command("cargo test")
             end, opts("Rust: cargo test"))
