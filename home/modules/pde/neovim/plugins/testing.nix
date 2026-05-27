@@ -43,7 +43,6 @@
 
           let g:test#preserve_screen = 1
           let g:VimuxOrientation = "h"
-          let g:VimuxRunnerQuery = {'pane': '{bottom-right}'}
           let test#neovim#term_position = "vert"
           let test#vim#term_position = "vert"
 
@@ -96,6 +95,44 @@
               return vim.fs.dirname(cargo_toml)
             end
 
+            local tmux_display = function(args)
+              local output = vim.fn.system(vim.list_extend({
+                "tmux",
+                "display-message",
+                "-p",
+              }, args))
+
+              if vim.v.shell_error ~= 0 then
+                return nil
+              end
+
+              return vim.trim(output)
+            end
+
+            local run_in_bottom_right_pane = function(command)
+              if vim.env.TMUX == nil then
+                return false
+              end
+
+              local current_pane = tmux_display({"#{pane_id}"})
+              local target_pane = tmux_display({"-t", "{bottom-right}", "#{pane_id}"})
+              if target_pane == nil or target_pane == "" or target_pane == current_pane then
+                return false
+              end
+
+              vim.fn.system({
+                "tmux",
+                "send-keys",
+                "-t",
+                target_pane,
+                "C-u",
+                command,
+                "C-m",
+              })
+
+              return vim.v.shell_error == 0
+            end
+
             local run_cargo_command = function(command)
               local cargo_root = cargo_root_for_buffer(event.buf)
               if cargo_root == nil then
@@ -104,7 +141,10 @@
               end
 
               vim.cmd.write()
-              vim.fn.VimuxRunCommand("(cd " .. vim.fn.shellescape(cargo_root) .. " && " .. command .. ")")
+              local tmux_command = "(cd " .. vim.fn.shellescape(cargo_root) .. " && " .. command .. ")"
+              if not run_in_bottom_right_pane(tmux_command) then
+                vim.fn.VimuxRunCommand(tmux_command)
+              end
             end
 
             local build_cargo_run_command = function()
