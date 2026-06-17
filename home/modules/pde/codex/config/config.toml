@@ -1,5 +1,6 @@
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
+
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "context-remaining", "context-used", "fast-mode"]
 [tui.keymap.editor]
