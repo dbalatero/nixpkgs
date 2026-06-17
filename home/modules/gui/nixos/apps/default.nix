@@ -1,4 +1,8 @@
 {pkgs, ...}: {
+  imports = [
+    ../../apps/vlc
+  ];
+
   home.packages = with pkgs; [
     # Password manager
     _1password-gui
@@ -16,6 +20,9 @@
         "--disable-lcd-text"
       ];
     })
+
+    # E-books
+    calibre
 
     # Communication
     discord
