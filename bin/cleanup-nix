@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/shared.sh"
+
+function source_nix_shell() {
+  if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  fi
+}
+
+function usage() {
+  cat <<EOF
+Usage: ./bin/cleanup-nix [--delete-old-generations]
+
+Clean up unused Nix build artifacts from the store.
+
+Options:
+  --delete-old-generations  Also delete old profile/system generations before
+                            garbage collecting. This is more aggressive and
+                            removes rollback history.
+  -h, --help                Show this help text.
+EOF
+}
+
+function run_gc() {
+  if [ "$DELETE_OLD_GENERATIONS" = "true" ]; then
+    if is_nixos || is_darwin; then
+      sudo nix-collect-garbage -d
+    else
+      nix-collect-garbage -d
+    fi
+  else
+    nix store gc
+  fi
+}
+
+function optimize_store() {
+  if is_nixos || is_darwin; then
+    sudo nix store optimise
+  else
+    nix store optimise
+  fi
+}
+
+DELETE_OLD_GENERATIONS="false"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --delete-old-generations)
+      DELETE_OLD_GENERATIONS="true"
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      echo
+      usage
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+command_exists nix || (echo "nix is required to run" && exit 1)
+source_nix_shell
+
+run_gc
+optimize_store
