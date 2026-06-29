@@ -11,6 +11,9 @@
     vim
     wget
 
+    # Disk utilities
+    parted
+
     # Network utilities
     net-tools  # ifconfig, netstat, route, etc.
   ];
