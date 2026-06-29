@@ -5,18 +5,18 @@
   programs.ssh = {
     enable = true;
 
-    matchBlocks = {
+    settings = {
       "*" = {
-        addKeysToAgent = "yes";
+        AddKeysToAgent = "yes";
       };
 
       "github.com" = {
-        identityFile = "~/.ssh/id_github";
+        IdentityFile = "~/.ssh/id_github";
       };
 
       "pumpkin" = {
-        hostname = "pumpkin.whatbox.ca";
-        user = "dbalatero";
+        HostName = "pumpkin.whatbox.ca";
+        User = "dbalatero";
       };
     };
   };

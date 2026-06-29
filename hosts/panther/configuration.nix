@@ -19,6 +19,20 @@
   # Hostname
   networking.hostName = "panther";
 
+  # Dedicated Steam/game library drive.
+  fileSystems."/games" = {
+    device = "/dev/disk/by-label/games";
+    fsType = "ext4";
+    options = [
+      "nofail"
+      "x-systemd.device-timeout=5s"
+    ];
+  };
+
+  systemd.tmpfiles.rules = [
+    "d /games/SteamLibrary 0775 dbalatero users -"
+  ];
+
   # Keep local Nix builds from overwhelming the desktop during large nixpkgs updates.
   nix.settings = {
     experimental-features = [

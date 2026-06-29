@@ -105,7 +105,6 @@
     protonup-qt
     lutris
     bottles
-    heroic
 
     # Mouse configuration
     piper          # GUI for configuring gaming mice
