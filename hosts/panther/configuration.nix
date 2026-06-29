@@ -30,6 +30,7 @@
   };
 
   systemd.tmpfiles.rules = [
+    "d /mnt/storage 0775 dbalatero users -"
     "d /mnt/storage/SteamLibrary 0775 dbalatero users -"
   ];
 
