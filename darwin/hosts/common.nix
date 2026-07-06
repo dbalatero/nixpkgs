@@ -26,6 +26,7 @@
       "ghostty"
       "hammerspoon"
       "monitorcontrol"
+      "music-decoy"
       "karabiner-elements"
       "obsidian"
       "slack"
@@ -103,6 +104,12 @@
       LaunchServices = {
         # Disable the “Are you sure you want to open this application?” dialog
         LSQuarantine = false;
+      };
+
+      CustomUserPreferences = {
+        "com.lowtechguys.MusicDecoy" = {
+          mediaAppPath = "/Applications/Spotify.app";
+        };
       };
 
       CustomSystemPreferences = {
