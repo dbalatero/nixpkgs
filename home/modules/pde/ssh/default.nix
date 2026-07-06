@@ -18,6 +18,11 @@
         HostName = "pumpkin.whatbox.ca";
         User = "dbalatero";
       };
+
+      "systems" = {
+        HostName = "cs644.iafisher.com";
+        User = "david";
+      };
     };
   };
 }
