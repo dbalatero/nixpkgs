@@ -144,6 +144,13 @@
             claude-code.overlays.default
             codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
+            # Work around mise 2026.6.11 preserving special permission bits
+            # differently during local Darwin builds.
+            (final: prev: {
+              mise = prev.mise.overrideAttrs (_old: {
+                doCheck = false;
+              });
+            })
           ];
 
           home-manager = {
@@ -191,6 +198,13 @@
             claude-code.overlays.default
             codex-cli.overlays.default
             neovim-nightly-overlay.overlays.default
+            # Work around mise 2026.6.11 preserving special permission bits
+            # differently during local Darwin builds.
+            (final: prev: {
+              mise = prev.mise.overrideAttrs (_old: {
+                doCheck = false;
+              });
+            })
           ];
 
           home-manager = {

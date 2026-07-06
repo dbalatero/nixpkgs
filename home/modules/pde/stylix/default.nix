@@ -1,9 +1,20 @@
-{pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   stylix = {
     enable = true;
 
     # https://github.com/tinted-theming/schemes/blob/spec-0.11/base16/catppuccin-macchiato.yaml
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-macchiato.yaml";
+
+    fonts = lib.mkIf pkgs.stdenv.isDarwin {
+      emoji = {
+        name = "Apple Color Emoji";
+        package = pkgs.emptyDirectory;
+      };
+    };
 
     targets = {
       ghostty.enable = false;
