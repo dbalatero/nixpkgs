@@ -116,7 +116,6 @@
         {name = "dbalatero/fast-syntax-highlighting";}
         {name = "hlissner/zsh-autopair";}
         {name = "chriskempson/base16-shell";}
-        {name = "MichaelAquilina/zsh-you-should-use";}
       ];
     };
 
