@@ -111,7 +111,6 @@
     zplug = {
       enable = true;
       plugins = [
-        {name = "dbalatero/fzf-git";}
         {name = "wookayin/fzf-fasd";}
         {name = "dbalatero/fast-syntax-highlighting";}
         {
