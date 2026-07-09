@@ -98,7 +98,7 @@
     '';
 
     defaultKeymap = "viins"; # vi mode
-    syntaxHighlighting.enable = true;
+    syntaxHighlighting.enable = false;
 
     history = {
       size = 10000;
