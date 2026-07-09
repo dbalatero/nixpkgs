@@ -5,7 +5,6 @@
   ...
 }: {
   home.packages = with pkgs; [
-    fasd
     fd
     ripgrep
     zsh
@@ -21,6 +20,13 @@
     enable = true;
     defaultCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
     fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
+  };
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+    options = [
+      "--cmd j"
+    ];
   };
 
   programs.starship = {
@@ -111,7 +117,6 @@
     zplug = {
       enable = true;
       plugins = [
-        {name = "wookayin/fzf-fasd";}
         {name = "dbalatero/fast-syntax-highlighting";}
         {
           name = "hlissner/zsh-autopair";
@@ -157,7 +162,6 @@
       "6" = "exec zsh";
       c = "cursor-agent";
       g = "git";
-      j = "z"; # autojump style for fasd
       l = "ls -al";
       p = "gt pr";
 
@@ -195,9 +199,6 @@
         setopt extended_glob
       '')
       ''
-        # hooks
-        eval "$(fasd --init auto)"
-
         # Print theme colors
         function theme_colors() {
           for code ({000..255}) print -P -- \
