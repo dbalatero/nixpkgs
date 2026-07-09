@@ -6,6 +6,7 @@
   home.packages = with pkgs;
     [
       fd
+      hyperfine
       jq
       readline
       ripgrep
