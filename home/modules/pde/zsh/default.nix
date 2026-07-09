@@ -114,7 +114,10 @@
         {name = "dbalatero/fzf-git";}
         {name = "wookayin/fzf-fasd";}
         {name = "dbalatero/fast-syntax-highlighting";}
-        {name = "hlissner/zsh-autopair";}
+        {
+          name = "hlissner/zsh-autopair";
+          tags = ["use:zsh-autopair.plugin.zsh"];
+        }
         {name = "chriskempson/base16-shell";}
       ];
     };
