@@ -117,7 +117,7 @@
     zplug = {
       enable = true;
       plugins = [
-        {name = "dbalatero/fast-syntax-highlighting";}
+        {name = "zdharma-continuum/fast-syntax-highlighting";}
         {
           name = "hlissner/zsh-autopair";
           tags = ["use:zsh-autopair.plugin.zsh"];
