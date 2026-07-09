@@ -86,6 +86,16 @@
     enable = true;
     dotDir = config.home.homeDirectory;
     enableCompletion = true;
+    completionInit = ''
+      autoload -Uz compinit
+      _zcompdump="${config.home.homeDirectory}/.zcompdump-''${HOST%%.*}-$ZSH_VERSION"
+      if [[ -n "$_zcompdump"(#qNmh-24) ]]; then
+        compinit -C -d "$_zcompdump"
+      else
+        compinit -d "$_zcompdump"
+      fi
+      unset _zcompdump
+    '';
 
     defaultKeymap = "viins"; # vi mode
     syntaxHighlighting.enable = true;
@@ -96,13 +106,6 @@
       extended = true;
       share = true;
       path = "${config.xdg.dataHome}/zsh/history";
-    };
-
-    oh-my-zsh = {
-      enable = true;
-      plugins = [
-        "git"
-      ];
     };
 
     zplug = {
@@ -153,6 +156,7 @@
     shellAliases = {
       "6" = "exec zsh";
       c = "cursor-agent";
+      g = "git";
       j = "z"; # autojump style for fasd
       l = "ls -al";
       p = "gt pr";
