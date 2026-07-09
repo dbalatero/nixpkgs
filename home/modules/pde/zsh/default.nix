@@ -117,7 +117,6 @@
           name = "hlissner/zsh-autopair";
           tags = ["use:zsh-autopair.plugin.zsh"];
         }
-        {name = "chriskempson/base16-shell";}
       ];
     };
 
@@ -141,7 +140,7 @@
       SYNC_REPO = "$RESTIC_REPOSITORY:/Sync";
       FREEZE_REPO = "$RESTIC_REPOSITORY:/Freeze";
 
-      PATH = "$HOME/.cargo/bin:./node_modules/.bin:$HOME/.config/base16-shell:$PATH";
+      PATH = "$HOME/.cargo/bin:./node_modules/.bin:$PATH";
       TERM = "xterm-256color";
 
       MONOREPO_MERGE_EVERYSPHERE_PATH = "$HOME/code/everysphere-playground";
