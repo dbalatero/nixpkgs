@@ -3,7 +3,34 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  # To update a plugin hash, prefetch the unpacked archive and convert to SRI:
+  # nix-prefetch-url --unpack https://github.com/<owner>/<repo>/archive/<rev>.tar.gz
+  # nix hash convert --hash-algo sha256 --to sri <prefetch-output>
+  zshPluginFromGitHub = {
+    owner,
+    repo,
+    rev,
+    hash,
+  }:
+    pkgs.fetchFromGitHub {
+      inherit owner repo rev hash;
+    };
+
+  fast-syntax-highlighting = zshPluginFromGitHub {
+    owner = "zdharma-continuum";
+    repo = "fast-syntax-highlighting";
+    rev = "3d574ccf48804b10dca52625df13da5edae7f553";
+    hash = "sha256-ZihUL4JAVk9V+IELSakytlb24BvEEJ161CQEHZYYoSA=";
+  };
+
+  zsh-autopair = zshPluginFromGitHub {
+    owner = "hlissner";
+    repo = "zsh-autopair";
+    rev = "449a7c3d095bc8f3d78cf37b9549f8bb4c383f3d";
+    hash = "sha256-3zvOgIi+q7+sTXrT+r/4v98qjeiEL4Wh64rxBYnwJvQ=";
+  };
+in {
   home.packages = with pkgs; [
     fd
     ripgrep
@@ -114,17 +141,6 @@
       path = "${config.xdg.dataHome}/zsh/history";
     };
 
-    zplug = {
-      enable = true;
-      plugins = [
-        {name = "zdharma-continuum/fast-syntax-highlighting";}
-        {
-          name = "hlissner/zsh-autopair";
-          tags = ["use:zsh-autopair.plugin.zsh"];
-        }
-      ];
-    };
-
     sessionVariables = {
       # Editor
       EDITOR = "nvim";
@@ -198,6 +214,10 @@
         setopt inc_append_history
         setopt extended_glob
       '')
+      ''
+        source ${fast-syntax-highlighting}/fast-syntax-highlighting.plugin.zsh
+        source ${zsh-autopair}/zsh-autopair.plugin.zsh
+      ''
       ''
         # Print theme colors
         function theme_colors() {
