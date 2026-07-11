@@ -6,6 +6,7 @@
 }: {
   # Enable zsh system-wide (required when setting user shell to zsh)
   programs.zsh.enable = true;
+  programs.zsh.enableCompletion = false;
 
   # User account configuration
   users.users.dbalatero = {

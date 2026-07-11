@@ -123,9 +123,9 @@ in {
       autoload -Uz compinit
       _zcompdump="${config.home.homeDirectory}/.zcompdump-''${HOST%%.*}-$ZSH_VERSION"
       if [[ -n "$_zcompdump"(#qNmh-24) ]]; then
-        compinit -C -d "$_zcompdump"
+        compinit -i -C -d "$_zcompdump"
       else
-        compinit -d "$_zcompdump"
+        compinit -i -d "$_zcompdump"
       fi
       unset _zcompdump
     '';
