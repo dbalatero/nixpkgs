@@ -11,6 +11,7 @@ in {
     cargo
     clippy
     deadnix
+    pyright
     rust-analyzer
     rustc
     rustfmt
@@ -292,6 +293,7 @@ in {
             jsonc = ["biome"];
             graphql = ["prettierd"];
             css = ["prettierd"];
+            python = ["ruff_organize_imports" "ruff_format"];
             rust = ["rustfmt"];
           };
           format_after_save = helpers.mkRaw ''
@@ -346,6 +348,7 @@ in {
           json = ["biomejs"];
           jsonc = ["biomejs"];
           nix = ["deadnix"];
+          python = ["ruff"];
           ruby = ["rubocop"];
         };
       };
@@ -431,6 +434,14 @@ in {
               formatting.command = [(lib.getExe pkgs.alejandra) "--quiet"];
               nix.flake.autoArchive = true;
             };
+          };
+
+          pyright.enable = true;
+
+          ruff = {
+            enable = true;
+            package = null;
+            cmd = ["ruff" "server"];
           };
 
           rust_analyzer = {
