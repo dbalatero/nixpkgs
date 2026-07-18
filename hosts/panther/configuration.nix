@@ -58,7 +58,6 @@
       enable = true;
       device = "nodev";
       efiSupport = true;
-      useOSProber = true; # detect windows disk partition
     };
   };
 
