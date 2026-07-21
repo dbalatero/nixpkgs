@@ -19,6 +19,10 @@
   # Hostname
   networking.hostName = "panther";
 
+  users.users.dbalatero.extraGroups = [
+    "cdrom"
+  ];
+
   # Dedicated storage drive.
   fileSystems."/mnt/storage" = {
     device = "/dev/disk/by-label/storage";
