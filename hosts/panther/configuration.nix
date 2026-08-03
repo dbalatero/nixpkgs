@@ -36,6 +36,12 @@
   systemd.tmpfiles.rules = [
     "d /mnt/storage 0775 dbalatero users -"
     "d /mnt/storage/SteamLibrary 0775 dbalatero users -"
+    "d /mnt/storage/Emulation 0775 dbalatero users -"
+    "d /mnt/storage/Emulation/MacOS 0775 dbalatero users -"
+    "d /mnt/storage/Emulation/MacOS/Disks 0775 dbalatero users -"
+    "d /mnt/storage/Emulation/MacOS/InstallMedia 0775 dbalatero users -"
+    "d /mnt/storage/Emulation/MacOS/ROMs 0775 dbalatero users -"
+    "d /mnt/storage/Emulation/MacOS/Shared 0775 dbalatero users -"
   ];
 
   # Keep local Nix builds from overwhelming the desktop during large nixpkgs updates.
