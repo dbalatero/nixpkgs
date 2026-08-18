@@ -16,8 +16,6 @@
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
       KbdInteractiveAuthentication = false;
-      GSSAPIAuthentication = false;
-      KerberosAuthentication = false;
       PubkeyAuthentication = true;
 
       # Security hardening
