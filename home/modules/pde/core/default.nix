@@ -8,6 +8,7 @@
       fd
       hyperfine
       jq
+      php
       readline
       ripgrep
       wget
