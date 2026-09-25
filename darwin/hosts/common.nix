@@ -1,6 +1,10 @@
 {lib, ...}: {
   nix.enable = false;
 
+  # Home Manager initializes completion after assembling the complete fpath.
+  # Avoid nix-darwin running compinit first from /etc/zshrc.
+  programs.zsh.enableGlobalCompInit = false;
+
   # Enable sudo with Touch ID
   security.pam.services.sudo_local.touchIdAuth = true;
 
