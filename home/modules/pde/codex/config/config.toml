@@ -9,7 +9,7 @@ insert_newline = "ctrl-q"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
-gpt-6-astra = 1
+gpt-6-astra = 2
 
 [projects."/home/dbalatero/.config/nixpkgs"]
 trust_level = "trusted"
