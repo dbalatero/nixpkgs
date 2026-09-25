@@ -10,6 +10,13 @@ Develop and evaluate the configuration on the macOS M1 Air. Build and boot the i
 
 Keep `lab/README.md` as the short operator guide for creating a VM. Update it when each phase supplies a tested command or decision; keep implementation details and exhaustive checks in this plan.
 
+## Agent handoff
+
+- Start with Phase 1 on the Mac. Implement and check everything possible there, then leave the Linux image build, QEMU boot, and Proxmox steps for their listed machines. Follow `AGENTS.md`: stage new Nix files for flake evaluation, do not commit automatically, and do not run `bin/switch` on macOS.
+- Reuse the existing `bin/new-host` and `hosts/template` where helpful, but make the VM bootstrap safe for this image. Default to a headless profile; accept only profiles backed by real modules in this repo and reject unknown values.
+- The laptop has candidate public keys under `~/.ssh`, but neither login key is tracked in this repo yet. When implementation reaches the authorized-key step, ask the user which laptop public key to use and for the desktop public key. Continue independent work while waiting; do not guess, generate replacement keys, or request private key material in chat.
+- The shared GitHub private key and 1Password recovery password are desktop runtime inputs. Implement their handling on the Mac without requiring either secret there; never commit them. Record any missing input or Linux-only verification in the phase checklist.
+
 ## Design decisions
 
 - Use the NixOS `qcow` image variant for x86_64 Linux. Author and evaluate on the M1 Mac; build and test on the AMD NixOS desktop.
@@ -31,12 +38,12 @@ This phase produces reviewable code and checks it without building or booting a 
 
 ### 1. Define the base image
 
-- [~] Add `nixosConfigurations.proxmox-base` to `flake.nix`, using `system = "x86_64-linux"` and a dedicated module under `hosts/proxmox-base/`.
+- [ ] Add `nixosConfigurations.proxmox-base` to `flake.nix`, using `system = "x86_64-linux"` and a dedicated module under `hosts/proxmox-base/`.
 - [ ] Configure a headless guest with DHCP, SSH, QEMU guest agent, and `dbalatero` in `wheel`. First login must already provide Nix flakes, `nixos-rebuild`, `nixos-generate-config`, `sudo`, an editor, Git, and bootstrap dependencies.
 - [ ] Confirm the selected `qcow` image layout has a growable root partition and filesystem; set `boot.growPartition` and `fileSystems."/".autoResize` if the image module does not already provide them.
 - [ ] Remove or override `hosts/common/nixos/users.nix`'s `initialPassword = "changeme"` for this image and its generated VM hosts. Keep the user in `wheel` with passwordless `sudo`. Configure the user to load a root-only password hash file from the guest filesystem, outside the Nix store, so the console password survives rebuilds.
-- [~] Add the laptop and desktop SSH login public keys for `dbalatero`; verify both fingerprints and that only `.pub` files are tracked.
-- [~] Add ignored paths for image-only private key material. Keep the actual GitHub private key outside the Nix expression and all Nix build inputs.
+- [ ] Add the laptop and desktop SSH login public keys for `dbalatero`; verify both fingerprints and that only `.pub` files are tracked.
+- [ ] Add ignored paths for image-only private key material. Keep the actual GitHub private key outside the Nix expression and all Nix build inputs.
 - [ ] Update `lab/README.md` with the confirmed login prerequisites, template disk minimum, and console recovery method.
 
 ### 2. Write the image scripts
@@ -81,8 +88,8 @@ This phase produces reviewable code and checks it without building or booting a 
 ## Phase 3: Proxmox template and first clone
 
 - [ ] Import the prepared, never-booted qcow2 into Proxmox. Set a compatible firmware mode and disk bus, enable the guest agent, and convert it directly to a template. Boot a clone for testing, never the template source disk.
-- [ ] Resize the first clone's disk in Proxmox before booting it, choosing a size larger than the template. Verify the guest sees the larger root partition and filesystem with `lsblk` and `df -h /`; keep smaller service VMs at the template size.
-- [ ] Clone the template and run `bin/bootstrap-nixos-vm <hostname> ...` with that VM's description, networking, and profile values.
+- [ ] Clone the template. Resize this first clone's disk in Proxmox before booting it, choosing a size larger than the template; keep smaller service VMs at the template size.
+- [ ] Boot the clone, verify the larger root partition and filesystem with `lsblk` and `df -h /`, then run `bin/bootstrap-nixos-vm <hostname> ...` with that VM's description, networking, and profile values.
 - [ ] Confirm the clone has its own machine ID and SSH host keys. Confirm generated hardware configuration, host and home modules, flake entry, staged files, networking, and `nixos-rebuild switch` all succeed.
 - [ ] Confirm key-only SSH login, passwordless `sudo`, and console password login still work after the clone's first `nixos-rebuild switch`. Test console login without relying on SSH so it is a real recovery path.
 - [ ] Add a small package or service to the new host configuration, rebuild again, and verify it works. This proves the normal edit-and-rebuild loop beyond the bootstrap itself.
