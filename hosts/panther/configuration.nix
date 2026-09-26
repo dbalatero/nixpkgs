@@ -110,12 +110,20 @@
   # Flipper Zero
   hardware.flipperzero.enable = true;
 
+  # Vial/QMK keyboard configuration for Cyboard and other programmable keyboards.
+  hardware.keyboard.qmk.enable = true;
+  services.udev.packages = with pkgs; [
+    platformio-core.udev
+    vial
+  ];
+
   # AMD GPU utilities
   environment.systemPackages = with pkgs; [
     radeontop      # GPU monitoring tool
     clinfo         # OpenCL info
     vulkan-tools   # Vulkan utilities (vulkaninfo, etc.)
     lshw           # Hardware info
+    usbutils       # USB device inspection (lsusb)
     ffmpeg         # Audio/video processing
 
     # Printing

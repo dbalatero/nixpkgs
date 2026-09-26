@@ -13,6 +13,7 @@
     cddiscid
     cdparanoia
     flac
+    vial
   ];
 
   home.file.".abcde.conf".text =

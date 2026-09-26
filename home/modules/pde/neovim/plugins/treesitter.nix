@@ -5,13 +5,13 @@
 
       treesitter = {
         enable = true;
+        indent = {
+          enable = true;
+          disable = ["python"];
+        };
 
         settings = {
           highlight.enable = true;
-          indent = {
-            enable = true;
-            disable = ["python"];
-          };
 
           incremental_selection = {
             enable = true;

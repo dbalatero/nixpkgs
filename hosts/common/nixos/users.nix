@@ -20,6 +20,7 @@
       "video"
       "audio"
       "render"  # For modern GPU/DRM access
+      "dialout" # Serial devices for ESP32 flashing
     ];
   };
 

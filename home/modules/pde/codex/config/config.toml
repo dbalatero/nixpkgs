@@ -38,8 +38,10 @@ trust_level = "trusted"
 [projects."/home/dbalatero/code/keyvalue.py"]
 trust_level = "trusted"
 
-
 [projects."/Users/dbalatero/Library/Application Support/Sid Meier's Civilization VI/Firaxis Games/Sid Meier's Civilization VI/Logs"]
+trust_level = "trusted"
+
+[projects."/home/dbalatero/code/jumpupmybutt-lua"]
 trust_level = "trusted"
 
 [notice.model_migrations]

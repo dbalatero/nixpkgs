@@ -46,7 +46,7 @@ in {
   programs.fzf = {
     enable = true;
     defaultCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
-    fileWidgetCommand = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
+    fileWidget.command = "rg --files --hidden --glob '!{node_modules/*,.git/*}'";
   };
   programs.zoxide = {
     enable = true;
