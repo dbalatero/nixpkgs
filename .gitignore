@@ -1,1 +1,12 @@
 *.swp
+
+# VM artifacts and private inputs belong outside the repository.
+*.qcow2
+*.qcow
+*.raw
+/result
+/result-*
+id_nixos_vm_github
+recovery-password.hash
+/hosts/proxmox-base/secrets/
+__pycache__/

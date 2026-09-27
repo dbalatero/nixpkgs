@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+"""Boot private disposable copies of a prepared image; never boot the original."""
+import argparse
+import hashlib
+import importlib.machinery
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import types
+
+BUILDER_PATH = Path(__file__).resolve().with_name('build-proxmox-base-image')
+loader = importlib.machinery.SourceFileLoader('image_builder', str(BUILDER_PATH))
+builder = types.ModuleType(loader.name)
+builder.__file__ = str(BUILDER_PATH)
+loader.exec_module(builder)
+
+
+def pinned_tools():
+  locked = json.loads((builder.REPO / 'flake.lock').read_text())['nodes']['nixpkgs']['locked']
+  source = f"github:{locked['owner']}/{locked['repo']}/{locked['rev']}"
+  outputs = builder.run(['nix', 'build', '--no-link', '--print-out-paths',
+    f'{source}#qemu', f'{source}#OVMF.fd', f'{source}#openssh']).decode().splitlines()
+  os.environ['PATH'] = os.pathsep.join([*[str(Path(path) / 'bin') for path in outputs], os.environ.get('PATH', '')])
+  codes = [candidate for path in outputs for candidate in Path(path).rglob('OVMF_CODE.fd')]
+  variables = [candidate for path in outputs for candidate in Path(path).rglob('OVMF_VARS.fd')]
+  if len(codes) != 1 or len(variables) != 1:
+    raise ValueError('could not find one OVMF code and variables pair in pinned firmware output')
+  return codes[0], variables[0]
+
+
+def acceleration(requested):
+  available = os.path.exists('/dev/kvm') and os.access('/dev/kvm', os.R_OK | os.W_OK)
+  if requested == 'kvm' and not available:
+    raise ValueError('KVM requested but /dev/kvm is unavailable or inaccessible')
+  return 'kvm' if requested == 'kvm' or requested == 'auto' and available else 'tcg'
+
+
+def await_text(connection, pattern, timeout):
+  deadline = time.monotonic() + timeout
+  data = b''
+  expression = re.compile(pattern)
+  while time.monotonic() < deadline:
+    try:
+      chunk = connection.recv(16384)
+    except socket.timeout:
+      continue
+    if not chunk:
+      break
+    data = (data + chunk)[-131072:]
+    if expression.search(data):
+      return
+  # Never include console contents, which can contain authentication data.
+  raise ValueError('console did not reach the expected state before timeout (contents suppressed)')
+
+
+class Guest:
+  def __init__(self, args, directory, source, firmware, accelerator, size):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+      probe.bind(('127.0.0.1', args.ssh_port))
+    self.args = args
+    self.directory = directory
+    self.directory.mkdir(mode=0o700)
+    self.image = directory / 'disk.qcow2'
+    self.serial = directory / 'serial.sock'
+    self.agent = directory / 'agent.sock'
+    self.process = None
+    builder.run(['qemu-img', 'convert', '-f', 'qcow2', '-O', 'qcow2', str(source), str(self.image)])
+    self.image.chmod(0o600)
+    builder.run(['qemu-img', 'resize', str(self.image), f'{size}G'])
+    variables = directory / 'OVMF_VARS.fd'
+    shutil.copyfile(firmware[1], variables)
+    variables.chmod(0o600)
+    self.log = (directory / 'qemu.log').open('wb')
+    command = ['qemu-system-x86_64', '-name', 'nixos-proxmox-local-test',
+      '-machine', f'q35,accel={accelerator}', '-cpu', 'host' if accelerator == 'kvm' else 'max',
+      '-m', str(args.memory_mib), '-smp', str(args.cpus), '-display', 'none', '-monitor', 'none',
+      '-drive', f'if=pflash,format=raw,readonly=on,file={firmware[0]}',
+      '-drive', f'if=pflash,format=raw,file={variables}',
+      '-drive', f'if=virtio,format=qcow2,file={self.image}',
+      '-device', 'virtio-rng-pci', '-device', 'virtio-net-pci,netdev=network',
+      '-netdev', f'user,id=network,hostfwd=tcp:127.0.0.1:{args.ssh_port}-:22',
+      '-chardev', f'socket,id=serial,path={self.serial},server=on,wait=off', '-serial', 'chardev:serial',
+      '-device', 'virtio-serial-pci', '-chardev', f'socket,id=agent,path={self.agent},server=on,wait=off',
+      '-device', 'virtserialport,chardev=agent,name=org.qemu.guest_agent.0']
+    self.process = subprocess.Popen(command, stdout=self.log, stderr=self.log)
+
+  def ssh(self, command, *, data=None, check=True, timeout=120, options=(), label=None):
+    argv = ['ssh', *options, '-F', '/dev/null', '-p', str(self.args.ssh_port),
+      '-i', str(self.args.ssh_key), '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+      '-o', 'ConnectTimeout=5', '-o', 'StrictHostKeyChecking=accept-new',
+      '-o', f'UserKnownHostsFile={self.directory / "known_hosts"}',
+      'dbalatero@127.0.0.1', 'set -eu; ' + command]
+    result = subprocess.run(argv, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+    if check and result.returncode:
+      # Commands here contain no secrets; keep potentially sensitive guest output private.
+      (self.directory / 'last-ssh-error.log').write_bytes(result.stdout + result.stderr)
+      raise ValueError(f'guest check {label or "SSH command"!r} failed (exit {result.returncode}); private diagnostics: {self.directory / "last-ssh-error.log"}')
+    return result
+
+  def reject_password_ssh(self):
+    result = self.ssh('true', check=False, options=['-v', '-o', 'PubkeyAuthentication=no',
+      '-o', 'PreferredAuthentications=password,keyboard-interactive'])
+    offered = re.findall(rb'Authentications that can continue: ([^\r\n]+)', result.stderr)
+    if result.returncode != 255 or not offered or any(
+      method in offered[-1].split(b',') for method in [b'password', b'keyboard-interactive']):
+      raise ValueError('SSH did not explicitly reject password and interactive authentication')
+
+  def wait_boot(self):
+    deadline = time.monotonic() + self.args.boot_timeout
+    while time.monotonic() < deadline:
+      if self.process.poll() is not None:
+        raise ValueError(f'QEMU exited; see private diagnostics in {self.directory / "qemu.log"}')
+      if self.ssh('true', check=False, timeout=10).returncode == 0:
+        return
+      time.sleep(2)
+    raise ValueError('guest did not accept SSH before boot timeout')
+
+  def check_agent(self):
+    with socket.socket(socket.AF_UNIX) as connection:
+      connection.settimeout(2)
+      connection.connect(str(self.agent))
+      connection.sendall(b'{"execute":"guest-ping"}\n')
+      await_text(connection, rb'"return"\s*:\s*\{\s*\}', 30)
+
+  def console_login(self, password):
+    with socket.socket(socket.AF_UNIX) as connection:
+      connection.settimeout(1)
+      connection.connect(str(self.serial))
+      connection.sendall(b'\n')
+      await_text(connection, rb'login: *$', 30)
+      connection.sendall(b'dbalatero\n')
+      await_text(connection, rb'Password: *$', 30)
+      connection.sendall(password + b'\n')
+      # The serial stream is deliberately never written to a log.
+      time.sleep(2)
+      marker = 'CONSOLE_OK_' + os.urandom(12).hex()
+      command = f"printf '\\n{marker}\\n'; id -un; exit\n"
+      connection.sendall(command.encode())
+      await_text(connection, rb'\r?\n' + marker.encode() + rb'\r?\n', 30)
+
+  def identity(self):
+    result = self.ssh('cat /etc/machine-id; sudo -n ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub; df -B1 --output=size,avail / | tail -n1', label='clone identity and root filesystem capacity')
+    lines = result.stdout.decode().strip().splitlines()
+    if len(lines) != 3 or not re.fullmatch(r'[0-9a-f]{32}', lines[0]):
+      raise ValueError('unexpected guest identity result')
+    size, available = map(int, lines[2].split())
+    return {'machine_id': lines[0], 'host_key': lines[1].split()[1], 'root_bytes': size, 'root_available_bytes': available}
+
+  def close(self):
+    if self.process and self.process.poll() is None:
+      try:
+        self.ssh('sudo -n poweroff', check=False, timeout=10)
+        self.process.wait(timeout=30)
+      except (subprocess.TimeoutExpired, OSError):
+        self.process.terminate()
+        try:
+          self.process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+          self.process.kill()
+          self.process.wait()
+    self.log.close()
+
+
+def check_ssh_settings(guest):
+  expected = {'passwordauthentication': 'no', 'kbdinteractiveauthentication': 'no', 'permitrootlogin': 'no'}
+  result = guest.ssh('sudo -n sshd -T -f /etc/ssh/sshd_config', label='effective SSH daemon configuration')
+  actual = {}
+  for line in result.stdout.decode().splitlines():
+    parts = line.strip().split(None, 1)
+    if len(parts) == 2 and parts[0].lower() in expected:
+      actual[parts[0].lower()] = parts[1].strip().lower()
+  if actual != expected:
+    service = guest.ssh('systemctl show sshd --property=ExecStart', label='SSH service command')
+    raise ValueError(f'Unexpected effective SSH authentication settings: {json.dumps(actual, sort_keys=True)}; {service.stdout.decode().strip()}')
+
+
+def check_pde(guest, phase):
+  checks = [
+    ('Neovim configuration', 'nvim --headless \'+lua if vim.g.mapleader ~= " " then vim.cmd("cquit 1") end\' +qa'),
+    ('tmux executable', 'tmux -V'),
+    ('zsh executable', 'zsh --version'),
+    ('fd executable', 'fd --version'),
+    ('ripgrep executable', 'rg --version'),
+    ('Claude executable', 'command -v claude'),
+    ('Codex executable', 'command -v codex'),
+    ('mise executable', 'mise --version'),
+    ('Git editor', 'test "$(git -C ~/.config/nixpkgs config --get core.editor)" = nvim'),
+    ('Git aliases', 'test "$(git config --get alias.co)" = checkout'),
+    ('Git author name', 'test -n "$(git -C ~/.config/nixpkgs config --get user.name)"'),
+    ('Git author email', 'test -n "$(git -C ~/.config/nixpkgs config --get user.email)"'),
+    ('Claude configuration symlink', 'test -L ~/.claude/CLAUDE.md && test -r ~/.claude/CLAUDE.md'),
+    ('Codex configuration symlink', 'test -L ~/.codex/config.toml && test -r ~/.codex/config.toml'),
+    ('declarative SSH configuration', 'test -L ~/.ssh/config && test -r ~/.ssh/config'),
+    ('interactive zsh configuration', "zsh -ic 'test \"$EDITOR\" = nvim && test \"$aliases[g]\" = git'"),
+    ('tmux configured shell', 'tmux -L proxmox-smoke new-session -d -s smoke \'sleep 30\'; shell=$(tmux -L proxmox-smoke show-options -gv default-shell); test -x "$shell"; case "$shell" in */zsh) ;; *) exit 1 ;; esac; tmux -L proxmox-smoke kill-server'),
+  ]
+  for name, command in checks:
+    print(f'Checking PDE {name} {phase}…', file=sys.stderr, flush=True)
+    guest.ssh(command, label=f'PDE {name} {phase}')
+  # ssh -G performs no network access or authentication. Verify that the full
+  # PDE's default GitHub key/agent settings were replaced for these VM clones.
+  result = guest.ssh('ssh -G github.com', label=f'GitHub SSH identity {phase}')
+  settings = {}
+  for line in result.stdout.decode().splitlines():
+    key, separator, value = line.partition(' ')
+    if separator:
+      settings.setdefault(key.lower(), []).append(value.strip())
+  expected = {'user': ['git'], 'identitiesonly': ['yes'], 'identityagent': ['none'],
+    'stricthostkeychecking': ['true'], 'addkeystoagent': ['false']}
+  if any(settings.get(key) != value for key, value in expected.items()):
+    actual = {key: settings.get(key) for key in expected}
+    raise ValueError(f'Unexpected GitHub SSH behavior {phase}: {json.dumps(actual, sort_keys=True)}')
+  identities = settings.get('identityfile', [])
+  if len(identities) != 1 or identities[0] not in ['~/.ssh/id_nixos_vm_github', '/home/dbalatero/.ssh/id_nixos_vm_github']:
+    raise ValueError(f'Expected only the dedicated VM GitHub identity {phase}')
+
+
+def first_guest_checks(guest, args, password):
+  checks = [
+    ('passwordless sudo', 'sudo -n true'),
+    ('primary username', 'test "$(id -un)" = dbalatero'),
+    ('writable Git checkout', 'test -w ~/.config/nixpkgs/.git/config'),
+    ('GitHub origin', 'test "$(git -C ~/.config/nixpkgs remote get-url origin)" = git@github.com:dbalatero/nixpkgs.git'),
+    ('recovery hash permissions', 'test "$(sudo -n stat -c %a /etc/nixos-vm/recovery-password.hash)" = 600'),
+  ]
+  checks += [(f'required command {command}', f'command -v {command}')
+    for command in ['nix', 'nixos-rebuild', 'nixos-generate-config', 'git', 'vim', 'python3']]
+  for label, command in checks:
+    print(f'Checking {label}…', file=sys.stderr, flush=True)
+    guest.ssh(command, label=label)
+  print('Checking effective SSH authentication settings…', file=sys.stderr, flush=True)
+  check_ssh_settings(guest)
+  guest.check_agent()
+  guest.reject_password_ssh()
+  check_pde(guest, 'before bootstrap')
+  if password is not None:
+    guest.console_login(password)
+  if not args.skip_github:
+    guest.ssh('git -C ~/.config/nixpkgs ls-remote origin HEAD', timeout=120, label='GitHub repository read')
+  if args.skip_rebuild:
+    return
+  print('Testing bootstrap and rebuild on disposable clone…', file=sys.stderr, flush=True)
+  guest.ssh('cd ~/.config/nixpkgs && bin/bootstrap-nixos-vm proxmox-smoke-test --skip-update', timeout=args.rebuild_timeout, label='bootstrap and initial rebuild')
+  print('Bootstrap and initial rebuild passed; adding a test package…', file=sys.stderr, flush=True)
+  extra = b'''from pathlib import Path
+import subprocess
+repo = Path.home() / '.config/nixpkgs'
+host = repo / 'hosts/proxmox-smoke-test'
+(host / 'smoke-package.nix').write_text('{pkgs, ...}: { environment.systemPackages = [pkgs.hello]; }\\n')
+config = host / 'configuration.nix'
+config.write_text(config.read_text().replace('  imports = [', '  imports = [\\n    ./smoke-package.nix', 1))
+subprocess.run(['git', 'add', 'hosts/proxmox-smoke-test'], cwd=repo, check=True)
+'''
+  guest.ssh('python3 -', data=extra, label='stage subsequent package configuration')
+  guest.ssh('cd ~/.config/nixpkgs && sudo -n nixos-rebuild switch --flake .#proxmox-smoke-test', timeout=args.rebuild_timeout, label='subsequent package rebuild')
+  print('Subsequent rebuild passed; checking the running system…', file=sys.stderr, flush=True)
+  guest.ssh('hello --version', label='test package available after rebuild')
+  hostname = guest.ssh('hostname', label='hostname after rebuild').stdout.decode().strip()
+  if hostname != 'proxmox-smoke-test':
+    raise ValueError(f'Unexpected hostname after rebuild: {hostname!r}')
+  for label, command in [
+    ('passwordless sudo after rebuild', 'sudo -n true'),
+    ('GitHub key retained after rebuild', 'test -r ~/.ssh/id_nixos_vm_github'),
+    ('writable checkout after rebuild', 'test -w ~/.config/nixpkgs/.git/config'),
+  ]:
+    guest.ssh(command, label=label)
+  print('Checking SSH authentication and guest agent after rebuild…', file=sys.stderr, flush=True)
+  check_ssh_settings(guest)
+  guest.reject_password_ssh()
+  guest.check_agent()
+  check_pde(guest, 'after rebuild')
+  print('Running-system checks passed.', file=sys.stderr, flush=True)
+  if password is not None:
+    guest.console_login(password)
+
+
+def main():
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument('image', type=Path)
+  parser.add_argument('--work-dir', default='~/code/proxmox-base')
+  parser.add_argument('--ssh-key', type=Path, default=Path.home() / '.ssh/id_rsa')
+  parser.add_argument('--ssh-port', type=int, default=22222)
+  parser.add_argument('--accel', choices=['auto', 'kvm', 'tcg'], default='auto')
+  parser.add_argument('--memory-mib', type=int, default=4096)
+  parser.add_argument('--cpus', type=int, default=2)
+  parser.add_argument('--boot-timeout', type=int, default=600)
+  parser.add_argument('--rebuild-timeout', type=int, default=3600)
+  parser.add_argument('--grown-size-gib', type=int, default=28)
+  parser.add_argument('--skip-rebuild', action='store_true')
+  parser.add_argument('--skip-github', action='store_true')
+  parser.add_argument('--keep-disks', action='store_true', help='retain private disposable VM copies for debugging')
+  sources = parser.add_mutually_exclusive_group()
+  sources.add_argument('--password-op-item', help='test actual serial-console recovery login using this 1Password item')
+  sources.add_argument('--password-file')
+  sources.add_argument('--password-fd', type=int)
+  args = parser.parse_args()
+  try:
+    os.umask(0o077)
+    source = builder.private_file(args.image)
+    if source.stat().st_mode & 0o777 != 0o400:
+      raise ValueError('prepared original must be read-only mode 0400')
+    args.ssh_key = builder.private_file(args.ssh_key)
+    if not 1024 <= args.ssh_port <= 65535 or args.memory_mib < 1024 or args.cpus < 1 or args.grown_size_gib <= 20:
+      raise ValueError('invalid port, memory, CPU count, or grown size (must exceed 20 GiB)')
+    work = builder.workspace(args.work_dir)
+    if ',' in str(work) or any(ord(char) < 32 for char in str(work)):
+      raise ValueError('QEMU workspace paths cannot contain commas or control characters')
+    firmware = pinned_tools()
+    accelerator = acceleration(args.accel)
+    info = json.loads(builder.run(['qemu-img', 'info', '--output=json', str(source)]))
+    if info.get('format') != 'qcow2' or info.get('backing-filename'):
+      raise ValueError('prepared original must be standalone qcow2')
+    if args.grown_size_gib * 1024 ** 3 <= info['virtual-size']:
+      raise ValueError('grown size must exceed the original virtual image size')
+    password = builder.read_password(args) if args.password_file or args.password_fd is not None or args.password_op_item else None
+    directory = Path(tempfile.mkdtemp(prefix='smoke-', dir=work))
+    with source.open('rb') as stream:
+      original = hashlib.file_digest(stream, 'sha256').hexdigest()
+    report = {'artifact_sha256': original, 'acceleration': accelerator, 'bootstrap_and_rebuild': not args.skip_rebuild,
+      'github_read': not args.skip_github, 'console_recovery': password is not None,
+      'pde_before_bootstrap': True, 'pde_after_rebuild': not args.skip_rebuild}
+    try:
+      for index, size in enumerate([max(20, (info['virtual-size'] + 1024 ** 3 - 1) // 1024 ** 3), args.grown_size_gib]):
+        print(f'Booting disposable clone {index + 1} with {accelerator}, {size} GiB…', file=sys.stderr, flush=True)
+        guest = Guest(args, directory / f'clone-{index + 1}', source, firmware, accelerator, size)
+        try:
+          guest.wait_boot()
+          initial = guest.identity()
+          if index == 0 and not args.skip_rebuild and initial['root_available_bytes'] < 2 * 1024 ** 3:
+            raise ValueError(f"insufficient rebuild space: {initial['root_available_bytes']} bytes available; require at least 2 GiB")
+          print(f"Root filesystem has {initial['root_available_bytes'] / 1024 ** 3:.2f} GiB available before tests.", file=sys.stderr, flush=True)
+          if index == 0:
+            first_guest_checks(guest, args, password)
+          else:
+            guest.check_agent()
+          identity = guest.identity()
+          identity['root_available_bytes_before_tests'] = initial['root_available_bytes']
+          if identity['root_bytes'] < (size - 2) * 1024 ** 3:
+            raise ValueError('root filesystem did not grow close to the virtual disk size')
+          report[f'clone_{index + 1}'] = identity
+        finally:
+          guest.close()
+      if report['clone_1']['machine_id'] == report['clone_2']['machine_id'] or report['clone_1']['host_key'] == report['clone_2']['host_key']:
+        raise ValueError('clones reused machine identity or SSH host key')
+      with source.open('rb') as stream:
+        final_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+      if original != final_digest:
+        raise ValueError('prepared original contents changed unexpectedly')
+      report['passed'] = True
+      (directory / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+      print(directory / 'report.json')
+    finally:
+      password = None
+      if not args.keep_disks:
+        for disk in directory.glob('clone-*/disk.qcow2'):
+          disk.unlink()
+    return 0
+  except (ValueError, OSError, subprocess.TimeoutExpired, KeyboardInterrupt) as error:
+    print(f'Image smoke test failed: {error}', file=sys.stderr)
+    return 1
+
+
+if __name__ == '__main__':
+  sys.exit(main())
