@@ -1,5 +1,7 @@
 """Safety and snapshot tests use temporary repositories and dummy values only."""
 import importlib.machinery
+import contextlib
+import io
 import os
 from pathlib import Path
 import subprocess
@@ -16,6 +18,36 @@ loader.exec_module(builder)
 
 
 class ImageBuilderTests(unittest.TestCase):
+  def test_password_source_defaults_and_explicit_overrides(self):
+    positional = []
+    expected_default = 'yklwrusohu3uus3bpnua7v27ky'
+    self.assertEqual(builder.arguments(positional).password_op_item, expected_default)
+    for option, value, attribute, expected in [
+      ('--password-file', '/private/password', 'password_file', '/private/password'),
+      ('--password-fd', '0', 'password_fd', 0),
+      ('--password-op-item', 'a' * 26, 'password_op_item', 'a' * 26),
+    ]:
+      args = builder.arguments(positional + [option, value])
+      self.assertEqual(getattr(args, attribute), expected)
+      if attribute != 'password_op_item':
+        self.assertIsNone(args.password_op_item)
+    args = builder.arguments(positional + ['--password-prompt'])
+    self.assertIsNone(args.password_op_item)
+    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+      builder.arguments(positional + ['--password-prompt', '--password-fd', '0'])
+
+  def test_explicit_prompt_rejects_non_tty_before_tools_or_secret_access(self):
+    with patch.object(builder.sys, 'argv', [str(MODULE), '--password-prompt']), \
+      patch.object(builder.sys.stdin, 'isatty', return_value=False), \
+      patch.object(builder, 'ensure_tools') as tools, \
+      contextlib.redirect_stderr(io.StringIO()) as error:
+      self.assertEqual(builder.main(), 1)
+      tools.assert_not_called()
+      self.assertIn('--password-prompt requires an interactive TTY', error.getvalue())
+    args = builder.arguments(['--password-op-item', ''])
+    with self.assertRaisesRegex(ValueError, '26-character UUID'):
+      builder.read_password(args)
+
   def test_private_file_rejects_public_permissions_and_symlinks(self):
     with tempfile.TemporaryDirectory() as temp:
       path = Path(temp) / 'value'

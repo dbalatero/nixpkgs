@@ -281,7 +281,7 @@ subprocess.run(['git', 'add', 'hosts/proxmox-smoke-test'], cwd=repo, check=True)
     guest.console_login(password)
 
 
-def main():
+def arguments(argv=None):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('image', type=Path)
   parser.add_argument('--work-dir', default='~/code/proxmox-base')
@@ -297,10 +297,18 @@ def main():
   parser.add_argument('--skip-github', action='store_true')
   parser.add_argument('--keep-disks', action='store_true', help='retain private disposable VM copies for debugging')
   sources = parser.add_mutually_exclusive_group()
-  sources.add_argument('--password-op-item', help='test actual serial-console recovery login using this 1Password item')
+  sources.add_argument('--password-op-item', help=f'1Password UUID for serial-console login (default: {builder.DEFAULT_PASSWORD_OP_ITEM})')
   sources.add_argument('--password-file')
   sources.add_argument('--password-fd', type=int)
-  args = parser.parse_args()
+  sources.add_argument('--skip-console', action='store_true', help='skip console-password tests instead of reading 1Password')
+  args = parser.parse_args(argv)
+  if args.password_file is None and args.password_fd is None and args.password_op_item is None and not args.skip_console:
+    args.password_op_item = builder.DEFAULT_PASSWORD_OP_ITEM
+  return args
+
+
+def main():
+  args = arguments()
   try:
     os.umask(0o077)
     source = builder.private_file(args.image)
@@ -319,7 +327,7 @@ def main():
       raise ValueError('prepared original must be standalone qcow2')
     if args.grown_size_gib * 1024 ** 3 <= info['virtual-size']:
       raise ValueError('grown size must exceed the original virtual image size')
-    password = builder.read_password(args) if args.password_file or args.password_fd is not None or args.password_op_item else None
+    password = None if args.skip_console else builder.read_password(args)
     directory = Path(tempfile.mkdtemp(prefix='smoke-', dir=work))
     with source.open('rb') as stream:
       original = hashlib.file_digest(stream, 'sha256').hexdigest()

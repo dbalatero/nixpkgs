@@ -19,11 +19,10 @@ Login public keys live in `hosts/proxmox-base/authorized_keys`. The image uses a
 Commit the changes you want inside the image. The builder embeds the current local committed snapshot, including unpushed commits, as a writable checkout at `/home/dbalatero/.config/nixpkgs`. It does not push or include unrelated uncommitted changes.
 
 ```bash
-bin/build-proxmox-base-image \
-  --password-op-item yklwrusohu3uus3bpnua7v27ky
+bin/build-proxmox-base-image
 ```
 
-The 1Password integration has passed a dummy-item check. The command reads the real item's `password` field after the secret-free build succeeds; 1Password may still request an unlock or desktop approval. Alternatively, use `--password-file /path/to/private-file` (owned, mode `0600` or `0400`) or `--password-fd FD`. Without a supplied source, an interactive terminal prompts twice with hidden input. Never supply a literal password as a command argument.
+Both build and smoke-test commands default to 1Password item `yklwrusohu3uus3bpnua7v27ky`. This UUID identifies the item; it is not the credential and does not bypass 1Password authentication. The integration has passed a dummy-item check. The builder reads the item's `password` field after the secret-free build succeeds; 1Password may still request an unlock or desktop approval. Override the source with `--password-op-item OTHER_UUID`, `--password-file /path/to/private-file` (owned, mode `0600` or `0400`), or `--password-fd FD`. Use the builder's explicit `--password-prompt` flag to enter and confirm the password with hidden input at a terminal. Never supply a literal password as a command argument.
 
 The default final artifact is `~/code/proxmox-base/proxmox-base-prepared.qcow2`, a standalone image with a minimum 20 GiB virtual disk. Its mode is `0400`; the workspace is `0700`. `--work-dir` selects another private workspace, `--output` selects a new filename, and `--base-image` reuses a trusted secret-free qcow2 output. Existing prepared images are not overwritten. Required image tools are supplied from the pinned Nix packages.
 
@@ -31,11 +30,10 @@ Run the local smoke test on disposable copies:
 
 ```bash
 bin/test-proxmox-base-image \
-  ~/code/proxmox-base/proxmox-base-prepared.qcow2 \
-  --password-op-item yklwrusohu3uus3bpnua7v27ky
+  ~/code/proxmox-base/proxmox-base-prepared.qcow2
 ```
 
-The default desktop login key is `~/.ssh/id_rsa`; override it with `--ssh-key`. The helper uses KVM when available or software emulation otherwise (`--accel kvm|tcg` can require one), and tests a second clone enlarged to 28 GiB. The full run verified SSH, console recovery, separate machine identities, root growth, GitHub read access, bootstrap, and another rebuild. It prints the report path on success. Skipping rebuild, GitHub, or console checks limits what the run verifies. The prepared original is never booted. Laptop-key login still needs a test from the laptop.
+The default desktop login key is `~/.ssh/id_rsa`; override it with `--ssh-key`. The helper uses KVM when available or software emulation otherwise (`--accel kvm|tcg` can require one), and tests a second clone enlarged to 28 GiB. The full run verified SSH, console recovery, separate machine identities, root growth, GitHub read access, bootstrap, and another rebuild. It prints the report path on success. Console recovery is tested by default using the configured 1Password item. Use `--skip-console` to explicitly omit it without reading a recovery password. Skipping rebuild, GitHub, or console checks limits what the run verifies. The prepared original is never booted. Laptop-key login still needs a test from the laptop.
 
 ## Import into Proxmox (user trial pending)
 

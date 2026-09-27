@@ -20,6 +20,7 @@ GITHUB_HOST = 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UO
 # https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
 GITHUB_FINGERPRINT = '+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'
 ORIGIN = 'git@github.com:dbalatero/nixpkgs.git'
+DEFAULT_PASSWORD_OP_ITEM = 'yklwrusohu3uus3bpnua7v27ky'
 
 
 def run(args, *, data=None, quiet=False, cwd=None):
@@ -68,12 +69,12 @@ def ensure_tools():
 
 
 def read_password(args):
-  if args.password_file:
+  if args.password_file is not None:
     value = private_file(args.password_file).read_bytes()
   elif args.password_fd is not None:
     with os.fdopen(os.dup(args.password_fd), 'rb') as stream:
       value = stream.read(65537)
-  elif args.password_op_item:
+  elif args.password_op_item is not None:
     if not re.fullmatch(r'[a-z0-9]{26}', args.password_op_item):
       raise ValueError('1Password item must be a 26-character UUID')
     # Capture everything: neither the value nor CLI diagnostics go to logs.
@@ -194,7 +195,7 @@ def prepare(args):
     raise ValueError('--output must be a qcow2 filename without directories')
   if output.exists() or output.is_symlink():
     raise ValueError('output already exists; choose a new --output filename')
-  if not (args.password_file or args.password_fd is not None or args.password_op_item or sys.stdin.isatty()):
+  if not (args.password_file is not None or args.password_fd is not None or args.password_op_item is not None or sys.stdin.isatty()):
     raise ValueError('a password source is required without a TTY')
   commit = run(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
   if args.base_image:
@@ -252,7 +253,7 @@ def prepare(args):
   print(output)
 
 
-def main():
+def arguments(argv=None):
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('--work-dir', default='~/code/proxmox-base')
   parser.add_argument('--output', default='proxmox-base-prepared.qcow2')
@@ -261,9 +262,19 @@ def main():
   sources = parser.add_mutually_exclusive_group()
   sources.add_argument('--password-file', help='owned 0600/0400 single-line password file')
   sources.add_argument('--password-fd', type=int, help='already-open password descriptor')
-  sources.add_argument('--password-op-item', help='1Password UUID; reads the password field')
-  args = parser.parse_args()
+  sources.add_argument('--password-op-item', help=f'1Password UUID; reads the password field (default: {DEFAULT_PASSWORD_OP_ITEM})')
+  sources.add_argument('--password-prompt', action='store_true', help='prompt and confirm the password at a TTY instead of using 1Password')
+  args = parser.parse_args(argv)
+  if args.password_file is None and args.password_fd is None and args.password_op_item is None and not args.password_prompt:
+    args.password_op_item = DEFAULT_PASSWORD_OP_ITEM
+  return args
+
+
+def main():
+  args = arguments()
   try:
+    if args.password_prompt and not sys.stdin.isatty():
+      raise ValueError('--password-prompt requires an interactive TTY')
     if args.password_fd is not None:
       os.fstat(args.password_fd)
     ensure_tools()
