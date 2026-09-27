@@ -125,6 +125,12 @@ The PDE-enabled image’s full local KVM smoke test passed on 2026-09-26, includ
 
 The DHCP path was exercised in the full local test. Static-network arguments and generated Nix configuration passed automated checks, but a live static-network trial remains untested. Actual Proxmox import, networking, disk bus, and clone behavior still require Phase 3.
 
+## Networking context for the next phase
+
+Confirmed by the user: a UniFi Dream Machine provides DHCP and advertises the existing Raspberry Pi Pi-hole as the LAN DNS server. The user owns `netcat.cloud`, but service names are not configured; the registrar and DNS hosting provider are not yet known. The user prefers private remote access through a VPN. Exposing Plex to friends later is a possibility, not a decided requirement.
+
+Proposals still to confirm: attach VMs to the Proxmox LAN bridge, assign stable addresses through Dream Machine DHCP reservations, and use a separate Caddy VM for HTTPS service routing. Machine DNS names would resolve directly to their VM addresses, while HTTPS service names would resolve to the proxy. Keep the existing Pi-hole during initial VM/proxy testing; a later Pi-hole migration or redundant DNS setup remains to be planned. No network, DNS, VPN, or reverse-proxy configuration has been applied as part of this discussion.
+
 ## Phase 3: Proxmox template and first clone (user-operated later)
 
 These steps are outside the current unattended run. The user will perform the actual Proxmox trial; keep them marked untested until that trial supplies evidence.
