@@ -75,6 +75,15 @@
     };
 
     # NixOS machines
+    nixosConfigurations.proxmox-base = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = {inherit inputs;};
+      modules = [./hosts/proxmox-base];
+    };
+
+    packages.x86_64-linux.proxmox-base =
+      self.nixosConfigurations.proxmox-base.config.system.build.images.qcow;
+
     # NEW_HOST_SENTINEL - Do not remove this comment (used by bin/new-host)
     nixosConfigurations.panther = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";

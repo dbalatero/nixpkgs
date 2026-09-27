@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Name and configure a clone of the NixOS Proxmox base image."""
+
+import argparse
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+class BootstrapError(Exception):
+  pass
+
+
+def run(argv, *, cwd=None):
+  result = subprocess.run(argv, cwd=cwd, text=True, capture_output=True)
+  if result.returncode:
+    raise BootstrapError(f"{' '.join(argv)} failed:\n{result.stderr.strip()}")
+  return result.stdout
+
+
+def nix_string(value):
+  # JSON strings are valid Nix strings after disabling interpolation.
+  return json.dumps(value, ensure_ascii=False).replace("${", "\\${")
+
+
+def arguments(argv=None):
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument("hostname", nargs="?", help="new single-label hostname")
+  parser.add_argument("--description", default="NixOS homelab VM")
+  parser.add_argument("--profile", choices=["headless"], default="headless")
+  parser.add_argument("--static-ip", help="IPv4 address with prefix, e.g. 192.168.1.210/24")
+  parser.add_argument("--gateway", help="IPv4 gateway; required with --static-ip")
+  parser.add_argument("--dns", action="append", default=[], help="DNS IP address; repeatable, required with --static-ip")
+  parser.add_argument("--interface", help="guest interface for static networking; auto-detected if unambiguous")
+  parser.add_argument("--skip-update", action="store_true", help="use the current clean local commit without fetching")
+  parser.add_argument("--no-switch", action="store_true", help="generate and stage configuration without rebuilding")
+  args = parser.parse_args(argv)
+  if not args.hostname and sys.stdin.isatty():
+    args.hostname = input("New VM hostname: ").strip()
+  if not args.hostname:
+    parser.error("hostname is required (or provide it at an interactive TTY)")
+  if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", args.hostname):
+    parser.error("hostname must be 1–63 lowercase letters, digits, or interior hyphens")
+  if args.hostname in {"localhost", "proxmox-base", "template", "common"}:
+    parser.error("hostname is reserved")
+  if args.static_ip and sys.stdin.isatty():
+    if not args.gateway:
+      args.gateway = input("IPv4 gateway: ").strip()
+    if not args.dns:
+      args.dns = input("DNS server IP addresses (space-separated): ").split()
+  if args.static_ip:
+    try:
+      if "/" not in args.static_ip:
+        raise ValueError("--static-ip must include a prefix length")
+      address = ipaddress.IPv4Interface(args.static_ip)
+      gateway = ipaddress.IPv4Address(args.gateway or "")
+      if address.ip.is_unspecified or address.ip.is_multicast or address.ip.is_loopback:
+        raise ValueError("static address must be a unicast guest address")
+      if address.network.prefixlen < 31 and address.ip in {address.network.network_address, address.network.broadcast_address}:
+        raise ValueError("static address cannot be the subnet or broadcast address")
+      if gateway not in address.network or gateway == address.ip:
+        raise ValueError("gateway must be a different address in the guest subnet")
+      if gateway.is_unspecified or gateway.is_multicast or gateway.is_loopback:
+        raise ValueError("gateway must be a unicast address")
+      if address.network.prefixlen < 31 and gateway in {address.network.network_address, address.network.broadcast_address}:
+        raise ValueError("gateway cannot be the subnet or broadcast address")
+      if not args.dns:
+        raise ValueError("at least one --dns is required with --static-ip")
+      for dns in args.dns:
+        server = ipaddress.ip_address(dns)
+        if server.is_unspecified or server.is_multicast:
+          raise ValueError("DNS servers must be unicast addresses")
+    except ValueError as error:
+      parser.error(str(error))
+  elif args.gateway or args.dns or args.interface:
+    parser.error("--gateway, --dns, and --interface require --static-ip")
+  if args.interface and not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,15}", args.interface):
+    parser.error("invalid interface name")
+  return args
+
+
+def check_repository(repo, hostname):
+  for parent in (repo / "hosts", repo / "home/hosts"):
+    if not parent.is_dir():
+      raise BootstrapError(f"Missing repository directory: {parent}")
+    if (parent / hostname).exists() or (parent / hostname).is_symlink():
+      raise BootstrapError(f"Host already exists: {parent / hostname}")
+  flake = (repo / "flake.nix").read_text()
+  if flake.count("# NEW_HOST_SENTINEL") != 1:
+    raise BootstrapError("flake.nix must contain exactly one NEW_HOST_SENTINEL comment")
+  pattern = rf'nixosConfigurations\s*\.\s*(?:{re.escape(hostname)}|"{re.escape(hostname)}")\s*='
+  if re.search(pattern, flake):
+    raise BootstrapError(f"Flake already defines {hostname}")
+  if run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo).strip():
+    raise BootstrapError("Checkout has local changes. Review and commit or stash them before bootstrap; nothing was discarded.")
+  return flake
+
+
+def update_repository(repo):
+  try:
+    upstream = run(["git", "rev-parse", "--abbrev-ref", "@{upstream}"], cwd=repo).strip()
+  except BootstrapError as error:
+    raise BootstrapError("No upstream branch is configured. Set it explicitly, or use --skip-update to keep the current snapshot.") from error
+  branch = run(["git", "symbolic-ref", "--short", "HEAD"], cwd=repo).strip()
+  remote = run(["git", "config", "--get", f"branch.{branch}.remote"], cwd=repo).strip()
+  run(["git", "fetch", "--", remote], cwd=repo)
+  try:
+    run(["git", "merge", "--ff-only", "--", upstream], cwd=repo)
+  except BootstrapError as error:
+    raise BootstrapError("Cannot fast-forward the checkout. Resolve divergence yourself, or use --skip-update after reviewing the current snapshot. No local commits were discarded.") from error
+
+
+def detect_interface(requested):
+  links = json.loads(run(["ip", "-json", "link", "show"]))
+  available = {link["ifname"] for link in links if link["ifname"] != "lo"}
+  if requested:
+    if requested not in available:
+      raise BootstrapError(f"Interface {requested} does not exist in this VM")
+    return requested
+  routes = json.loads(run(["ip", "-json", "-4", "route", "show", "default"]))
+  candidates = {route["dev"] for route in routes if route.get("dev") in available}
+  if len(candidates) == 1:
+    return candidates.pop()
+  if len(available) == 1:
+    return available.pop()
+  raise BootstrapError("Cannot select a unique guest interface; supply --interface with --static-ip")
+
+
+def boot_configuration():
+  if Path("/sys/firmware/efi").exists():
+    mounts = json.loads(run(["findmnt", "--json", "--types", "vfat", "--output", "TARGET"]))
+    targets = [entry["target"] for entry in mounts.get("filesystems", [])]
+    if len(targets) != 1:
+      raise BootstrapError("Expected exactly one mounted EFI system partition")
+    return [
+      "  boot.loader.systemd-boot.enable = true;",
+      "  boot.loader.efi.canTouchEfiVariables = false;",
+      f"  boot.loader.efi.efiSysMountPoint = {nix_string(targets[0])};",
+    ]
+  root = run(["findmnt", "--noheadings", "--output", "SOURCE", "/"]).strip().split("[")[0]
+  devices = run(["lsblk", "--inverse", "--noheadings", "--raw", "--paths", "--output", "NAME,TYPE", root])
+  disks = {line.split()[0] for line in devices.splitlines() if len(line.split()) == 2 and line.split()[1] == "disk"}
+  if len(disks) != 1:
+    raise BootstrapError("Cannot identify one BIOS boot disk from the root filesystem")
+  disk = disks.pop()
+  aliases = sorted(path for path in Path("/dev/disk/by-id").glob("*") if path.resolve() == Path(disk).resolve())
+  target = str(aliases[0]) if aliases else disk
+  return ["  boot.loader.grub.enable = true;", f"  boot.loader.grub.device = {nix_string(target)};"]
+
+
+def configuration(args, boot, interface=None):
+  lines = [
+    "{...}: {",
+    "  imports = [",
+    "    ./hardware-configuration.nix",
+    "    ../common/nixos-vm",
+    "  ];",
+    "",
+    f"  networking.hostName = {nix_string(args.hostname)};",
+    *boot,
+  ]
+  if args.static_ip:
+    address = ipaddress.IPv4Interface(args.static_ip)
+    lines += [
+      "",
+      "  networking.useDHCP = false;",
+      f"  networking.interfaces.{nix_string(interface)} = {{",
+      "    useDHCP = false;",
+      f"    ipv4.addresses = [{{ address = {nix_string(str(address.ip))}; prefixLength = {address.network.prefixlen}; }}];",
+      "  };",
+      f"  networking.defaultGateway = {{ address = {nix_string(args.gateway)}; interface = {nix_string(interface)}; }};",
+      f"  networking.nameservers = [{' '.join(nix_string(dns) for dns in args.dns)}];",
+    ]
+  else:
+    lines += ["  networking.useDHCP = true;"]
+  # Description is a comment; prefix each line so it cannot inject Nix code.
+  description = "\n".join(f"# {line}" for line in args.description.splitlines())
+  return f"{description}\n" + "\n".join(lines) + "\n}\n"
+
+
+def flake_entry(hostname):
+  return f'''    nixosConfigurations.{hostname} = nixpkgs.lib.nixosSystem {{
+      system = "x86_64-linux";
+      specialArgs = {{inherit inputs;}};
+      modules = [
+        ./hosts/{hostname}/configuration.nix
+        {{
+          home-manager.users.dbalatero = import ./home/hosts/{hostname};
+        }}
+      ];
+    }};
+
+'''
+
+
+def atomic_write(path, content):
+  descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+  try:
+    with os.fdopen(descriptor, "w") as stream:
+      stream.write(content)
+    os.chmod(temporary, 0o644)
+    os.replace(temporary, path)
+  finally:
+    if os.path.exists(temporary):
+      os.unlink(temporary)
+
+
+def main(argv=None):
+  args = arguments(argv)
+  repo = Path(__file__).resolve().parent.parent
+  try:
+    check_repository(repo, args.hostname)
+    required = ["git", "sudo", "nixos-generate-config", "nix-instantiate", "findmnt", "lsblk"]
+    if args.static_ip:
+      required.append("ip")
+    if not args.no_switch:
+      required.append("nixos-rebuild")
+    missing = [command for command in required if not shutil.which(command)]
+    if missing:
+      raise BootstrapError(f"Missing required commands: {', '.join(missing)}")
+    try:
+      run(["sudo", "-n", "test", "-f", "/etc/nixos-vm/recovery-password.hash"])
+    except BootstrapError as error:
+      raise BootstrapError("This command must run inside a prepared NixOS VM with passwordless sudo and its recovery-password hash installed") from error
+    boot = boot_configuration()
+    interface = detect_interface(args.interface) if args.static_ip else None
+    hardware = run(["sudo", "-n", "nixos-generate-config", "--show-hardware-config"])
+    if not args.skip_update:
+      update_repository(repo)
+    flake = check_repository(repo, args.hostname)
+    host = repo / "hosts" / args.hostname
+    home = repo / "home/hosts" / args.hostname
+    contents = {
+      host / "configuration.nix": configuration(args, boot, interface),
+      host / "hardware-configuration.nix": hardware,
+      home / "default.nix": '{...}: {\n  imports = [../../modules/proxmox-vm];\n}\n',
+    }
+    lines = flake.splitlines(keepends=True)
+    index = next(index for index, line in enumerate(lines) if "# NEW_HOST_SENTINEL" in line)
+    lines.insert(index + 1, flake_entry(args.hostname))
+    contents[repo / "flake.nix"] = "".join(lines)
+    # Parse all generated Nix before changing the checkout.
+    with tempfile.TemporaryDirectory(prefix="nixos-vm-bootstrap-") as temporary:
+      for index, content in enumerate(contents.values()):
+        candidate = Path(temporary) / f"{index}.nix"
+        candidate.write_text(content)
+        run(["nix-instantiate", "--parse", str(candidate)])
+    host.mkdir()
+    home.mkdir()
+    for path, content in contents.items():
+      atomic_write(path, content)
+    run(["git", "add", "--", str(host), str(home), "flake.nix"], cwd=repo)
+    print(run(["git", "diff", "--cached", "--stat"], cwd=repo), end="")
+    print(f"Review: git diff --cached\nCommit when ready: git commit -m 'Add {args.hostname} VM'\nPush when ready: git push")
+    command = ["sudo", "-n", "nixos-rebuild", "switch", "--flake", f"{repo}#{args.hostname}"]
+    print("Rebuild command: " + " ".join(command), flush=True)
+    if args.no_switch:
+      print("Apply when ready: " + " ".join(command))
+    else:
+      # Stream build progress, preserving the generated files on failure.
+      result = subprocess.run(command, cwd=repo)
+      if result.returncode:
+        raise BootstrapError("Rebuild failed. Generated configuration remains staged for review and correction; rerun the printed rebuild command after fixing it.")
+    return 0
+  except (BootstrapError, OSError, ValueError) as error:
+    print(f"bootstrap-nixos-vm: {error}", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+  sys.exit(main())

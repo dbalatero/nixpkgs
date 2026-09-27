@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""Build a secret-free NixOS image, then prepare a private, unbooted copy."""
+import argparse
+import base64
+import getpass
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+
+REPO = Path(__file__).resolve().parent.parent
+GITHUB_HOST = 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n'
+# https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+GITHUB_FINGERPRINT = '+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'
+ORIGIN = 'git@github.com:dbalatero/nixpkgs.git'
+
+
+def run(args, *, data=None, quiet=False, cwd=None):
+  result = subprocess.run(args, input=data, stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE if quiet else None, cwd=cwd, check=False)
+  if result.returncode:
+    raise ValueError(f'{args[0]} failed (exit {result.returncode})')
+  return result.stdout
+
+
+def private_file(path):
+  path = Path(path).expanduser().absolute()
+  info = path.lstat()
+  if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) not in (0o600, 0o400):
+    raise ValueError(f'{path}: expected an owned regular file with mode 0600 or 0400')
+  return path
+
+
+def workspace(path):
+  path = Path(path).expanduser().absolute()
+  if path.is_symlink():
+    raise ValueError('workspace must not be a symlink')
+  path = path.resolve()
+  repository = REPO.resolve()
+  if path == repository or repository in path.parents or path == Path('/nix/store') or Path('/nix/store') in path.parents:
+    raise ValueError('workspace must be outside the repository and Nix store')
+  if path.exists() and (path.stat().st_uid != os.getuid() or not path.is_dir()):
+    raise ValueError('workspace must be a directory owned by the current user')
+  path.mkdir(mode=0o700, parents=True, exist_ok=True)
+  path.chmod(0o700)
+  return path
+
+
+def ensure_tools():
+  commands = ['git', 'ssh-keygen', 'openssl', 'qemu-img', 'guestfish']
+  if all(shutil.which(command) for command in commands):
+    return
+  locked = json.loads((REPO / 'flake.lock').read_text())['nodes']['nixpkgs']['locked']
+  source = f"github:{locked['owner']}/{locked['repo']}/{locked['rev']}"
+  packages = ['git', 'openssh', 'openssl', 'qemu', 'libguestfs-with-appliance']
+  outputs = run(['nix', 'build', '--no-link', '--print-out-paths',
+    *[f'{source}#{package}' for package in packages]]).decode().splitlines()
+  os.environ['PATH'] = os.pathsep.join([*[str(Path(path) / 'bin') for path in outputs], os.environ.get('PATH', '')])
+  if not all(shutil.which(command) for command in commands):
+    raise ValueError('image tools unavailable after building pinned packages')
+
+
+def read_password(args):
+  if args.password_file:
+    value = private_file(args.password_file).read_bytes()
+  elif args.password_fd is not None:
+    with os.fdopen(os.dup(args.password_fd), 'rb') as stream:
+      value = stream.read(65537)
+  elif args.password_op_item:
+    if not re.fullmatch(r'[a-z0-9]{26}', args.password_op_item):
+      raise ValueError('1Password item must be a 26-character UUID')
+    # Capture everything: neither the value nor CLI diagnostics go to logs.
+    value = run(['op', 'item', 'get', args.password_op_item,
+      '--fields', 'label=password', '--reveal'], quiet=True)
+  else:
+    if not sys.stdin.isatty():
+      raise ValueError('supply --password-file, --password-fd, or --password-op-item without a TTY')
+    first = getpass.getpass('Console recovery password: ')
+    if first != getpass.getpass('Confirm console recovery password: '):
+      raise ValueError('passwords do not match')
+    value = first.encode()
+  value = value.removesuffix(b'\n').removesuffix(b'\r')
+  if not value or len(value) > 65536 or b'\n' in value or b'\r' in value or b'\x00' in value:
+    raise ValueError('password must be a nonempty single line of at most 65536 bytes')
+  return value
+
+
+def snapshot(destination, expected_commit):
+  branch = run(['git', 'symbolic-ref', '--short', 'HEAD'], cwd=REPO).decode().strip()
+  commit = run(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
+  if commit != expected_commit:
+    raise ValueError('repository HEAD changed during build; rerun with a stable committed snapshot')
+  run(['git', 'clone', '--no-hardlinks', '--no-local', '--single-branch', '--branch',
+    branch, str(REPO), str(destination)])
+  cloned = run(['git', 'rev-parse', 'HEAD'], cwd=destination).decode().strip()
+  if cloned != expected_commit:
+    raise ValueError('repository HEAD changed while cloning; rerun with a stable committed snapshot')
+  run(['git', 'remote', 'set-url', 'origin', ORIGIN], cwd=destination)
+  for key in ['user.name', 'user.email']:
+    value = run(['git', 'config', '--get', key], cwd=REPO).decode().strip()
+    if not value:
+      raise ValueError(f'missing Git {key}')
+    run(['git', 'config', '--local', key, value], cwd=destination)
+  # A local clone's origin/<branch> points to local HEAD. Restore the actual
+  # last fetched remote tip, so ahead commits remain visibly unpushed.
+  remote = subprocess.run(['git', 'rev-parse', '--verify', f'refs/remotes/origin/{branch}'],
+    cwd=REPO, capture_output=True)
+  if remote.returncode == 0:
+    run(['git', 'update-ref', f'refs/remotes/origin/{branch}', remote.stdout.decode().strip()], cwd=destination)
+  else:
+    run(['git', 'update-ref', '-d', f'refs/remotes/origin/{branch}'], cwd=destination)
+  # Never carry host-specific hooks, credentials, reflogs or alternate objects.
+  shutil.rmtree(destination / '.git' / 'hooks', ignore_errors=True)
+  shutil.rmtree(destination / '.git' / 'logs', ignore_errors=True)
+  run(['git', 'config', '--local', 'core.sshCommand',
+    'ssh -i /home/dbalatero/.ssh/id_nixos_vm_github -o IdentitiesOnly=yes -o IdentityAgent=none -o StrictHostKeyChecking=yes'], cwd=destination)
+  return commit
+
+
+def guestfish(image, commands):
+  # No secret text is included in commands; uploads reference private files.
+  env = os.environ.copy()
+  env['LIBGUESTFS_BACKEND'] = 'direct'
+  env['LIBGUESTFS_DEBUG'] = '0'
+  env['LIBGUESTFS_TRACE'] = '0'
+  result = subprocess.run(['guestfish', '--format=qcow2', '-a', str(image)],
+    input=('\n'.join(['run', *commands]) + '\n').encode(),
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+  if result.returncode:
+    raise ValueError('guestfish failed; image was not published (diagnostics suppressed)')
+  return result.stdout.decode()
+
+
+def quote(path):
+  if any(ord(char) < 32 for char in str(path)):
+    raise ValueError('control characters are not supported in image workspace paths')
+  return '"' + str(path).replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def write_ssh_payload(ssh, key, public):
+  ssh.mkdir(mode=0o700, exist_ok=True)
+  ssh.chmod(0o700)
+  shutil.copyfile(key, ssh / 'id_nixos_vm_github')
+  (ssh / 'id_nixos_vm_github.pub').write_bytes(public)
+  decoded = base64.b64decode(GITHUB_HOST.split()[2])
+  if base64.b64encode(hashlib.sha256(decoded).digest()).decode().rstrip('=') != GITHUB_FINGERPRINT:
+    raise ValueError('embedded GitHub host key fingerprint mismatch')
+  (ssh / 'known_hosts').write_text(GITHUB_HOST)
+  for name in ['id_nixos_vm_github', 'id_nixos_vm_github.pub', 'known_hosts']:
+    (ssh / name).chmod(0o600)
+  # Home Manager's PDE SSH module owns ~/.ssh/config. Do not create or replace
+  # it here; only runtime key material and public host verification data belong
+  # in this payload.
+
+
+def preparation_commands(filesystems, archive):
+  layouts = {}
+  for line in filesystems.splitlines():
+    device, separator, kind = line.partition(': ')
+    if separator:
+      layouts.setdefault(kind, []).append(device)
+  roots, esps = layouts.get('ext4', []), layouts.get('vfat', [])
+  if len(roots) != 1 or len(esps) != 1 or any(
+    not re.fullmatch(r'/dev/[a-zA-Z0-9]+', device) for device in roots + esps):
+    raise ValueError('expected one ext4 root filesystem and one vfat EFI system partition')
+  # Only remove these exact guest identity files. Never glob-delete SSH files:
+  # authorized_keys and the injected GitHub identity must remain untouched.
+  identity_files = ['/etc/machine-id', '/var/lib/dbus/machine-id',
+    '/var/lib/systemd/random-seed', '/boot/loader/random-seed']
+  identity_files += [f'/etc/ssh/ssh_host_{algorithm}_key{suffix}'
+    for algorithm in ['rsa', 'dsa', 'ecdsa', 'ed25519'] for suffix in ['', '.pub']]
+  return [f'mount {roots[0]} /', f'mount {esps[0]} /boot',
+    *[f'rm-f {path}' for path in identity_files],
+    f'tar-in {quote(archive)} /', 'sync', 'umount-all']
+
+
+def prepare(args):
+  os.umask(0o077)
+  key = private_file(args.github_key)
+  # Empty -P is not a secret. Fail rather than prompting on encrypted keys.
+  public = run(['ssh-keygen', '-y', '-P', '', '-f', str(key)], quiet=True)
+  if not public.startswith(b'ssh-ed25519 '):
+    raise ValueError('GitHub key must be an unencrypted Ed25519 private key')
+  work = workspace(args.work_dir)
+  output = work / args.output
+  if Path(args.output).name != args.output or not args.output.endswith('.qcow2'):
+    raise ValueError('--output must be a qcow2 filename without directories')
+  if output.exists() or output.is_symlink():
+    raise ValueError('output already exists; choose a new --output filename')
+  if not (args.password_file or args.password_fd is not None or args.password_op_item or sys.stdin.isatty()):
+    raise ValueError('a password source is required without a TTY')
+  commit = run(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
+  if args.base_image:
+    source = Path(args.base_image).expanduser().resolve(strict=True)
+  else:
+    print('Building secret-free image from the committed repository snapshot…', file=sys.stderr)
+    commit = run(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
+    flake = f'git+file://{REPO}?rev={commit}'
+    built = run(['nix', 'build', f'{flake}#proxmox-base', '--no-link', '--print-out-paths']).decode().splitlines()
+    if len(built) != 1:
+      raise ValueError('expected one image output')
+    candidates = list(Path(built[0]).rglob('*.qcow2'))
+    if len(candidates) != 1:
+      raise ValueError('expected exactly one qcow2 in the image output')
+    source = candidates[0]
+  info = json.loads(run(['qemu-img', 'info', '--output=json', str(source)]))
+  if info.get('format') != 'qcow2' or info.get('backing-filename'):
+    raise ValueError('base image must be standalone qcow2')
+  with tempfile.TemporaryDirectory(prefix='.prepare-', dir=work) as temp:
+    temp = Path(temp)
+    image = temp / 'prepared.qcow2'
+    run(['qemu-img', 'convert', '-f', 'qcow2', '-O', 'qcow2', str(source), str(image)])
+    image.chmod(0o600)
+    if info['virtual-size'] < 20 * 1024 ** 3:
+      run(['qemu-img', 'resize', str(image), '20G'])
+    payload = temp / 'payload'
+    home = payload / 'home/dbalatero'
+    repo = home / '.config/nixpkgs'
+    repo.parent.mkdir(parents=True, mode=0o700)
+    commit = snapshot(repo, commit)
+    write_ssh_payload(home / '.ssh', key, public)
+    secret = payload / 'etc/nixos-vm'
+    secret.mkdir(parents=True, mode=0o700)
+    password = read_password(args)
+    hashed = run(['openssl', 'passwd', '-6', '-stdin'], data=password + b'\n', quiet=True)
+    del password
+    (secret / 'recovery-password.hash').write_bytes(hashed)
+    del hashed
+    (payload / 'etc/nixos-vm/image-revision').write_text(commit + '\n')
+    archive = temp / 'payload.tar'
+    def permissions(member):
+      member.uid, member.gid = (1000, 100) if member.name.startswith('home/') else (0, 0)
+      member.uname = member.gname = ''
+      member.mode = 0o700 if member.isdir() or member.mode & 0o111 else 0o600
+      return member
+    with tarfile.open(archive, 'w') as tar:
+      for directory in ['home/dbalatero', 'etc/nixos-vm']:
+        tar.add(payload / directory, arcname=directory, filter=permissions)
+    filesystems = guestfish(image, ['list-filesystems'])
+    guestfish(image, preparation_commands(filesystems, archive))
+    run(['qemu-img', 'check', '-f', 'qcow2', str(image)])
+    image.chmod(0o400)
+    # Hard-link is atomic and fails if another preparation claimed this name.
+    os.link(image, output)
+  print(output)
+
+
+def main():
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument('--work-dir', default='~/code/proxmox-base')
+  parser.add_argument('--output', default='proxmox-base-prepared.qcow2')
+  parser.add_argument('--github-key', default='~/.ssh/id_nixos_vm_github')
+  parser.add_argument('--base-image', help='reuse a trusted, secret-free qcow2 build output')
+  sources = parser.add_mutually_exclusive_group()
+  sources.add_argument('--password-file', help='owned 0600/0400 single-line password file')
+  sources.add_argument('--password-fd', type=int, help='already-open password descriptor')
+  sources.add_argument('--password-op-item', help='1Password UUID; reads the password field')
+  args = parser.parse_args()
+  try:
+    if args.password_fd is not None:
+      os.fstat(args.password_fd)
+    ensure_tools()
+    prepare(args)
+  except (ValueError, OSError, KeyboardInterrupt) as error:
+    print(f'Image preparation failed: {error}', file=sys.stderr)
+    return 1
+  return 0
+
+
+if __name__ == '__main__':
+  sys.exit(main())

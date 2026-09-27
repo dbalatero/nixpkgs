@@ -9,6 +9,13 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
 
+  # Install the wrappers and polkit policy needed for 1Password CLI integration.
+  programs._1password.enable = true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = ["dbalatero"];
+  };
+
   # XDG Desktop Portal configuration for KDE Plasma
   xdg.portal = {
     enable = true;
