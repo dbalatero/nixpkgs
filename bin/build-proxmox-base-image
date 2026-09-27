@@ -69,12 +69,7 @@ def ensure_tools():
 
 
 def read_password(args):
-  if args.password_file is not None:
-    value = private_file(args.password_file).read_bytes()
-  elif args.password_fd is not None:
-    with os.fdopen(os.dup(args.password_fd), 'rb') as stream:
-      value = stream.read(65537)
-  elif args.password_op_item is not None:
+  if args.password_op_item is not None:
     if not re.fullmatch(r'[a-z0-9]{26}', args.password_op_item):
       raise ValueError('1Password item must be a 26-character UUID')
     # Capture everything: neither the value nor CLI diagnostics go to logs.
@@ -82,7 +77,7 @@ def read_password(args):
       '--fields', 'label=password', '--reveal'], quiet=True)
   else:
     if not sys.stdin.isatty():
-      raise ValueError('supply --password-file, --password-fd, or --password-op-item without a TTY')
+      raise ValueError('--password-prompt requires an interactive TTY')
     first = getpass.getpass('Console recovery password: ')
     if first != getpass.getpass('Confirm console recovery password: '):
       raise ValueError('passwords do not match')
@@ -195,8 +190,8 @@ def prepare(args):
     raise ValueError('--output must be a qcow2 filename without directories')
   if output.exists() or output.is_symlink():
     raise ValueError('output already exists; choose a new --output filename')
-  if not (args.password_file is not None or args.password_fd is not None or args.password_op_item is not None or sys.stdin.isatty()):
-    raise ValueError('a password source is required without a TTY')
+  if args.password_op_item is None and not sys.stdin.isatty():
+    raise ValueError('--password-prompt requires an interactive TTY')
   commit = run(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
   if args.base_image:
     source = Path(args.base_image).expanduser().resolve(strict=True)
@@ -260,12 +255,10 @@ def arguments(argv=None):
   parser.add_argument('--github-key', default='~/.ssh/id_nixos_vm_github')
   parser.add_argument('--base-image', help='reuse a trusted, secret-free qcow2 build output')
   sources = parser.add_mutually_exclusive_group()
-  sources.add_argument('--password-file', help='owned 0600/0400 single-line password file')
-  sources.add_argument('--password-fd', type=int, help='already-open password descriptor')
   sources.add_argument('--password-op-item', help=f'1Password UUID; reads the password field (default: {DEFAULT_PASSWORD_OP_ITEM})')
   sources.add_argument('--password-prompt', action='store_true', help='prompt and confirm the password at a TTY instead of using 1Password')
   args = parser.parse_args(argv)
-  if args.password_file is None and args.password_fd is None and args.password_op_item is None and not args.password_prompt:
+  if args.password_op_item is None and not args.password_prompt:
     args.password_op_item = DEFAULT_PASSWORD_OP_ITEM
   return args
 
@@ -275,8 +268,6 @@ def main():
   try:
     if args.password_prompt and not sys.stdin.isatty():
       raise ValueError('--password-prompt requires an interactive TTY')
-    if args.password_fd is not None:
-      os.fstat(args.password_fd)
     ensure_tools()
     prepare(args)
   except (ValueError, OSError, KeyboardInterrupt) as error:

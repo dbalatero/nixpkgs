@@ -16,23 +16,13 @@ loader.exec_module(smoke)
 
 
 class SmokeHelperTests(unittest.TestCase):
-  def test_password_source_defaults_and_explicit_overrides(self):
+  def test_password_source_defaults_and_explicit_alternatives(self):
     positional = ['dummy.qcow2']
-    expected_default = 'yklwrusohu3uus3bpnua7v27ky'
-    self.assertEqual(smoke.arguments(positional).password_op_item, expected_default)
-    for option, value, attribute, expected in [
-      ('--password-file', '/private/password', 'password_file', '/private/password'),
-      ('--password-fd', '0', 'password_fd', 0),
-      ('--password-op-item', 'a' * 26, 'password_op_item', 'a' * 26),
-    ]:
-      args = smoke.arguments(positional + [option, value])
-      self.assertEqual(getattr(args, attribute), expected)
-      if attribute != 'password_op_item':
-        self.assertIsNone(args.password_op_item)
-    args = smoke.arguments(positional + ['--skip-console'])
-    self.assertIsNone(args.password_op_item)
+    self.assertEqual(smoke.arguments(positional).password_op_item, 'yklwrusohu3uus3bpnua7v27ky')
+    self.assertEqual(smoke.arguments(positional + ['--password-op-item', 'a' * 26]).password_op_item, 'a' * 26)
+    self.assertIsNone(smoke.arguments(positional + ['--skip-console']).password_op_item)
     with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-      smoke.arguments(positional + ['--skip-console', '--password-fd', '0'])
+      smoke.arguments(positional + ['--skip-console', '--password-op-item', 'a' * 26])
 
   def test_acceleration_is_explicit_and_missing_kvm_falls_back(self):
     with patch.object(smoke.os.path, 'exists', return_value=False):

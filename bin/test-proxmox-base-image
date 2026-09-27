@@ -298,11 +298,9 @@ def arguments(argv=None):
   parser.add_argument('--keep-disks', action='store_true', help='retain private disposable VM copies for debugging')
   sources = parser.add_mutually_exclusive_group()
   sources.add_argument('--password-op-item', help=f'1Password UUID for serial-console login (default: {builder.DEFAULT_PASSWORD_OP_ITEM})')
-  sources.add_argument('--password-file')
-  sources.add_argument('--password-fd', type=int)
   sources.add_argument('--skip-console', action='store_true', help='skip console-password tests instead of reading 1Password')
   args = parser.parse_args(argv)
-  if args.password_file is None and args.password_fd is None and args.password_op_item is None and not args.skip_console:
+  if args.password_op_item is None and not args.skip_console:
     args.password_op_item = builder.DEFAULT_PASSWORD_OP_ITEM
   return args
 

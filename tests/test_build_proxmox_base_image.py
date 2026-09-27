@@ -18,23 +18,13 @@ loader.exec_module(builder)
 
 
 class ImageBuilderTests(unittest.TestCase):
-  def test_password_source_defaults_and_explicit_overrides(self):
+  def test_password_source_defaults_and_explicit_alternatives(self):
     positional = []
-    expected_default = 'yklwrusohu3uus3bpnua7v27ky'
-    self.assertEqual(builder.arguments(positional).password_op_item, expected_default)
-    for option, value, attribute, expected in [
-      ('--password-file', '/private/password', 'password_file', '/private/password'),
-      ('--password-fd', '0', 'password_fd', 0),
-      ('--password-op-item', 'a' * 26, 'password_op_item', 'a' * 26),
-    ]:
-      args = builder.arguments(positional + [option, value])
-      self.assertEqual(getattr(args, attribute), expected)
-      if attribute != 'password_op_item':
-        self.assertIsNone(args.password_op_item)
-    args = builder.arguments(positional + ['--password-prompt'])
-    self.assertIsNone(args.password_op_item)
+    self.assertEqual(builder.arguments(positional).password_op_item, 'yklwrusohu3uus3bpnua7v27ky')
+    self.assertEqual(builder.arguments(positional + ['--password-op-item', 'a' * 26]).password_op_item, 'a' * 26)
+    self.assertIsNone(builder.arguments(positional + ['--password-prompt']).password_op_item)
     with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-      builder.arguments(positional + ['--password-prompt', '--password-fd', '0'])
+      builder.arguments(positional + ['--password-prompt', '--password-op-item', 'a' * 26])
 
   def test_explicit_prompt_rejects_non_tty_before_tools_or_secret_access(self):
     with patch.object(builder.sys, 'argv', [str(MODULE), '--password-prompt']), \
@@ -66,21 +56,25 @@ class ImageBuilderTests(unittest.TestCase):
         builder.private_file(link)
 
   def test_missing_password_fails_without_tty(self):
-    args = types.SimpleNamespace(password_file=None, password_fd=None, password_op_item=None)
+    args = types.SimpleNamespace(password_op_item=None)
     with patch.object(builder.sys.stdin, 'isatty', return_value=False):
-      with self.assertRaisesRegex(ValueError, 'without a TTY'):
+      with self.assertRaisesRegex(ValueError, 'requires an interactive TTY'):
         builder.read_password(args)
 
-  def test_password_descriptor_and_invalid_lines(self):
-    with tempfile.TemporaryFile() as stream:
-      stream.write(b'dummy\n')
-      stream.seek(0)
-      args = types.SimpleNamespace(password_file=None, password_fd=stream.fileno(), password_op_item=None)
+  def test_password_validation_with_mocked_op_and_prompt(self):
+    args = builder.arguments([])
+    with patch.object(builder, 'run', return_value=b'dummy\n'):
       self.assertEqual(builder.read_password(args), b'dummy')
-      stream.seek(0)
-      stream.write(b'multi\nline\n')
-      stream.seek(0)
+    with patch.object(builder, 'run', return_value=b'multi\nline\n'):
       with self.assertRaises(ValueError):
+        builder.read_password(args)
+    args = builder.arguments(['--password-prompt'])
+    with patch.object(builder.sys.stdin, 'isatty', return_value=True), \
+      patch.object(builder.getpass, 'getpass', side_effect=['dummy', 'dummy']):
+      self.assertEqual(builder.read_password(args), b'dummy')
+    with patch.object(builder.sys.stdin, 'isatty', return_value=True), \
+      patch.object(builder.getpass, 'getpass', side_effect=['dummy', 'different']):
+      with self.assertRaisesRegex(ValueError, 'do not match'):
         builder.read_password(args)
 
   def test_workspace_and_guestfish_paths(self):
