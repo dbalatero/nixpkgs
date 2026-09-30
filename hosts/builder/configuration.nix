@@ -3,6 +3,8 @@
   imports = [
     ./hardware-configuration.nix
     ../common/nixos-vm
+    ./builder.nix
+    ./cache.nix
   ];
 
   networking.hostName = "builder";

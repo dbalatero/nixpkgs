@@ -4,7 +4,10 @@
     inputs.home-manager.nixosModules.home-manager
     ../nixos/nix-ld.nix
     ../lab-network
+    ../nix-build-client
   ];
+  lab.nixBuildClient.enable = lib.mkDefault
+    (!(builtins.elem config.networking.hostName ["builder" "nixos-base" "proxmox-base"]));
 
   # Keep PDE dependencies identical in the image and generated VM hosts.
   nixpkgs = {

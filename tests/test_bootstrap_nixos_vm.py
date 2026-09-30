@@ -133,7 +133,9 @@ class BootstrapTests(unittest.TestCase):
     self.assertFalse(value["useDHCP"])
     self.assertEqual(value["defaultGateway"]["interface"], "ens18")
 
-  def run_fixture(self, argv, update=None, rebuild_returncode=0):
+  def run_fixture(self, argv, update=None, rebuild_returncode=0, builder=False):
+    if not builder:
+      argv = [*argv, "--local-build"]
     original_run = bootstrap.run
     original_subprocess_run = subprocess.run
 
@@ -344,6 +346,91 @@ class BootstrapTests(unittest.TestCase):
   def test_bios_root_disk_is_discovered(self):
     with patch.object(bootstrap.Path, "exists", return_value=False), patch.object(bootstrap.Path, "glob", return_value=[]), patch.object(bootstrap, "run", side_effect=["/dev/vda2\n", "/dev/vda2 part\n/dev/vda disk\n"]):
       self.assertIn('  boot.loader.grub.device = "/dev/vda";', bootstrap.boot_configuration())
+
+  def enrollment_remote(self):
+    remote = Path(self.temporary.name) / "remote.git"
+    subprocess.check_call(["git", "clone", "--bare", str(self.repo), str(remote)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    self.git("remote", "add", "origin", str(remote))
+    self.git("fetch", "origin")
+    self.git("branch", "--set-upstream-to=origin/main")
+    return remote
+
+  def test_prompted_hostname_precedes_enrollment(self):
+    with patch.object(bootstrap.sys.stdin, "isatty", return_value=True), patch("builtins.input", return_value="fresh-vm"):
+      args = bootstrap.arguments([])
+    self.assertEqual(args.hostname, "fresh-vm")
+    self.assertTrue(args.interactive)
+
+  def test_existing_enrollment_defaults_to_current_hostname(self):
+    with patch.object(bootstrap.socket, "gethostname", return_value="existing.vm.netcat.cloud"):
+      args = bootstrap.arguments(["--enroll-builder"])
+    self.assertEqual(args.hostname, "existing")
+    self.assertFalse(args.interactive)
+
+  def test_publication_is_idempotent_and_refuses_key_replacement(self):
+    remote = self.enrollment_remote()
+    key = "ssh-ed25519 AAAATESTKEY\n"
+    bootstrap.publish_builder_key(self.repo, "fresh", key)
+    commit = self.git("rev-parse", "HEAD")
+    self.assertEqual(self.git("show", "--format=", "--name-only", "HEAD").strip(), "hosts/builder/client-keys/fresh.pub")
+    self.assertEqual(subprocess.check_output(["git", "--git-dir", str(remote), "show", "main:hosts/builder/client-keys/fresh.pub"], text=True), key)
+    bootstrap.publish_builder_key(self.repo, "fresh", key)
+    self.assertEqual(self.git("rev-parse", "HEAD"), commit)
+    with self.assertRaisesRegex(bootstrap.BootstrapError, "different key"):
+      bootstrap.publish_builder_key(self.repo, "fresh", "ssh-ed25519 DIFFERENT\n")
+    self.assertEqual(self.git("status", "--porcelain"), "")
+
+  def test_enrollment_does_not_push_unrelated_commits(self):
+    self.enrollment_remote()
+    (self.repo / "unrelated").write_text("keep local")
+    self.git("add", "unrelated")
+    self.git("commit", "-m", "Local work")
+    with self.assertRaisesRegex(bootstrap.BootstrapError, "Unpublished commits"):
+      bootstrap.publish_builder_key(self.repo, "fresh", "ssh-ed25519 AAAATESTKEY\n")
+    self.assertFalse((self.repo / "hosts/builder/client-keys/fresh.pub").exists())
+
+  def test_two_run_bootstrap_enrolls_before_host_generation(self):
+    self.enrollment_remote()
+    with patch.object(bootstrap, "builder_public_key", return_value="ssh-ed25519 AAAATESTKEY\n"), patch.object(bootstrap, "check_builder_access", side_effect=bootstrap.BootstrapError("Update builder and retry")):
+      result, output = self.run_fixture(["fresh", "--no-switch"], builder=True)
+    self.assertEqual(result, 1, output)
+    self.assertIn("Update builder", output)
+    self.assertFalse((self.repo / "hosts/fresh").exists())
+    self.assertEqual(self.git("status", "--porcelain"), "")
+    with patch.object(bootstrap, "builder_public_key", return_value="ssh-ed25519 AAAATESTKEY\n"), patch.object(bootstrap, "check_builder_access"), patch.object(bootstrap, "builder_spec", return_value="fixture-builder"):
+      result, output = self.run_fixture(["fresh", "--no-switch"], builder=True)
+    self.assertEqual(result, 0, output)
+    self.assertNotIn("lab.nixBuildClient.enable = false", (self.repo / "hosts/fresh/configuration.nix").read_text())
+    self.assertIn("--builders fixture-builder", output)
+
+  def test_existing_vm_enrollment_does_not_regenerate_host(self):
+    self.enrollment_remote()
+    host = self.repo / "hosts/existing"
+    host.mkdir()
+    (host / "configuration.nix").write_text("{...}: {}\n")
+    self.git("add", "hosts/existing")
+    self.git("commit", "-m", "Existing host")
+    self.git("push")
+    with patch.object(bootstrap, "builder_public_key", return_value="ssh-ed25519 AAAATESTKEY\n"), patch.object(bootstrap, "check_builder_access"):
+      result, output = self.run_fixture(["existing", "--enroll-builder"], builder=True)
+    self.assertEqual(result, 0, output)
+    self.assertEqual((host / "configuration.nix").read_text(), "{...}: {}\n")
+    self.assertIn("Run ./bin/switch", output)
+    self.assertEqual(self.git("status", "--porcelain"), "")
+
+  def test_authentication_and_network_failures_have_distinct_guidance(self):
+    for failure, expected in [("Permission denied (publickey)", "./bin/switch"), ("Could not resolve hostname", "fix DNS"), ("Host key verification failed", "host-key verification")]:
+      with self.subTest(failure=failure), patch.object(bootstrap, "builder_host_key", return_value="ssh-ed25519 AAAAHOST"), patch.object(bootstrap, "run", side_effect=bootstrap.BootstrapError(failure)) as run:
+        with self.assertRaisesRegex(bootstrap.BootstrapError, expected):
+          bootstrap.check_builder_access(self.repo)
+        command = run.call_args.args[0]
+        self.assertIn("StrictHostKeyChecking=yes", command[3])
+        self.assertIn("ssh-ng://remotebuild@builder.vm.netcat.cloud", command[-1])
+
+  def test_local_build_and_builder_host_do_not_import_client(self):
+    for arguments in [["fresh", "--local-build"], ["builder"]]:
+      args = bootstrap.arguments(arguments)
+      self.assertNotIn("nix-build-client", bootstrap.configuration(args, []))
 
 
 if __name__ == "__main__":

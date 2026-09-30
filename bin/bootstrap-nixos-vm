@@ -2,15 +2,24 @@
 """Name and configure a clone of the NixOS Proxmox base image."""
 
 import argparse
+import base64
 import ipaddress
 import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+from urllib.parse import urlencode
+
+
+BUILDER = "builder.vm.netcat.cloud"
+BUILDER_KEY = "/root/.ssh/builder"
+CLIENT_MODULE = "hosts/common/nix-build-client"
 
 
 class BootstrapError(Exception):
@@ -40,10 +49,16 @@ def arguments(argv=None):
   parser.add_argument("--gateway", help="IPv4 gateway; defaults to the homelab gateway for lab addresses")
   parser.add_argument("--dns", action="append", default=[], help="DNS IP address; repeatable, defaults to homelab DNS for lab addresses")
   parser.add_argument("--interface", help="guest interface for static networking; auto-detected if unambiguous")
-  parser.add_argument("--skip-update", action="store_true", help="use the current clean local commit without fetching")
+  parser.add_argument("--skip-update", action="store_true", help="skip the standalone repository update; builder enrollment still syncs (use --local-build for offline bootstrap)")
   parser.add_argument("--no-switch", action="store_true", help="generate and stage configuration without rebuilding")
+  parser.add_argument("--enroll-builder", action="store_true", help="only enroll this existing VM's key; defaults to its current hostname")
+  parser.add_argument("--local-build", action="store_true", help="skip builder enrollment and generate a standalone VM configuration")
   args = parser.parse_args(raw)
   args.interactive = not raw and sys.stdin.isatty()
+  if args.enroll_builder:
+    if args.local_build or args.static_ip or args.gateway or args.dns or args.interface or args.no_switch or args.suggest_ip:
+      parser.error("--enroll-builder cannot be combined with network, local-build, suggestion, or switch options")
+    args.hostname = args.hostname or socket.gethostname().split(".")[0]
   if args.suggest_ip:
     if list(raw) != ["--suggest-ip"]:
       parser.error("--suggest-ip must be used by itself")
@@ -54,7 +69,7 @@ def arguments(argv=None):
     parser.error("hostname is required (or provide it at an interactive TTY)")
   if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", args.hostname):
     parser.error("hostname must be 1–63 lowercase letters, digits, or interior hyphens")
-  if args.hostname in {"localhost", "proxmox-base", "template", "common"}:
+  if args.hostname in {"localhost", "nixos-base", "proxmox-base", "template", "common"}:
     parser.error("hostname is reserved")
   try:
     if args.static_ip and args.static_ip != "auto":
@@ -222,21 +237,115 @@ def unique_json_keys(pairs):
   return result
 
 
-def check_repository(repo, hostname):
+def check_repository(repo, hostname, *, existing=False):
   for parent in (repo / "hosts", repo / "home/hosts"):
     if not parent.is_dir():
       raise BootstrapError(f"Missing repository directory: {parent}")
-    if (parent / hostname).exists() or (parent / hostname).is_symlink():
+    if not existing and ((parent / hostname).exists() or (parent / hostname).is_symlink()):
       raise BootstrapError(f"Host already exists: {parent / hostname}")
   flake = (repo / "flake.nix").read_text()
   if flake.count("# NEW_HOST_SENTINEL") != 1:
     raise BootstrapError("flake.nix must contain exactly one NEW_HOST_SENTINEL comment")
   pattern = rf'nixosConfigurations\s*\.\s*(?:{re.escape(hostname)}|"{re.escape(hostname)}")\s*='
-  if re.search(pattern, flake):
+  if not existing and re.search(pattern, flake):
     raise BootstrapError(f"Flake already defines {hostname}")
   if run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo).strip():
     raise BootstrapError("Checkout has local changes. Review and commit or stash them before bootstrap; nothing was discarded.")
   return flake
+
+
+def builder_host_key(repo):
+  return (repo / CLIENT_MODULE / "host-key.pub").read_text().strip()
+
+
+def builder_spec(repo):
+  encoded = base64.b64encode((builder_host_key(repo) + "\n").encode()).decode()
+  return f"ssh-ng://remotebuild@{BUILDER} x86_64-linux {BUILDER_KEY} 2 1 benchmark,big-parallel - {encoded}"
+
+
+def builder_public_key():
+  # This is secret provisioning, not an imperative system configuration change.
+  # Derive the public half from the private key so a stale .pub cannot be enrolled.
+  run(["sudo", "-n", "sh", "-eu", "-c", '''
+umask 077
+install -d -m 0700 /root/.ssh
+if [ ! -e /root/.ssh/builder ]; then
+  if [ -e /root/.ssh/builder.pub ]; then
+    echo "builder.pub exists without its private key; resolve this before enrollment" >&2
+    exit 1
+  fi
+  ssh-keygen -q -t ed25519 -N '' -C nix-builder-client -f /root/.ssh/builder
+fi
+test -f /root/.ssh/builder
+chmod 0600 /root/.ssh/builder
+'''])
+  key = run(["sudo", "-n", "ssh-keygen", "-y", "-P", "", "-f", BUILDER_KEY]).strip()
+  if not re.fullmatch(r"ssh-ed25519 [A-Za-z0-9+/=]+(?: [^\n]+)?", key):
+    raise BootstrapError("Expected an unencrypted Ed25519 builder key")
+  return " ".join(key.split()[:2]) + "\n"
+
+
+def publish_builder_key(repo, hostname, public_key):
+  relative = f"hosts/builder/client-keys/{hostname}.pub"
+  target = repo / relative
+  if target.is_symlink():
+    raise BootstrapError(f"Refusing symlink at {relative}")
+  if target.exists() and target.read_text().split()[:2] != public_key.split()[:2]:
+    raise BootstrapError(f"{relative} already contains a different key; refusing to overwrite it")
+  # Explicit upstream/refspec: never push other branches or tags. Unpublished
+  # commits must contain only this enrollment, including retries after failures.
+  branch = run(["git", "symbolic-ref", "--short", "HEAD"], cwd=repo).strip()
+  remote = run(["git", "config", "--get", f"branch.{branch}.remote"], cwd=repo).strip()
+  merge = run(["git", "config", "--get", f"branch.{branch}.merge"], cwd=repo).strip()
+  if remote == "." or not merge.startswith("refs/heads/"):
+    raise BootstrapError("Enrollment requires a remote upstream branch")
+  run(["git", "fetch", "--", remote], cwd=repo)
+  commits = run(["git", "rev-list", "@{upstream}..HEAD"], cwd=repo).splitlines()
+  for commit in commits:
+    paths = run(["git", "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-m", commit], cwd=repo).splitlines()
+    if set(paths) - {relative}:
+      raise BootstrapError("Unpublished commits contain changes beyond this public key. Publish or resolve them yourself before enrollment.")
+  if not target.exists():
+    target.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write(target, public_key)
+    run(["git", "add", "--", relative], cwd=repo)
+    run(["git", "commit", "--only", "-m", f"Enroll {hostname} Nix builder key", "--", relative], cwd=repo)
+  try:
+    run(["git", "pull", "--rebase", "--no-autostash"], cwd=repo)
+  except BootstrapError as error:
+    raise BootstrapError(f"Enrollment rebase failed. Resolve it in this checkout, then rerun bootstrap.\n{error}") from error
+  if not target.exists() or target.read_text().split()[:2] != public_key.split()[:2]:
+    raise BootstrapError("The enrolled key changed during rebase; inspect the checkout before continuing")
+  run(["git", "-c", "push.followTags=false", "push", "--", remote, f"HEAD:{merge}"], cwd=repo)
+
+
+def check_builder_access(repo):
+  # An actual ssh-ng handshake checks the intended account and daemon, not the
+  # operator's administrator login. Pin the host key even before first switch.
+  encoded = base64.b64encode((builder_host_key(repo) + "\n").encode()).decode()
+  store = f"ssh-ng://remotebuild@{BUILDER}?" + urlencode({
+    "ssh-key": BUILDER_KEY,
+    "base64-ssh-public-host-key": encoded,
+  })
+  try:
+    run(["sudo", "-n", "env", "NIX_SSHOPTS=-oBatchMode=yes -oIdentitiesOnly=yes -oStrictHostKeyChecking=yes -oConnectTimeout=10", "nix", "store", "info", "--store", store])
+  except BootstrapError as error:
+    detail = str(error)
+    if "Permission denied" in detail:
+      raise BootstrapError(f"Public key published, but the builder has not authorized it yet.\nOn {BUILDER}, run git pull --rebase and ./bin/switch in the repository.\nThen rerun the same bootstrap command (and enter the same hostname).") from error
+    raise BootstrapError(f"Builder access check failed; fix DNS, connectivity, host-key verification, or the builder service before retrying.\n{detail}") from error
+
+
+def enroll_builder(repo, hostname):
+  if hostname == "builder":
+    raise BootstrapError("The builder cannot enroll itself as a client")
+  missing = [command for command in ("sudo", "ssh-keygen", "nix") if not shutil.which(command)]
+  if missing:
+    raise BootstrapError(f"Missing enrollment commands: {', '.join(missing)}")
+  run(["sudo", "-n", "test", "-f", "/etc/NIXOS"])
+  publish_builder_key(repo, hostname, builder_public_key())
+  check_builder_access(repo)
+  print(f"Builder access verified for {hostname}.")
 
 
 def update_repository(repo):
@@ -301,6 +410,7 @@ def configuration(args, boot, interface=None):
     "",
     f"  networking.hostName = {nix_string(args.hostname)};",
     *boot,
+    *(["  lab.nixBuildClient.enable = false;"] if args.local_build else []),
   ]
   if args.static_ip:
     address = ipaddress.IPv4Interface(args.static_ip)
@@ -356,8 +466,16 @@ def main(argv=None):
       print(suggest_ip(load_inventory(repo)))
       print("Suggestion only: checks this local inventory, not live devices or unpublished allocations. Nothing was reserved.", file=sys.stderr)
       return 0
-    check_repository(repo, args.hostname)
-    if not args.skip_update:
+    check_repository(repo, args.hostname, existing=args.enroll_builder)
+    use_builder = not args.local_build and args.hostname != "builder"
+    if args.enroll_builder or use_builder:
+      # Enrollment precedes host generation and IP reservation. It always syncs
+      # its public-key commit, even when --skip-update was supplied.
+      enroll_builder(repo, args.hostname)
+      if args.enroll_builder:
+        print("VMs inherit the builder client configuration from common/nixos-vm. Run ./bin/switch on this VM to apply it.")
+        return 0
+    elif not args.skip_update:
       update_repository(repo)
     elif args.static_ip or args.interactive:
       print("Using --skip-update: duplicate checks use this local snapshot; newer or unpublished allocations may be missing.", file=sys.stderr)
@@ -411,9 +529,12 @@ def main(argv=None):
     if args.static_ip:
       print("The IP allocation is staged in lab/network.json. Publish it before bootstrapping another clone; this is not a network-wide reservation or a UniFi change.")
     command = ["sudo", "-n", "nixos-rebuild", "switch", "--flake", f"{repo}#{args.hostname}"]
-    print("Rebuild command: " + " ".join(command), flush=True)
+    if use_builder:
+      # The generated client configuration is not active during the first build.
+      command += ["--builders", builder_spec(repo), "--option", "builders-use-substitutes", "true", "--max-jobs", "1"]
+    print("Rebuild command: " + shlex.join(command), flush=True)
     if args.no_switch:
-      print("Apply when ready: " + " ".join(command))
+      print("Apply when ready: " + shlex.join(command))
     else:
       # Stream build progress, preserving the generated files on failure.
       result = subprocess.run(command, cwd=repo)

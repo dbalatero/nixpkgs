@@ -2,7 +2,47 @@
 
 Create a headless NixOS VM on Proxmox that builds packages for the Linux VMs and serves the results through a signed binary cache. This centralizes compilation and lets machines reuse identical builds. Each client still stores its installed runtime dependencies locally.
 
-Status: planning only. No VM, keys, services, or client configuration have been created by this plan. Resource sizes below are starting recommendations; check host capacity before provisioning. Keep implementation progress and runtime evidence here as work proceeds.
+Status: builder deployed on 2026-09-30. SSH builds and the signed LAN cache have been verified on the server. Shared VM client configuration and bootstrap enrollment are implemented; enrollment and deployment on the other VMs remain to be done. Resource sizes below are the original proposal; actual guest resources and verification follow.
+
+## Deployed configuration and enrollment
+
+- `builder.vm.netcat.cloud` resolves to `192.168.1.204`. This guest has 8 vCPUs, approximately 16 GiB RAM, and a 99 GiB root filesystem (about 87 GiB available before deployment). Discard is advertised by the virtual disk. Proxmox VM ID, scheduling weight, physical storage capacity, and actual discard reclamation have not been checked.
+- `hosts/builder/builder.nix` provides `remotebuild`, restricted SSH access to `nix-daemon --stdio`, two jobs and four cores, and no advertised KVM/NixOS-test support. Public keys are loaded from `hosts/builder/client-keys/*.pub`. This account is a trusted Nix user; its clients must be trusted accordingly.
+- `hosts/builder/cache.nix` starts `nix-serve` on loopback behind nginx. Port 80 is allowed only from the inventory LAN subnet. There is no Caddy alias or web dashboard.
+- A declared one-shot service generates `/var/lib/nix-cache/cache-key.sec` and `cache-key.pub` on the server. The private key is root-owned, mode `0600`, and passed to nix-serve through systemd credentials. Backing up this key remains an operator task. The public signing key and locally verified SSH host key are checked into `hosts/common/nix-build-client/`.
+- The shared `hosts/common/nixos-vm` module enables the client for all regular VMs, including `caddy` and `pihole-dns`. It excludes `builder`, `nixos-base`, and `proxmox-base`. The builder has no remote builders and no self-cache substituter. Clients keep one local job and existing public caches. Override `lab.nixBuildClient.enable = false` for a standalone VM.
+- Automatic GC remains disabled. Retention roots and expiry have **not** been implemented; monitor free space until that work is complete. fstrim is enabled, but physical storage reclamation is not yet verified.
+
+### New VM: two-run bootstrap
+
+Run `bin/bootstrap-nixos-vm` as usual; zero arguments prompts for the intended hostname. Before generating host files, reserving an IP, or starting a build, it:
+
+1. Requires a clean checkout and generates or reuses `/root/.ssh/builder`. Only its public half is copied into the repository.
+2. Commits only `hosts/builder/client-keys/<requested-hostname>.pub`, pulls with rebase, and pushes to the configured upstream branch. This public-key enrollment is the explicitly authorized exception to the normal manual-commit workflow. Unrelated unpublished commits and different existing keys cause a stop; conflicts require manual resolution. Git credentials, author identity, and an upstream must already be configured.
+3. Checks the actual `ssh-ng` service as `remotebuild` with that identity and the pinned host key. If unauthorized, it exits and instructs you to pull and run `./bin/switch` on the builder. DNS, host-key, and service failures get separate troubleshooting guidance.
+4. Run bootstrap again with the same hostname after updating the builder. It reuses the identity and public-key commit, then generates the VM configuration and builds with the remote builder supplied explicitly for this first switch. Ordinary generated host/network changes remain staged for manual review and commit.
+
+`--local-build` skips enrollment and disables the client in the generated configuration. Bootstrapping `builder` itself also skips enrollment. `--skip-update` does not disable enrollment's Git synchronization; pair it with `--local-build` for offline operation. `--no-switch` still performs enrollment before generating files.
+
+### Existing VM
+
+After reviewing and publishing these implementation changes, update the checkout on each existing VM and run:
+
+```bash
+bin/bootstrap-nixos-vm --enroll-builder
+```
+
+This uses the current hostname (or an explicitly supplied hostname), generates/publishes only the key, and leaves the existing host configuration intact. After enrolling one or more VMs, pull on the builder and run `./bin/switch`. Rerun enrollment on each VM to verify access, then run `./bin/switch` there to activate the inherited client settings. No real client keys have been enrolled by this implementation session.
+
+### Verification on 2026-09-30
+
+- `python3 -m unittest discover -s tests`: all 50 tests passed (29 bootstrap tests), including prompted names, key collision refusal, unrelated-commit protection, idempotent publication, two-run bootstrap, existing-VM enrollment, and error classification. Git tests use local fixture repositories, never the real upstream.
+- `nix build .#nixosConfigurations.builder.config.system.build.toplevel .#nixosConfigurations.caddy.config.system.build.toplevel .#nixosConfigurations.pihole-dns.config.system.build.toplevel --no-link`: passed. Existing home-manager overlay warnings remain unrelated to this change.
+- Evaluation confirms `caddy` and `pihole-dns` use the builder with one local job; `builder` and `proxmox-base` have no build machines.
+- `./bin/switch` successfully started `nginx`, `nix-serve`, and the signing-key provisioning service. The private key's mode and ownership were verified.
+- HTTP `/nix-cache-info` and a system path's signed `.narinfo` passed. `nix store verify --store http://builder.vm.netcat.cloud --sigs-needed 1` with the checked-in public key verified content and signature.
+- A temporary **declarative** test authorization authenticated over pinned `ssh-ng` (Nix 2.34.8, trusted connection), built `/nix/store/0sra0c18b5hwz079xn83jrr740bjp5r3-builder-protocol-smoke-20260930`, and copied that result from HTTP into a fresh separate local store with signature checking. The test private key and authorization were removed, and the final configuration restored. This verifies the protocol and cache without claiming a second physical VM was enrolled.
+- Still pending: real client deployment, first-bootstrap distributed scheduling on a separate VM, two-client concurrency/memory tests, unavailable-server fallback timing, retention/GC tests, secret backup, and Proxmox resource verification. The checklist below remains the full rollout plan; only checked items are complete.
 
 ## Proposed resources
 
@@ -52,13 +92,13 @@ bin/bootstrap-nixos-vm builder \
 
 Put server configuration in `hosts/builder/builder.nix` and import it from the generated `configuration.nix`. Preserve the generated hardware and user configuration. All persistent service and Nix settings belong in Nix modules.
 
-- [ ] Create a dedicated `remotebuild` account and group, using public keys for authentication. Keep root SSH login disabled as in the shared VM module.
+- [x] Create a dedicated `remotebuild` account and group, using public keys for authentication. Keep root SSH login disabled as in the shared VM module.
 - [ ] Provision a distinct SSH private key for each client daemon at `/root/.ssh/builder`, mode `0600`. Generate secrets on the owning machines; never put private keys in Git, chat, or the Nix store. Declare their public keys on the builder through Nix.
-- [ ] Configure the build account's Nix daemon access following the remote builder guide. A Nix trusted user is highly privileged; give this access only to the intended build clients.
+- [x] Configure the build account's Nix daemon access following the remote builder guide. A Nix trusted user is highly privileged; give this access only to the intended build clients.
 - [ ] Declare and verify the builder's SSH host key in each client's `programs.ssh.knownHosts`; do not disable host-key checking.
 - [ ] Start with builder `nix.settings.max-jobs = 2` and `nix.settings.cores = 4`. Measure actual behavior with multiple clients: each client's advertised remote `maxJobs` is not a fleet-wide concurrency limit. Verify how the chosen SSH protocol and Nix version apply server limits before increasing concurrent submissions.
-- [ ] Keep `cache.nixos.org` available to the builder. Do not configure it to build through itself or substitute from its own HTTP cache.
-- [ ] Advertise only verified system features. Add `kvm` and `nixos-test` only after nested virtualization and an actual NixOS VM test work inside the guest.
+- [x] Keep `cache.nixos.org` available to the builder. Do not configure it to build through itself or substitute from its own HTTP cache.
+- [x] Advertise only verified system features. Add `kvm` and `nixos-test` only after nested virtualization and an actual NixOS VM test work inside the guest.
 
 The authentication and distributed build workflow is described in the [Nix remote builder guide](https://nix.dev/tutorials/nixos/distributed-builds-setup.html). This Linux builder initially serves x86_64 Linux builds; Darwin builds need a suitable Darwin builder.
 
@@ -67,23 +107,23 @@ The authentication and distributed build workflow is described in the [Nix remot
 Put cache configuration in `hosts/builder/cache.nix` and import it from the host module.
 
 - [ ] Generate a cache signing key pair on the server. Store the private key outside the repository and Nix store, with permissions allowing only the required service access. Back it up securely; record the public key in the client module.
-- [ ] Enable `services.nix-serve`, pointing `secretKeyFile` at the provisioned private key. Bind the backend to loopback and put nginx on port 80 in front of it.
-- [ ] Serve `http://builder.vm.netcat.cloud` on the LAN. Allow the cache port from the intended LAN subnet in the declared firewall rules; do not add WAN port forwarding.
-- [ ] Verify `/nix-cache-info` responds and a known store path's `.narinfo` has a signature. Signed packages provide authenticity over this initial LAN HTTP endpoint; HTTP does not provide confidentiality.
-- [ ] Add the server URL to clients' `extra-substituters` and its public key to `extra-trusted-public-keys`, preserving existing public caches and keys.
+- [x] Enable `services.nix-serve`, pointing `secretKeyFile` at the provisioned private key. Bind the backend to loopback and put nginx on port 80 in front of it.
+- [x] Serve `http://builder.vm.netcat.cloud` on the LAN. Allow the cache port from the intended LAN subnet in the declared firewall rules; do not add WAN port forwarding.
+- [x] Verify `/nix-cache-info` responds and a known store path's `.narinfo` has a signature. Signed packages provide authenticity over this initial LAN HTTP endpoint; HTTP does not provide confidentiality.
+- [x] Add the server URL to clients' `extra-substituters` and its public key to `extra-trusted-public-keys`, preserving existing public caches and keys.
 
 This follows the [Nix binary cache guide](https://nix.dev/tutorials/nixos/binary-cache-setup.html). The cache serves objects already in the builder's store; it is not automatically a pull-through mirror of every package downloaded by clients.
 
-## 5 Add an opt in client module
+## 5 Enable the shared VM client module
 
-Create `hosts/common/nix-build-client/default.nix` and initially import it from one noncritical NixOS VM. Stage new Nix files so the flake sees them. Evaluate options against the repository's pinned Nixpkgs before deployment.
+Implemented in `hosts/common/nix-build-client/default.nix`. Per the requested rollout, `common/nixos-vm` enables it by default for regular VMs and excludes the builder and base template. Stage new Nix files so the flake sees them. Evaluate options against the repository's pinned Nixpkgs before deployment.
 
-- [ ] Set `nix.distributedBuilds = true` and `nix.settings.builders-use-substitutes = true`.
-- [ ] Declare `nix.buildMachines` with host `builder.vm.netcat.cloud`, protocol `ssh-ng`, user `remotebuild`, key `/root/.ssh/builder`, system `x86_64-linux`, and initial `maxJobs = 2`.
-- [ ] Include the host-key declaration, cache URL, and public signing key from the previous steps.
-- [ ] Keep a small positive local `max-jobs`, initially 1, so local builds remain possible. Distributed builds permit local execution too; this is not a guarantee that every derivation goes remotely.
-- [ ] Keep build dependencies on the builder where possible via `builders-use-substitutes`. Evaluation and some derivation preparation still happen on clients.
-- [ ] Apply on the pilot with `./bin/switch`, then expand to other Linux VMs after the checks below. Do not import the client module into the builder or base template globally.
+- [x] Set `nix.distributedBuilds = true` and `nix.settings.builders-use-substitutes = true`.
+- [x] Declare `nix.buildMachines` with host `builder.vm.netcat.cloud`, protocol `ssh-ng`, user `remotebuild`, key `/root/.ssh/builder`, system `x86_64-linux`, and initial `maxJobs = 2`.
+- [x] Include the host-key declaration, cache URL, and public signing key from the previous steps.
+- [x] Keep a small positive local `max-jobs`, initially 1, so local builds remain possible. Distributed builds permit local execution too; this is not a guarantee that every derivation goes remotely.
+- [x] Keep build dependencies on the builder where possible via `builders-use-substitutes`. Evaluation and some derivation preparation still happen on clients.
+- [ ] Apply on the pilot with `./bin/switch`, then expand to other Linux VMs after the checks below. Keep the client disabled on the builder and base template.
 
 ## 6 Validate building and reuse
 
