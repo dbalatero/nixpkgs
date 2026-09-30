@@ -85,6 +85,17 @@
       self.nixosConfigurations.proxmox-base.config.system.build.images.qcow;
 
     # NEW_HOST_SENTINEL - Do not remove this comment (used by bin/new-host)
+    nixosConfigurations.caddy = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./hosts/caddy/configuration.nix
+        {
+          home-manager.users.dbalatero = import ./home/hosts/caddy;
+        }
+      ];
+    };
+
     nixosConfigurations.pihole-dns = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = {inherit inputs;};

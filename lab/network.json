@@ -42,6 +42,11 @@
       "hostname": "pihole-dns",
       "ip": "192.168.1.202",
       "comment": "NixOS homelab VM"
+    },
+    {
+      "hostname": "caddy",
+      "ip": "192.168.1.203",
+      "comment": "NixOS homelab VM"
     }
   ]
 }
