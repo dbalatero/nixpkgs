@@ -9,6 +9,7 @@ in {
   ];
 
   networking.hostName = "caddy";
+  users.users.dbalatero.openssh.authorizedKeys.keyFiles = [../builder/admin-key.pub];
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = false;
   boot.loader.efi.efiSysMountPoint = "/boot";
