@@ -41,6 +41,7 @@
     {
       "hostname": "proxmox",
       "ip": "192.168.1.250",
+      "public_hostname": "proxmox",
       "comment": "Proxmox host; hostname is an inventory label"
     },
     {

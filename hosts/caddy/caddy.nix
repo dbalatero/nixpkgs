@@ -4,6 +4,7 @@
   # Keys name inventory machines; aliases and backend DNS names come from there.
   upstreams = {
     gateway = {scheme = "https"; port = 443;};
+    proxmox = {scheme = "https"; port = 8006;};
     truenas = {scheme = "http"; port = 80;};
     pihole-dns = {scheme = "http"; port = 80;};
   };
@@ -62,7 +63,7 @@ in {
           reverse_proxy ${upstream.scheme}://${machine.fqdn}:${toString upstream.port} {
             # Preserve the browser's hostname, including for HTTPS upstreams.
             header_up Host {host}
-            ${lib.optionalString (name == "gateway") ''
+            ${lib.optionalString (builtins.elem name ["gateway" "proxmox"]) ''
               transport http {
                 tls_insecure_skip_verify
               }
