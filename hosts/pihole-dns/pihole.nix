@@ -1,4 +1,6 @@
-{lib, ...}: {
+{lib, ...}: let
+  network = import ../../lab/network.nix {inherit lib;};
+in {
   # Leave port 53 to Pi-hole while keeping resolved for host DNS resolution.
   services.resolved.settings.Resolve.DNSStubListener = "no";
   environment.etc."resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
@@ -15,6 +17,12 @@
       dns = {
         upstreams = ["1.1.1.1" "8.8.8.8"];
         listeningMode = "LOCAL";
+        hosts = network.dnsHosts;
+        # Unknown names in the private zone must not leak to public resolvers.
+        domain = {
+          name = network.domain;
+          local = true;
+        };
       };
 
       # UniFi keeps providing DHCP

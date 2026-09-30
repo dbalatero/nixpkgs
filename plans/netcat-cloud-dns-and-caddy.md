@@ -2,15 +2,15 @@
 
 ## Status and transfer
 
-Planning is complete. No DNS, proxy, network, or credential configuration has been changed for this plan. This handoff was prepared on `pihole-dns`; implementation will take place in a later Codex session on the Caddy VM.
+The user has bootstrapped `caddy` at `192.168.1.203` and pulled its configuration into this checkout on `pihole-dns`. The DNS/inventory phase is implemented and deployed on Pi-hole; the proxy/TLS phase remains for a later Codex session on Caddy. See implementation evidence below for validation and remaining actions.
 
-The user will independently bootstrap a NixOS VM named `caddy` at `192.168.1.203`, publish this document's commit, and bring it into that VM's checkout at `/home/dbalatero/.config/nixpkgs`. Do not modify bootstrap, introduce reservations, or regenerate hardware configuration.
+The user publishes the completed DNS changes and brings them into the Caddy checkout at `/home/dbalatero/.config/nixpkgs` before continuing. Bootstrap is already complete: do not modify bootstrap, introduce reservations, or regenerate hardware configuration.
 
 The documentation commit is explicitly authorized with message `docs: add netcat.cloud DNS and Caddy handoff`. Implementation commits remain user-managed. Publishing/pushing this commit remains a user action.
 
 Resume prompt:
 
-> Read AGENTS.md and plans/netcat-cloud-dns-and-caddy.md. Implement this handoff from the Caddy VM. Preserve bootstrap-generated configuration and local changes. Record completed work, validation evidence, and outstanding deployment steps in the handoff.
+> Read AGENTS.md and plans/netcat-cloud-dns-and-caddy.md, especially the implementation evidence. Continue the remaining Caddy proxy/TLS phase from this VM. Preserve the existing DNS work, bootstrap-generated configuration, and local changes. Record completed work, validation evidence, and outstanding deployment steps in the handoff.
 
 ## Inventory semantics and DNS
 
@@ -58,7 +58,7 @@ Derive static addresses, gateway, and prefix for the NixOS Pi-hole and Caddy hos
 
 ## Bare hostnames and deployment
 
-Document user-applied UniFi DHCP settings: DNS server `192.168.1.202`, domain/search suffix `vm.netcat.cloud`, followed by client lease renewal. Configure the same suffix declaratively on the static Pi-hole and Caddy VMs. See [UniFi DHCP](https://help.ui.com/hc/en-us/articles/360012097513-UniFi-DHCP-Server).
+Document user-applied UniFi DHCP settings: DNS server `192.168.1.202`, domain/search suffix `vm.netcat.cloud`, followed by client lease renewal. The suffix belongs in the shared `hosts/common/lab-network` module, imported by `hosts/common/nixos-vm`, and applies only to hosts listed in the inventory. Do not duplicate it in individual host files. DNS server selection remains host-specific. See [UniFi DHCP](https://help.ui.com/hc/en-us/articles/360012097513-UniFi-DHCP-Server).
 
 `ssh truenas` then resolves the direct machine address; Caddy is not involved. This also works for other applications using the system resolver. Clients must use Pi-hole for these internal names; an unrelated secondary DNS server does not provide equivalent answers.
 
@@ -67,7 +67,7 @@ The implementing agent should:
 1. Inspect the Caddy VM's hostname, address, inventory, flake entry, and Git status. Reconcile discrepancies without overwriting user changes. Confirm the user has completed bootstrap before proceeding with host integration.
 2. Implement and evaluate both host configurations locally. Stage new files for flake visibility; leave implementation commits to the user. Use two-space indentation throughout.
 3. Provide exact revision-transfer and deployment commands for Pi-hole. Do not assume this checkout's changes already exist on that VM. The Pi-hole host imports `hosts/pihole-dns/pihole.nix`; system service configuration belongs in NixOS modules.
-4. After Pi-hole deployment and credential provisioning, apply Caddy locally. The repository permits applying NixOS configurations; preserve recovery access when changing networking.
+4. After verifying the deployed Pi-hole DNS and provisioning credentials, apply Caddy locally with `bin/switch --max-jobs 1 --cores 1`. The user prefers `bin/switch` over direct rebuild commands. The repository permits applying NixOS configurations; preserve recovery access when changing networking.
 5. Update lab documentation and this handoff with completed work, evidence, remaining actions, and resume commands. Correct stale DNS references and the claim that inventory entries do not establish DNS, without rewriting historical test fixtures merely because they use the old DNS address.
 
 ## Verification and boundaries
@@ -85,5 +85,16 @@ The implementing agent should:
 
 - Handoff prepared on `pihole-dns` on 2026-09-30.
 - At preparation time, no Caddy host configuration or Caddy inventory entry existed in this checkout.
-- No implementation or live service validation has been performed for this plan.
-- Next action: the user publishes this handoff and independently bootstraps Caddy at `.203`, then resumes Codex on that VM with the prompt above.
+- The user subsequently bootstrapped Caddy at `.203`; its host configuration and inventory entry are now present.
+- DNS implementation on Pi-hole: `lab/network.nix` validates the inventory and exports `domain`, `machineDomain`, `machinesByName`, `proxy`, `prefixLength`, `gateway`, `dns`, and `dnsHosts`. Each enriched machine has `fqdn` and nullable `serviceFqdn`. Reuse this interface in the Caddy service module.
+- Pi-hole generates machine and service records, with `netcat.cloud` treated as a private zone. The legacy entry is now `pihole-legacy`. Pi-hole and Caddy derive static network parameters from the inventory.
+- Shared lab search configuration is in `hosts/common/lab-network`. Pi-hole uses per-link systemd-resolved routing for private lookups while retaining external DNS for public names. Search domains are attached to its private link, not its external global DNS servers.
+- Shared VM configuration now declares zram swap at 50% of RAM, providing compressed swap capacity for rebuilds without allocating disk space.
+- Automated checks: 14 Nix inventory/shared-search cases and 21 bootstrap tests pass. Both hosts' complete configurations, including shared networking and zram, built successfully. Pi-hole was switched successfully; Caddy was built only, not deployed.
+- Live Pi-hole checks passed: all seven direct machine A records, all three service aliases pointing to `.203`, A/AAAA NXDOMAIN for an unknown private name and the retired `pihole.vm.netcat.cloud` name, public DNS resolution, and system resolution of bare `truenas` and `nas.netcat.cloud`. The legacy Pi remains in the inventory under `pihole-legacy`; only its old inventory DNS name was retired.
+- Zram is active on Pi-hole: `/dev/zram0`, approximately 976 MiB capacity, priority 5. The full combined two-host build was killed on this 2 GiB VM before swap was enabled; individual builds were used instead.
+- Pi-hole's live system is `/nix/store/siicr9935ba78ng5zkqh3xgps58xn11c-nixos-system-pihole-dns-26.11.20260803.104240a`.
+- Caddy's validated system build is `/nix/store/r6c0ch0g1461r8p8gv293nanbdf01him-nixos-system-caddy-26.11.20260803.104240a` (before adding the proxy/TLS service).
+- Caddy's shared network/zram configuration has not been applied remotely. Its proxy/TLS module, Porkbun credentials, certificate issuance, and browser tests are still outstanding. No public DNS changes were made.
+- Remaining: the user reviews, commits, and publishes these DNS changes; on Caddy, preserve any local changes, pull the published revision, and resume with the prompt above. Verify `dig @192.168.1.202 nas.netcat.cloud +short` returns `.203`, then implement proxy/TLS using `lab/network.nix` rather than duplicating DNS names. Apply with `bin/switch` on Caddy.
+- UniFi DHCP configuration and lease-renewal verification from other LAN clients remain user actions. No router configuration or remote device configuration was performed in this session.

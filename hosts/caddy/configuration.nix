@@ -1,5 +1,7 @@
 # NixOS homelab VM
-{...}: {
+{config, lib, ...}: let
+  network = import ../../lab/network.nix {inherit lib;};
+in {
   imports = [
     ./hardware-configuration.nix
     ../common/nixos-vm
@@ -13,8 +15,16 @@
   networking.useDHCP = false;
   networking.interfaces."ens18" = {
     useDHCP = false;
-    ipv4.addresses = [{ address = "192.168.1.203"; prefixLength = 24; }];
+    ipv4.addresses = [
+      {
+        address = network.machinesByName.${config.networking.hostName}.ip;
+        prefixLength = network.prefixLength;
+      }
+    ];
   };
-  networking.defaultGateway = { address = "192.168.1.1"; interface = "ens18"; };
-  networking.nameservers = ["192.168.1.202"];
+  networking.defaultGateway = {
+    address = network.gateway;
+    interface = "ens18";
+  };
+  networking.nameservers = network.dns;
 }

@@ -325,6 +325,22 @@ class BootstrapTests(unittest.TestCase):
     self.assertIn({"hostname": "lab-test", "ip": "192.168.1.202", "comment": "New nginx server"}, updated["machines"])
     self.assertEqual(inventory, original)
 
+  def test_reserving_address_preserves_dns_metadata(self):
+    self.inventory.update({
+      "domain": "netcat.cloud",
+      "machine_subdomain": "vm",
+      "reverse_proxy_hostname": "caddy",
+    })
+    self.inventory["machines"][0]["public_hostname"] = "nas"
+    self.write_inventory(self.inventory)
+    inventory = bootstrap.load_inventory(self.repo)
+    args = bootstrap.arguments(["lab-test", "--static-ip", "auto"])
+    bootstrap.configure_network(args, inventory)
+    updated = json.loads(bootstrap.reserve_ip(args, inventory))
+    for key in ("domain", "machine_subdomain", "reverse_proxy_hostname"):
+      self.assertEqual(updated[key], self.inventory[key])
+    self.assertEqual(updated["machines"][:-1], self.inventory["machines"])
+
   def test_bios_root_disk_is_discovered(self):
     with patch.object(bootstrap.Path, "exists", return_value=False), patch.object(bootstrap.Path, "glob", return_value=[]), patch.object(bootstrap, "run", side_effect=["/dev/vda2\n", "/dev/vda2 part\n/dev/vda disk\n"]):
       self.assertIn('  boot.loader.grub.device = "/dev/vda";', bootstrap.boot_configuration())

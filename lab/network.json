@@ -1,4 +1,7 @@
 {
+  "domain": "netcat.cloud",
+  "machine_subdomain": "vm",
+  "reverse_proxy_hostname": "caddy",
   "subnet": "192.168.1.0/24",
   "dhcp_range": {
     "start": "192.168.1.2",
@@ -16,16 +19,18 @@
     {
       "hostname": "gateway",
       "ip": "192.168.1.1",
+      "public_hostname": "gateway",
       "comment": "UniFi Dream Machine gateway; hostname is an inventory label"
     },
     {
-      "hostname": "pihole",
+      "hostname": "pihole-legacy",
       "ip": "192.168.1.169",
-      "comment": "Current Raspberry Pi DNS server; inside DHCP range; hostname is an inventory label"
+      "comment": "Legacy Raspberry Pi DNS server; retain until migration is verified; inside DHCP range"
     },
     {
       "hostname": "truenas",
       "ip": "192.168.1.201",
+      "public_hostname": "nas",
       "comment": "TrueNAS VM; hostname is an inventory label"
     },
     {
@@ -41,6 +46,7 @@
     {
       "hostname": "pihole-dns",
       "ip": "192.168.1.202",
+      "public_hostname": "pihole",
       "comment": "NixOS homelab VM"
     },
     {

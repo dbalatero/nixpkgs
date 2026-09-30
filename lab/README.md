@@ -59,6 +59,8 @@ Import the untouched prepared qcow2 into a new VM with compatible UEFI firmware 
 
 ## Create a VM
 
+The shared NixOS VM configuration enables zram swap with capacity equal to 50% of RAM (about 1 GiB on a 2 GiB VM). It uses compressed memory on demand, not a disk partition or a preallocated half of RAM, and provides a buffer during rebuilds. Inspect it with `swapon --show` and `zramctl`. More physical RAM may still be needed for large builds.
+
 1. Clone the template. For a VM needing more than 20 GiB, enlarge its disk before first boot. Leave the template disk unchanged.
 2. Boot the clone and find its DHCP address in Proxmox or your DHCP leases. SSH in as `dbalatero` using an authorized key.
 3. In `/home/dbalatero/.config/nixpkgs`, update the clean checkout before invoking bootstrap so an older image uses the latest script and address inventory:
@@ -77,7 +79,7 @@ Import the untouched prepared qcow2 into a new VM with compatible UEFI firmware 
      --static-ip auto --description "My service"
    ```
 
-   Replace `auto` with a CIDR such as `192.168.1.210/24` to select it yourself. For this LAN, gateway `192.168.1.1` and DNS `192.168.1.169` default from the inventory; override them with `--gateway` and repeatable `--dns` flags. Other subnets require explicit gateway and DNS values. The interface is detected from the default route or a sole non-loopback interface; use `--interface ens18` when ambiguous. Static configuration has automated checks, but a live static-network trial remains pending.
+   Replace `auto` with a CIDR such as `192.168.1.210/24` to select it yourself. For this LAN, gateway `192.168.1.1` and DNS `192.168.1.202` default from the inventory; override them with `--gateway` and repeatable `--dns` flags. Other subnets require explicit gateway and DNS values. The interface is detected from the default route or a sole non-loopback interface; use `--interface ens18` when ambiguous.
 
    With no arguments at a terminal, the script prompts for hostname and static IP (default `auto`; enter `dhcp` to keep DHCP). Supplying a hostname without `--static-ip` preserves DHCP, including for local NAT tests. The `headless` profile is the only supported profile. Bootstrap detects boot firmware and hardware, creates host and home modules, stages them together with a static allocation when applicable, and runs the first rebuild.
 5. Check root growth with `lsblk` and `df -h /`. Edit `hosts/<hostname>/configuration.nix`, then run `sudo nixos-rebuild switch --flake .#<hostname>` from the repo. Test a small package or service change and confirm SSH and console recovery still work.
@@ -87,18 +89,43 @@ Bootstrap requires a clean checkout and normally fetches and updates with fast-f
 
 ## LAN address inventory
 
-[network.json](network.json) records the LAN subnet, DHCP/static ranges, gateway, DNS server, and known address allocations. Its `machines` array contains an `ip`, `hostname`, and `comment` for each entry. Keep the JSON human-readable with two-space indentation and a trailing newline; bootstrap preserves that formatting when writing it. UniFi DHCP uses `192.168.1.2`–`192.168.1.200`; new static VM addresses must use `.201`–`.254`. Initially recorded addresses are:
+[network.json](network.json) records the LAN subnet, DHCP/static ranges, gateway, DNS server, known address allocations, and internal DNS naming. Its `machines` array contains an `ip`, `hostname`, and `comment` for each entry, plus an optional `public_hostname` service alias. Entries can describe unmanaged appliances or documentation-only devices; inventory membership does not mean Nix manages the device. Keep the JSON human-readable with two-space indentation and a trailing newline; bootstrap preserves that formatting and existing metadata. UniFi DHCP uses `192.168.1.2`–`192.168.1.200`; new static VM addresses must use `.201`–`.254`. Recorded addresses include:
 
 | Address | Purpose |
 | --- | --- |
 | `192.168.1.1` | UniFi gateway |
-| `192.168.1.169` | Raspberry Pi Pi-hole DNS |
+| `192.168.1.169` | Legacy Raspberry Pi Pi-hole (`pihole-legacy`) |
 | `192.168.1.201` | TrueNAS VM |
+| `192.168.1.202` | NixOS Pi-hole DNS |
+| `192.168.1.203` | Caddy VM |
 | `192.168.1.209` | iMessage Mac Mini server |
 | `192.168.1.250` | Proxmox host |
 
-The inventory labels describe existing devices; they do not establish DNS records. `--suggest-ip` reads the local inventory without fetching, reserving, or changing anything; the initial suggestion is `192.168.1.202/24`. `--static-ip auto` selects an unallocated address during bootstrap. Duplicate known addresses are rejected before generating a host, and the new allocation is staged with its configuration, including with `--no-switch`.
+The inventory generates Pi-hole DNS records through [network.nix](network.nix). `--suggest-ip` reads the local inventory without fetching, reserving, or changing anything. `--static-ip auto` selects an unallocated address during bootstrap. Duplicate known addresses are rejected before generating a host, and the new allocation is staged with its configuration, including with `--no-switch`. Rebuild Pi-hole with the updated inventory to publish new DNS records.
 
-An unallocated address in this file is not proof that the LAN address is unused. Add other manually configured devices to the inventory, and keep it current when changing or retiring a host. The script does not query UniFi or act as a central allocator. Two stale or concurrent checkouts can select the same address: provision VMs sequentially, review and commit each allocation, then push it manually before provisioning from another checkout. Leave normal bootstrap synchronization enabled for real provisioning; `--skip-update` can use stale assignments. After editing an existing VM's address, update both its Nix configuration and the inventory in the same change. DNS records remain a separate Pi-hole task.
+An unallocated address in this file is not proof that the LAN address is unused. Add other manually configured devices to the inventory, and keep it current when changing or retiring a host. The script does not query UniFi or act as a central allocator. Two stale or concurrent checkouts can select the same address: provision VMs sequentially, review and commit each allocation, then push it manually before provisioning from another checkout. Leave normal bootstrap synchronization enabled for real provisioning; `--skip-update` can use stale assignments. Pi-hole and Caddy derive their static network values from the inventory; other bootstrap-generated host files still contain literal values and must be kept in sync when their addresses change.
+
+### Internal DNS and bare hostnames
+
+The top-level `domain` is `netcat.cloud`, `machine_subdomain` is `vm`, and `reverse_proxy_hostname` selects the Caddy inventory entry. Every machine gets a direct `<hostname>.vm.netcat.cloud` record, including unmanaged devices. An optional single-label `public_hostname` adds `<public_hostname>.netcat.cloud` pointing to Caddy's IP. For example, `truenas.vm.netcat.cloud` resolves to `.201`, while its `public_hostname: "nas"` makes `nas.netcat.cloud` resolve to `.203`. The alias creates DNS only; add the corresponding proxy mapping in Caddy's Nix configuration.
+
+Pi-hole handles the entire `netcat.cloud` zone locally. Unknown names receive negative answers instead of being forwarded upstream. The old Raspberry Pi remains reachable as `pihole-legacy.vm.netcat.cloud` until the user explicitly removes it after migration. `pihole.netcat.cloud` refers to the new Pi-hole service through Caddy.
+
+The common NixOS VM configuration imports `hosts/common/lab-network`, which derives the search suffix from the inventory for listed hosts. The base image and unlisted VMs do not receive it. This is shared configuration; do not repeat the suffix in individual host files. DNS server selection remains host-specific. Pi-hole routes private system lookups back to its own FTL service through systemd-resolved, while keeping public lookups on its external DNS servers.
+
+For other LAN clients, configure UniFi DHCP to distribute DNS server `192.168.1.202` and domain/search suffix `vm.netcat.cloud`, then renew leases. Clients must actually use Pi-hole for internal names; public secondary DNS servers or browser DNS overrides can bypass it. With the suffix installed, `ssh truenas` connects directly to TrueNAS without using Caddy.
+
+After an inventory change, apply Pi-hole's configuration on `pihole-dns`:
+
+```bash
+bin/switch --max-jobs 1 --cores 1
+dig @192.168.1.202 truenas.vm.netcat.cloud A +short
+dig @192.168.1.202 nas.netcat.cloud A +short
+getent ahostsv4 truenas
+```
+
+The first two lookups should return `.201` and `.203`, respectively. Use `getent` to test system hostname resolution: a plain `dig` reads `/etc/resolv.conf` directly and does not exercise Pi-hole's own systemd-resolved routing. Verify an unconfigured name with `dig @192.168.1.202 unconfigured.netcat.cloud` and confirm `NXDOMAIN`.
+
+Proxy/TLS setup and its remaining validation are tracked in [the Caddy handoff](../plans/netcat-cloud-dns-and-caddy.md). Service DNS records can exist before Caddy is serving HTTPS.
 
 SSH password login is disabled. For recovery, use the VM console with `dbalatero` and the password stored in 1Password. The password and GitHub private key are shared by all clones. Rotate existing VMs individually when replacing either credential; rebuilding a template does not update existing clones.

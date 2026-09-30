@@ -3,6 +3,7 @@
     (modulesPath + "/profiles/qemu-guest.nix")
     inputs.home-manager.nixosModules.home-manager
     ../nixos/nix-ld.nix
+    ../lab-network
   ];
 
   # Keep PDE dependencies identical in the image and generated VM hosts.
@@ -27,6 +28,12 @@
   boot.growPartition = true;
   fileSystems."/".autoResize = true;
   boot.kernelParams = ["console=tty0" "console=ttyS0,115200n8"];
+
+  # Give rebuilds on small VMs compressed swap without a disk allocation.
+  zramSwap = {
+    enable = lib.mkDefault true;
+    memoryPercent = lib.mkDefault 50;
+  };
 
   networking.useDHCP = lib.mkDefault true;
   networking.useNetworkd = true;
