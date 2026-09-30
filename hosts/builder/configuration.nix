@@ -9,6 +9,10 @@
   ];
 
   networking.hostName = "builder";
+  programs.ssh.knownHosts.caddy = {
+    hostNames = ["caddy" "caddy.vm.netcat.cloud" "192.168.1.203"];
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPWY0W949me7nnQQRS66jPAVWnKrNhgpZXT1Tq/n4V7o";
+  };
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = false;
   boot.loader.efi.efiSysMountPoint = "/boot";

@@ -23,10 +23,19 @@ in {
     trusted-users = ["root" "remotebuild"];
     max-jobs = 2;
     cores = 4;
+    # Reclaim unused store paths during builds before the 100 GiB disk fills.
+    min-free = 10 * 1024 * 1024 * 1024;
+    max-free = 20 * 1024 * 1024 * 1024;
     # Nested virtualization has not been verified on this guest.
     system-features = lib.mkForce ["benchmark" "big-parallel"];
   };
-  # Cache outputs are not roots. Keep GC off until retention is implemented.
-  nix.gc.automatic = false;
+  # max-jobs applies per connected Nix worker; build-user locks are shared
+  # across clients. Two sandbox identities bound ordinary builds fleet-wide.
+  nix.nrBuildUsers = 2;
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
   services.fstrim.enable = true;
 }

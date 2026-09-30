@@ -247,7 +247,7 @@ def first_guest_checks(guest, args, password):
   if args.skip_rebuild:
     return
   print('Testing bootstrap and rebuild on disposable clone…', file=sys.stderr, flush=True)
-  guest.ssh('cd ~/.config/nixpkgs && bin/bootstrap-nixos-vm proxmox-smoke-test --skip-update', timeout=args.rebuild_timeout, label='bootstrap and initial rebuild')
+  guest.ssh('cd ~/.config/nixpkgs && bin/bootstrap-nixos-vm proxmox-smoke-test --skip-update --local-build', timeout=args.rebuild_timeout, label='bootstrap and initial rebuild')
   print('Bootstrap and initial rebuild passed; adding a test package…', file=sys.stderr, flush=True)
   extra = b'''from pathlib import Path
 import subprocess

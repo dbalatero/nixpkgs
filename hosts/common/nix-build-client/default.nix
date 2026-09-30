@@ -1,6 +1,11 @@
-{config, lib, ...}: {
+{config, lib, ...}: let
+  network = import ../../../lab/network.nix {inherit lib;};
+in {
   options.lab.nixBuildClient.enable = lib.mkEnableOption "the shared LAN Nix builder and signed cache";
   config = lib.mkIf config.lab.nixBuildClient.enable {
+    # Nix's HTTP resolver can bypass resolved's split-DNS routing on Pi-hole.
+    # The cache must also be reachable while rebuilding the DNS service itself.
+    networking.hosts.${network.machinesByName.builder.ip} = [network.machinesByName.builder.fqdn];
     assertions = [{
       assertion = config.networking.hostName != "builder";
       message = "The builder must not import nix-build-client.";
