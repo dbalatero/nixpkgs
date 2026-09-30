@@ -128,6 +128,7 @@
     lshw           # Hardware info
     usbutils       # USB device inspection (lsusb)
     ffmpeg         # Audio/video processing
+    dnsutils       # DNS lookup tools (dig, nslookup)
 
     # Printing
     system-config-printer  # KDE printer management backend
