@@ -2,7 +2,7 @@
 
 ## Status and transfer
 
-As of 2026-09-30, Caddy at `192.168.1.203` is deployed with production Let's Encrypt certificates for all three services. Porkbun DNS-01 passed staging before production, using separate storage. DNS/Pi-hole and UniFi DHCP were already deployed. See the Caddy implementation evidence below for live results and the remaining browser/login checks and public parking DNS cleanup.
+As of 2026-09-30, Caddy at `192.168.1.203` is deployed with production Let's Encrypt certificates for all three services. Porkbun DNS-01 passed staging before production, using separate storage. DNS/Pi-hole and UniFi DHCP were already deployed. The user confirmed that browser access works. The requested Caddy work is complete; the user explicitly deferred public parking DNS cleanup. See the Caddy implementation evidence below for results.
 
 The completed DNS changes are present in the Caddy checkout at `/home/dbalatero/.config/nixpkgs`. Bootstrap is complete: do not modify bootstrap, introduce reservations, or regenerate hardware configuration. The user authorized committing the Caddy implementation after deployment; publishing remains a user action.
 
@@ -10,7 +10,7 @@ The documentation commit is explicitly authorized with message `docs: add netcat
 
 Resume prompt:
 
-> Read AGENTS.md and plans/netcat-cloud-dns-and-caddy.md, especially the Caddy implementation evidence. Caddy production HTTPS is deployed. Continue only the remaining browser/login validation and any explicitly authorized public parking DNS cleanup. Preserve local changes and keep credentials out of chat, Git, and the Nix store.
+> Read AGENTS.md and plans/netcat-cloud-dns-and-caddy.md, especially the Caddy implementation evidence. Caddy production HTTPS is deployed. The user confirmed browser access works and deferred public parking DNS cleanup. No implementation work remains; do not change public DNS unless newly requested. Preserve local changes and keep credentials out of chat, Git, and the Nix store.
 
 ## Inventory semantics and DNS
 
@@ -108,7 +108,7 @@ The implementing agent should:
 - Both complete NixOS configurations evaluated; all 14 inventory/search regression cases passed. The Caddy system built successfully. Evaluation still emits the pre-existing Home Manager `useGlobalPkgs`/overlay warning; it did not prevent the builds or switches.
 - Verified Pi-hole resolves the service alias to `.203`, and the system resolver resolves the three backend names to `.1`, `.201`, and `.202`. Gateway HTTPS returned `200`; TrueNAS HTTP returned `302`; Pi-hole API returned `200`.
 - Found NixOS `pihole-web` serves its dashboard at `/` (`paths.webhome = "/"`), so directly proxying `/admin/` initially returned `404`. Caddy now redirects frontend `/` to `/admin/`, strips the `/admin` prefix for dashboard requests, and preserves `/api` and root-relative asset paths. Pi-hole itself was not changed or redeployed.
-- TrueNAS emitted `Location: http://nas.netcat.cloud/ui/` even with `X-Forwarded-Proto: https`. Its proxy rewrites redirects for that exact frontend authority to HTTPS. Gateway requests explicitly retain the frontend Host header; initial page retrieval stays on the frontend name. Authenticated navigation remains a browser check.
+- TrueNAS emitted `Location: http://nas.netcat.cloud/ui/` even with `X-Forwarded-Proto: https`. Its proxy rewrites redirects for that exact frontend authority to HTTPS. Gateway requests explicitly retain the frontend Host header; initial page retrieval stays on the frontend name. The user subsequently confirmed browser access works; this is user-reported validation, not an agent-observed authenticated session.
 - The user provisioned `/etc/caddy/porkbun.env` locally. Only metadata was inspected: `root:root`, `0600`. No credential values were read into tools, chat, repository files, or Nix expressions. Provisioning instructions are in [lab/caddy.md](../lab/caddy.md), including enabling domain API access in Porkbun and hidden terminal prompts. Nix references only the absolute runtime file path, not its contents.
 - The first staging start failed because `/etc/caddy` was `0700`, preventing the service user from traversing it to read the generated config. Added a declarative tmpfiles rule for directory mode `0755`; the environment file remains root-only `0600`. Retried successfully through `bin/switch --max-jobs 1 --cores 1`.
 - Staging certificates issued successfully for all three names, with journal evidence identifying `acme-staging-v02.api.letsencrypt.org-directory`. Staging HTTPS returned gateway `200`, NAS `302` to its HTTPS `/ui/`, Pi-hole root `302` to `/admin/`, and dashboard `200`.
@@ -125,10 +125,10 @@ The implementing agent should:
 - Public DNS check did **not** meet the planned no-address-answer condition: all three service names return a parking CNAME to `pixie.porkbun.com`, which resolves to `207.207.210.107`/`207.207.210.229`. An arbitrary nonexistent name queried against authoritative `curitiba.ns.porkbun.com` also returns that CNAME, demonstrating existing wildcard parking. Public nameservers are Porkbun. No service records or parking records were created/removed by this work; only ACME challenge TXT records were managed automatically.
 - After the final deployment, recent Caddy logs contained no errors. Public TXT lookups for all three `_acme-challenge` names returned only the existing wildcard parking CNAME and no challenge TXT records, consistent with successful cleanup.
 
-## Remaining work and resume commands
+## Completion and deferred work
 
-1. User browser checks: trusted HTTPS in the actual LAN browser; gateway/TrueNAS login and navigation staying on frontend names; Pi-hole dashboard interaction; authenticated WebSocket behavior. System CA verification and an unauthenticated NAS WebSocket handshake passed, but these do not establish authenticated browser behavior.
-2. Review the existing wildcard parking DNS record in Porkbun. If unused, the user can remove it (or explicitly authorize its removal), then repeat public A/AAAA checks. It does not expose the private services, but it prevents the planned empty public lookup result.
+1. Browser validation: the user reported, “I checked the browser and it works.” This completes user acceptance of the deployed setup. Individual authenticated flows were not independently observed by the agent.
+2. Public wildcard parking DNS cleanup is explicitly deferred by the user and is not a completion blocker. The existing record remains unchanged. The original empty-public-answer condition is therefore not met, as documented above; revisit only if requested.
 3. Publish the authorized implementation commit when ready. No Pi-hole deployment or transfer is required for these Caddy-only changes. Authentication remains deferred; the Pi-hole dashboard is still passwordless.
 
 From the canonical Caddy checkout:
