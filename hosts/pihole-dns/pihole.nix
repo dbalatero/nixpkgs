@@ -56,6 +56,6 @@
 
   services.pihole-web = {
     enable = true;
-    ports = [3000];
+    ports = [80];
   };
 }
