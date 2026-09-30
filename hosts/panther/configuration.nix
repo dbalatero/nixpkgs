@@ -19,6 +19,9 @@
   # Hostname
   networking.hostName = "panther";
 
+  # Use the Pi-hole VM for all DNS queries, overriding DNS received through DHCP.
+  networking.networkmanager.settings."global-dns-domain-*".servers = "192.168.1.202";
+
   users.users.dbalatero.extraGroups = [
     "cdrom"
   ];
