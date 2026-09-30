@@ -68,6 +68,7 @@
     python3
     openssh
     curl
+    dig
     jq
     parted
   ];
