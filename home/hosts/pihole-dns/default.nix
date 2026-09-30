@@ -1,3 +1,5 @@
 {...}: {
-  imports = [../../modules/proxmox-vm];
+  imports = [
+    ../../modules/proxmox-vm
+  ];
 }
