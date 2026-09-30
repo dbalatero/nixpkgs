@@ -37,6 +37,11 @@
       "hostname": "proxmox",
       "ip": "192.168.1.250",
       "comment": "Proxmox host; hostname is an inventory label"
+    },
+    {
+      "hostname": "pihole-dns",
+      "ip": "192.168.1.202",
+      "comment": "NixOS homelab VM"
     }
   ]
 }
