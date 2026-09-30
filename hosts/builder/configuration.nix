@@ -5,6 +5,7 @@
     ../common/nixos-vm
     ./builder.nix
     ./cache.nix
+    ./logging.nix
   ];
 
   networking.hostName = "builder";

@@ -277,6 +277,16 @@ ALL configuration must be declared in Nix files so it's:
 
 If a user asks for a configuration change, ALWAYS add it to the appropriate Nix configuration file.
 
+### Service Log Retention
+
+Whenever adding or changing a daemon or service, also configure and verify its log rotation or retention so logs cannot grow indefinitely and exhaust disk space.
+
+- Identify every log destination: systemd journal, application log files, and per-job/build logs.
+- Declare appropriate size limits, retention periods, compression, and scheduled cleanup in Nix. Use journald limits for journal logs, logrotate for append-only files, and a dedicated retention mechanism for per-job logs when needed.
+- Reuse an existing policy only after checking that it covers the service. Preserve active logs and use the application's supported reopen mechanism when rotating files.
+- Verify the generated configuration and cleanup timer/service. Document the policy and any limits that are age-based rather than strict disk quotas.
+- Keep log cleanup separate from application data or Nix store garbage collection; deleting logs must not silently delete cached packages or other service data.
+
 ## Code Style
 
 ### Indentation
