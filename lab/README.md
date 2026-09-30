@@ -35,6 +35,24 @@ bin/test-proxmox-base-image \
 
 The default desktop login key is `~/.ssh/id_rsa`; override it with `--ssh-key`. The helper uses KVM when available or software emulation otherwise (`--accel kvm|tcg` can require one), and tests a second clone enlarged to 28 GiB. The full run verified SSH, console recovery, separate machine identities, root growth, GitHub read access, bootstrap, and another rebuild. It prints the report path on success. Console recovery is tested by default using the configured 1Password item. Use `--skip-console` to explicitly omit it without reading a recovery password. Skipping rebuild, GitHub, or console checks limits what the run verifies. The prepared original is never booted. Laptop-key login still needs a test from the laptop.
 
+## Boot interactively for manual testing
+
+A newer prepared image is available at `~/code/proxmox-base/proxmox-base-prepared-bbe6355.qcow2`. Its recorded report, `~/code/proxmox-base/smoke-iq9zz8cm/report.json`, says the full KVM smoke test passed. The earlier artifact evidence above remains unchanged.
+
+```bash
+bin/boot-proxmox-base-image \
+  ~/code/proxmox-base/proxmox-base-prepared-bbe6355.qcow2 \
+  --vm-dir ~/code/proxmox-base/manual-test
+```
+
+Without `--vm-dir`, each launch creates a new private `manual-*` directory under `~/code/proxmox-base`. Defaults are 4 CPUs, 4096 MiB RAM, and localhost SSH port 22222; use `--cpus`, `--memory-mib`, or `--ssh-port` to change them.
+
+Log in at the terminal console as `dbalatero` using the recovery password from 1Password. This helper does not read 1Password or type a password for you. To test key login separately, open another terminal and use the SSH command printed by the helper.
+
+The guest runs from a private writable overlay and copied firmware files in `--vm-dir`; the prepared source remains untouched. Keep that source image at the same path. Guest changes persist when you rerun the printed launch command with the same source image and `--vm-dir`. Shut down cleanly with `sudo poweroff` inside the guest. QEMU's `Ctrl-a`, then `x` shortcut is an emergency exit, equivalent to cutting power. This is a local NAT test with SSH forwarded through localhost, not a guest attached to your LAN bridge.
+
+The launcher was verified on 2026-09-30: console prompt, SSH login, writable canonical repository, clean shutdown, and relaunch with saved guest changes and the same SSH host key all passed. The source image hash remained unchanged. This launcher check did not retrieve or test the console password; enter it yourself to test that path.
+
 ## Import into Proxmox (user trial pending)
 
 Import the untouched prepared qcow2 into a new VM with compatible UEFI firmware and a VirtIO disk controller, enable the QEMU guest agent, and attach the intended network bridge. Convert it directly to a template without booting it. The image has a GPT disk, EFI system partition, and ext4 root; use firmware settings compatible with that layout. Confirm the precise import settings during the first Proxmox trial.

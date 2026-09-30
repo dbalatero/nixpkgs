@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""Boot a persistent private VM with an interactive console and localhost SSH."""
+import argparse
+import fcntl
+import hashlib
+import importlib.machinery
+import json
+import os
+from pathlib import Path
+import shlex
+import shutil
+import socket
+import stat
+import subprocess
+import sys
+import tempfile
+import types
+
+HELPER = Path(__file__).resolve().with_name('test-proxmox-base-image')
+loader = importlib.machinery.SourceFileLoader('proxmox_smoke', str(HELPER))
+smoke = types.ModuleType(loader.name)
+smoke.__file__ = str(HELPER)
+loader.exec_module(smoke)
+builder = smoke.builder
+
+
+def arguments(argv=None):
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument('image', nargs='?', help='prepared read-only qcow2 image; prompted at a TTY if omitted')
+  parser.add_argument('--vm-dir', help='persistent VM directory; reuse it to resume the same VM')
+  parser.add_argument('--work-dir', default='~/code/proxmox-base', help='parent for new manual-* VM directories')
+  parser.add_argument('--ssh-port', type=int, default=22222)
+  parser.add_argument('--memory-mib', type=int, default=4096)
+  parser.add_argument('--cpus', type=int, default=4)
+  parser.add_argument('--accel', choices=['auto', 'kvm', 'tcg'], default='auto')
+  args = parser.parse_args(argv)
+  if not args.image and sys.stdin.isatty():
+    args.image = input('Prepared image path: ').strip()
+  if not args.image:
+    parser.error('image is required without an interactive TTY')
+  if not 1024 <= args.ssh_port <= 65535 or args.memory_mib < 1024 or args.cpus < 1:
+    parser.error('port must be 1024–65535, memory at least 1024 MiB, and CPUs at least 1')
+  return args
+
+
+def image_info(path):
+  return json.loads(builder.run(['qemu-img', 'info', '--output=json', str(path)]))
+
+
+def vm_directory(args, source):
+  if not args.vm_dir:
+    return Path(tempfile.mkdtemp(prefix='manual-', dir=builder.workspace(args.work_dir)))
+  directory = Path(args.vm_dir).expanduser().absolute()
+  if directory.is_symlink():
+    raise ValueError('VM directory must not be a symlink')
+  directory = directory.resolve()
+  if directory in source.parents:
+    raise ValueError('VM directory must not contain the original image')
+  if directory.exists():
+    if not directory.is_dir() or directory.stat().st_uid != os.getuid():
+      raise ValueError('VM directory must be an owned directory')
+    if any(directory.iterdir()) and not (directory / 'vm.json').is_file():
+      raise ValueError('VM directory is not empty and has no completed VM metadata; choose a new directory')
+  return builder.workspace(directory)
+
+
+def prepare_vm(directory, source, firmware):
+  metadata = directory / 'vm.json'
+  with source.open('rb') as stream:
+    digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+  expected = {'base_image': str(source), 'base_sha256': digest}
+  if metadata.exists() or metadata.is_symlink():
+    existing = json.loads(builder.private_file(metadata).read_text())
+    if existing != expected:
+      raise ValueError('VM directory belongs to a different or modified base image; use its original image or a new VM directory')
+    for name, mode in [('disk.qcow2', 0o600), ('OVMF_CODE.fd', 0o400), ('OVMF_VARS.fd', 0o600)]:
+      path = builder.private_file(directory / name)
+      if stat.S_IMODE(path.stat().st_mode) != mode:
+        raise ValueError(f'{name} must have mode {mode:04o}')
+    info = image_info(directory / 'disk.qcow2')
+    if info.get('format') != 'qcow2' or info.get('backing-filename') != str(source):
+      raise ValueError('saved VM disk does not have the expected qcow2 backing image')
+    return
+  # A fresh directory must remain empty until initialization, so a failed or
+  # interrupted setup is never silently overwritten on a later invocation.
+  if any(directory.iterdir()):
+    raise ValueError('VM directory contains incomplete state; choose a new directory')
+  builder.run(['qemu-img', 'create', '-q', '-f', 'qcow2', '-F', 'qcow2',
+    '-b', str(source), str(directory / 'disk.qcow2')])
+  (directory / 'disk.qcow2').chmod(0o600)
+  for original, name, mode in [(firmware[0], 'OVMF_CODE.fd', 0o400), (firmware[1], 'OVMF_VARS.fd', 0o600)]:
+    with Path(original).open('rb') as reader, (directory / name).open('xb') as writer:
+      shutil.copyfileobj(reader, writer)
+    (directory / name).chmod(mode)
+  with metadata.open('x') as stream:
+    json.dump(expected, stream, indent=2)
+    stream.write('\n')
+  metadata.chmod(0o600)
+
+
+def qemu_command(args, directory, accelerator):
+  return ['qemu-system-x86_64', '-name', 'nixos-proxmox-manual',
+    '-machine', f'q35,accel={accelerator}', '-cpu', 'host' if accelerator == 'kvm' else 'max',
+    '-m', str(args.memory_mib), '-smp', str(args.cpus), '-nographic',
+    '-drive', f'if=pflash,format=raw,readonly=on,file={directory / "OVMF_CODE.fd"}',
+    '-drive', f'if=pflash,format=raw,file={directory / "OVMF_VARS.fd"}',
+    '-drive', f'if=virtio,format=qcow2,file={directory / "disk.qcow2"}',
+    '-device', 'virtio-rng-pci', '-device', 'virtio-net-pci,netdev=network',
+    '-netdev', f'user,id=network,hostfwd=tcp:127.0.0.1:{args.ssh_port}-:22',
+    '-device', 'virtio-serial-pci',
+    '-chardev', f'socket,id=agent,path={directory / "agent.sock"},server=on,wait=off',
+    '-device', 'virtserialport,chardev=agent,name=org.qemu.guest_agent.0']
+
+
+def main():
+  args = arguments()
+  descriptor = None
+  try:
+    os.umask(0o077)
+    source = builder.private_file(args.image).resolve()
+    if stat.S_IMODE(source.stat().st_mode) != 0o400:
+      raise ValueError('prepared original must have read-only mode 0400')
+    firmware = smoke.pinned_tools()
+    accelerator = smoke.acceleration(args.accel)
+    info = image_info(source)
+    if info.get('format') != 'qcow2' or info.get('backing-filename'):
+      raise ValueError('prepared original must be a standalone qcow2 image')
+    directory = vm_directory(args, source)
+    if ',' in str(directory) or any(ord(char) < 32 for char in str(directory)):
+      raise ValueError('VM directory cannot contain commas or control characters')
+    if len(os.fsencode(directory / 'agent.sock')) >= 108:
+      raise ValueError('VM directory path is too long for the guest-agent socket')
+    descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+      fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as error:
+      raise ValueError('this VM directory is already in use') from error
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+      probe.bind(('127.0.0.1', args.ssh_port))
+    prepare_vm(directory, source, firmware)
+    agent = directory / 'agent.sock'
+    if agent.exists() or agent.is_symlink():
+      if not stat.S_ISSOCK(agent.lstat().st_mode) or agent.lstat().st_uid != os.getuid():
+        raise ValueError('unexpected file at guest-agent socket path')
+      agent.unlink()
+    relaunch = [str(Path(__file__).resolve()), str(source), '--vm-dir', str(directory),
+      '--ssh-port', str(args.ssh_port), '--memory-mib', str(args.memory_mib), '--cpus', str(args.cpus), '--accel', args.accel]
+    ssh = ['ssh', '-F', '/dev/null', '-p', str(args.ssh_port), '-i', str(Path.home() / '.ssh/id_rsa'),
+      '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=accept-new',
+      '-o', f'UserKnownHostsFile={directory / "known_hosts"}', 'dbalatero@127.0.0.1']
+    print(f'VM directory: {directory}\nAcceleration: {accelerator}', flush=True)
+    print('Resume this VM:\n  ' + shlex.join(relaunch), flush=True)
+    print('SSH from another terminal:\n  ' + shlex.join(ssh), flush=True)
+    print('Console login: dbalatero, using your recovery password. No password is read by this launcher.\n'
+      'Shut down with sudo poweroff to save the VM normally. Ctrl-a x force-quits QEMU.\n'
+      'Keep the original image at its current path: this persistent overlay depends on it.', flush=True)
+    return subprocess.run(qemu_command(args, directory, accelerator), pass_fds=(descriptor,)).returncode
+  except (ValueError, OSError, KeyboardInterrupt) as error:
+    print(f'Manual VM launch failed: {error}', file=sys.stderr)
+    return 1
+  finally:
+    if descriptor is not None:
+      os.close(descriptor)
+
+
+if __name__ == '__main__':
+  sys.exit(main())
