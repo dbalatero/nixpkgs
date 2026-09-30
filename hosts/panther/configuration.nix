@@ -14,6 +14,7 @@
 
     # Desktop environment configuration (KDE, gaming, audio, etc.)
     ../common/desktop
+    ./proxmox-mcp
   ];
 
   # Hostname
