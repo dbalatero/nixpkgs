@@ -126,6 +126,9 @@ getent ahostsv4 truenas
 
 The first two lookups should return `.201` and `.203`, respectively. Use `getent` to test system hostname resolution: a plain `dig` reads `/etc/resolv.conf` directly and does not exercise Pi-hole's own systemd-resolved routing. Verify an unconfigured name with `dig @192.168.1.202 unconfigured.netcat.cloud` and confirm `NXDOMAIN`.
 
-Proxy/TLS setup and its remaining validation are tracked in [the Caddy handoff](../plans/netcat-cloud-dns-and-caddy.md). Service DNS records can exist before Caddy is serving HTTPS.
+The Caddy module derives its three proxy mappings from the same inventory. See
+[Caddy deployment and secret provisioning](caddy.md) for Porkbun DNS-01 setup,
+separate staging/production issuance, and service checks. Deployment results and
+remaining validation are tracked in [the Caddy handoff](../plans/netcat-cloud-dns-and-caddy.md).
 
 SSH password login is disabled. For recovery, use the VM console with `dbalatero` and the password stored in 1Password. The password and GitHub private key are shared by all clones. Rotate existing VMs individually when replacing either credential; rebuilding a template does not update existing clones.

@@ -5,6 +5,7 @@ in {
   imports = [
     ./hardware-configuration.nix
     ../common/nixos-vm
+    ./caddy.nix
   ];
 
   networking.hostName = "caddy";
