@@ -2,7 +2,7 @@
 
 ## Status and transfer
 
-The user has bootstrapped `caddy` at `192.168.1.203` and pulled its configuration into this checkout on `pihole-dns`. The DNS/inventory phase is implemented and deployed on Pi-hole; the proxy/TLS phase remains for a later Codex session on Caddy. See implementation evidence below for validation and remaining actions.
+The user has bootstrapped `caddy` at `192.168.1.203` and pulled its configuration into this checkout on `pihole-dns`. The DNS/inventory phase is implemented and deployed on Pi-hole. UniFi DHCP configuration is complete, and the user has confirmed LAN hostname resolution works. The proxy/TLS phase remains for a later Codex session on Caddy. See implementation evidence below for validation and remaining actions.
 
 The user publishes the completed DNS changes and brings them into the Caddy checkout at `/home/dbalatero/.config/nixpkgs` before continuing. Bootstrap is already complete: do not modify bootstrap, introduce reservations, or regenerate hardware configuration.
 
@@ -58,7 +58,7 @@ Derive static addresses, gateway, and prefix for the NixOS Pi-hole and Caddy hos
 
 ## Bare hostnames and deployment
 
-Document user-applied UniFi DHCP settings: DNS server `192.168.1.202`, domain/search suffix `vm.netcat.cloud`, followed by client lease renewal. The suffix belongs in the shared `hosts/common/lab-network` module, imported by `hosts/common/nixos-vm`, and applies only to hosts listed in the inventory. Do not duplicate it in individual host files. DNS server selection remains host-specific. See [UniFi DHCP](https://help.ui.com/hc/en-us/articles/360012097513-UniFi-DHCP-Server).
+Completed by the user: UniFi DHCP distributes DNS server `192.168.1.202` and domain/search suffix `vm.netcat.cloud`; LAN hostname resolution is confirmed working. No further UniFi setup is pending for this phase. Clients retaining an older lease may still need to renew it. The suffix belongs in the shared `hosts/common/lab-network` module, imported by `hosts/common/nixos-vm`, and applies only to hosts listed in the inventory. Do not duplicate it in individual host files. DNS server selection remains host-specific. See [UniFi DHCP](https://help.ui.com/hc/en-us/articles/360012097513-UniFi-DHCP-Server).
 
 `ssh truenas` then resolves the direct machine address; Caddy is not involved. This also works for other applications using the system resolver. Clients must use Pi-hole for these internal names; an unrelated secondary DNS server does not provide equivalent answers.
 
@@ -96,5 +96,6 @@ The implementing agent should:
 - Pi-hole's live system is `/nix/store/siicr9935ba78ng5zkqh3xgps58xn11c-nixos-system-pihole-dns-26.11.20260803.104240a`.
 - Caddy's validated system build is `/nix/store/r6c0ch0g1461r8p8gv293nanbdf01him-nixos-system-caddy-26.11.20260803.104240a` (before adding the proxy/TLS service).
 - Caddy's shared network/zram configuration has not been applied remotely. Its proxy/TLS module, Porkbun credentials, certificate issuance, and browser tests are still outstanding. No public DNS changes were made.
-- Remaining: the user reviews, commits, and publishes these DNS changes; on Caddy, preserve any local changes, pull the published revision, and resume with the prompt above. Verify `dig @192.168.1.202 nas.netcat.cloud +short` returns `.203`, then implement proxy/TLS using `lab/network.nix` rather than duplicating DNS names. Apply with `bin/switch` on Caddy.
-- UniFi DHCP configuration and lease-renewal verification from other LAN clients remain user actions. No router configuration or remote device configuration was performed in this session.
+- DNS/shared swap changes were committed and pushed to `origin/main` as `4dd36c1` (`Configure inventory-driven lab DNS and shared VM swap`).
+- UniFi DHCP configuration is complete. After configuring DNS and the search domain, the user reported that LAN hostname resolution works. This is user-confirmed client evidence; the agent did not change the router or independently inspect those clients.
+- Remaining: on Caddy, preserve any local changes, pull the published revision, and resume with the prompt above. Verify `dig @192.168.1.202 nas.netcat.cloud +short` returns `.203`, then implement proxy/TLS using `lab/network.nix` rather than duplicating DNS names. Apply with `bin/switch` on Caddy.
