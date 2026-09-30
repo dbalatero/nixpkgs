@@ -30,17 +30,24 @@ def nix_string(value):
 
 
 def arguments(argv=None):
+  raw = sys.argv[1:] if argv is None else argv
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("hostname", nargs="?", help="new single-label hostname")
   parser.add_argument("--description", default="NixOS homelab VM")
   parser.add_argument("--profile", choices=["headless"], default="headless")
-  parser.add_argument("--static-ip", help="IPv4 address with prefix, e.g. 192.168.1.210/24")
-  parser.add_argument("--gateway", help="IPv4 gateway; required with --static-ip")
-  parser.add_argument("--dns", action="append", default=[], help="DNS IP address; repeatable, required with --static-ip")
+  parser.add_argument("--static-ip", help="IPv4 address with prefix, or 'auto' to allocate from lab/network.json")
+  parser.add_argument("--suggest-ip", action="store_true", help="print the next unrecorded static IP from the local inventory and exit")
+  parser.add_argument("--gateway", help="IPv4 gateway; defaults to the homelab gateway for lab addresses")
+  parser.add_argument("--dns", action="append", default=[], help="DNS IP address; repeatable, defaults to homelab DNS for lab addresses")
   parser.add_argument("--interface", help="guest interface for static networking; auto-detected if unambiguous")
   parser.add_argument("--skip-update", action="store_true", help="use the current clean local commit without fetching")
   parser.add_argument("--no-switch", action="store_true", help="generate and stage configuration without rebuilding")
-  args = parser.parse_args(argv)
+  args = parser.parse_args(raw)
+  args.interactive = not raw and sys.stdin.isatty()
+  if args.suggest_ip:
+    if list(raw) != ["--suggest-ip"]:
+      parser.error("--suggest-ip must be used by itself")
+    return args
   if not args.hostname and sys.stdin.isatty():
     args.hostname = input("New VM hostname: ").strip()
   if not args.hostname:
@@ -49,40 +56,170 @@ def arguments(argv=None):
     parser.error("hostname must be 1–63 lowercase letters, digits, or interior hyphens")
   if args.hostname in {"localhost", "proxmox-base", "template", "common"}:
     parser.error("hostname is reserved")
-  if args.static_ip and sys.stdin.isatty():
-    if not args.gateway:
-      args.gateway = input("IPv4 gateway: ").strip()
-    if not args.dns:
-      args.dns = input("DNS server IP addresses (space-separated): ").split()
-  if args.static_ip:
-    try:
-      if "/" not in args.static_ip:
-        raise ValueError("--static-ip must include a prefix length")
-      address = ipaddress.IPv4Interface(args.static_ip)
-      gateway = ipaddress.IPv4Address(args.gateway or "")
-      if address.ip.is_unspecified or address.ip.is_multicast or address.ip.is_loopback:
-        raise ValueError("static address must be a unicast guest address")
-      if address.network.prefixlen < 31 and address.ip in {address.network.network_address, address.network.broadcast_address}:
-        raise ValueError("static address cannot be the subnet or broadcast address")
-      if gateway not in address.network or gateway == address.ip:
-        raise ValueError("gateway must be a different address in the guest subnet")
-      if gateway.is_unspecified or gateway.is_multicast or gateway.is_loopback:
-        raise ValueError("gateway must be a unicast address")
-      if address.network.prefixlen < 31 and gateway in {address.network.network_address, address.network.broadcast_address}:
-        raise ValueError("gateway cannot be the subnet or broadcast address")
-      if not args.dns:
-        raise ValueError("at least one --dns is required with --static-ip")
-      for dns in args.dns:
-        server = ipaddress.ip_address(dns)
-        if server.is_unspecified or server.is_multicast:
-          raise ValueError("DNS servers must be unicast addresses")
-    except ValueError as error:
-      parser.error(str(error))
-  elif args.gateway or args.dns or args.interface:
-    parser.error("--gateway, --dns, and --interface require --static-ip")
-  if args.interface and not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,15}", args.interface):
-    parser.error("invalid interface name")
+  try:
+    if args.static_ip and args.static_ip != "auto":
+      validate_network(args)
+    elif not args.static_ip and (args.gateway or args.dns or args.interface):
+      parser.error("--gateway, --dns, and --interface require --static-ip")
+    if args.interface and not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,15}", args.interface):
+      parser.error("invalid interface name")
+  except ValueError as error:
+    parser.error(str(error))
   return args
+
+
+def validate_network(args):
+  if "/" not in args.static_ip:
+    raise ValueError("--static-ip must include a prefix length")
+  address = ipaddress.IPv4Interface(args.static_ip)
+  if address.ip.is_unspecified or address.ip.is_multicast or address.ip.is_loopback:
+    raise ValueError("static address must be a unicast guest address")
+  if address.network.prefixlen < 31 and address.ip in {address.network.network_address, address.network.broadcast_address}:
+    raise ValueError("static address cannot be the subnet or broadcast address")
+  if args.gateway:
+    gateway = ipaddress.IPv4Address(args.gateway)
+    if gateway not in address.network or gateway == address.ip:
+      raise ValueError("gateway must be a different address in the guest subnet")
+    if gateway.is_unspecified or gateway.is_multicast or gateway.is_loopback:
+      raise ValueError("gateway must be a unicast address")
+    if address.network.prefixlen < 31 and gateway in {address.network.network_address, address.network.broadcast_address}:
+      raise ValueError("gateway cannot be the subnet or broadcast address")
+  for dns in args.dns:
+    server = ipaddress.ip_address(dns)
+    if server.is_unspecified or server.is_multicast:
+      raise ValueError("DNS servers must be unicast addresses")
+
+
+def load_inventory(repo):
+  path = repo / "lab/network.json"
+  try:
+    inventory = json.loads(path.read_text(), object_pairs_hook=unique_json_keys)
+    subnet = ipaddress.IPv4Network(inventory["subnet"])
+    ranges = []
+    for name in ("dhcp_range", "static_range"):
+      if not all(isinstance(inventory[name][key], str) for key in ("start", "end")):
+        raise ValueError(f"{name} addresses must be strings")
+      start = ipaddress.IPv4Address(inventory[name]["start"])
+      end = ipaddress.IPv4Address(inventory[name]["end"])
+      if start not in subnet or end not in subnet or start > end:
+        raise ValueError(f"invalid {name}")
+      if start == subnet.network_address or end == subnet.broadcast_address:
+        raise ValueError(f"{name} includes a subnet or broadcast address")
+      ranges.append((int(start), int(end)))
+    if max(pair[0] for pair in ranges) <= min(pair[1] for pair in ranges):
+      raise ValueError("DHCP and static ranges overlap")
+    if not isinstance(inventory["gateway"], str):
+      raise ValueError("gateway must be an IP address string")
+    gateway = ipaddress.IPv4Address(inventory["gateway"])
+    if gateway not in subnet or gateway in {subnet.network_address, subnet.broadcast_address}:
+      raise ValueError("invalid gateway")
+    if not isinstance(inventory["dns"], list) or not inventory["dns"]:
+      raise ValueError("DNS must be a nonempty list")
+    for server in inventory["dns"]:
+      if not isinstance(server, str):
+        raise ValueError("DNS servers must be IP address strings")
+      address = ipaddress.ip_address(server)
+      if address.is_unspecified or address.is_multicast:
+        raise ValueError("invalid DNS server")
+    names = set()
+    addresses = set()
+    if not isinstance(inventory["machines"], list):
+      raise ValueError("machines must be a list")
+    for entry in inventory["machines"]:
+      ip = entry["ip"]
+      if not isinstance(ip, str):
+        raise ValueError("machine IP must be an IPv4 address string")
+      address = ipaddress.IPv4Address(ip)
+      if str(address) != ip:
+        raise ValueError(f"machine IP must be canonical: {ip}")
+      if ip in addresses:
+        raise ValueError(f"duplicate machine IP: {ip}")
+      addresses.add(ip)
+      if address.is_unspecified or address.is_multicast or address.is_loopback:
+        raise ValueError(f"invalid allocation: {ip}")
+      name = entry["hostname"]
+      if not isinstance(name, str) or not name or name in names:
+        raise ValueError(f"invalid or duplicate allocation hostname: {name}")
+      if not isinstance(entry["comment"], str):
+        raise ValueError(f"invalid machine comment: {ip}")
+      names.add(name)
+    return inventory
+  except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+    raise BootstrapError(f"Invalid inventory {path}: {error}") from error
+
+
+def suggest_ip(inventory):
+  start = int(ipaddress.IPv4Address(inventory["static_range"]["start"]))
+  end = int(ipaddress.IPv4Address(inventory["static_range"]["end"]))
+  prefix = ipaddress.IPv4Network(inventory["subnet"]).prefixlen
+  used = {entry["ip"] for entry in inventory["machines"]} | {inventory["gateway"], *inventory["dns"]}
+  for value in range(start, end + 1):
+    address = str(ipaddress.IPv4Address(value))
+    if address not in used:
+      return f"{address}/{prefix}"
+  raise BootstrapError("No unrecorded addresses remain in the inventory's static range")
+
+
+def configure_network(args, inventory):
+  for entry in inventory["machines"]:
+    ip = entry["ip"]
+    if entry["hostname"] == args.hostname:
+      raise BootstrapError(f"Hostname {args.hostname} is already recorded at {ip} in lab/network.json")
+  if args.interactive:
+    try:
+      suggestion = suggest_ip(inventory)
+    except BootstrapError:
+      suggestion = None
+    prompt = f"Static IPv4/prefix [{suggestion}] or 'dhcp': " if suggestion else "Static IPv4/prefix or 'dhcp' (static range full): "
+    choice = input(prompt).strip()
+    args.static_ip = None if choice.lower() == "dhcp" else choice or "auto"
+  if not args.static_ip:
+    return
+  if args.static_ip == "auto":
+    args.static_ip = suggest_ip(inventory)
+  try:
+    address = ipaddress.IPv4Interface(args.static_ip)
+    subnet = ipaddress.IPv4Network(inventory["subnet"])
+    if address.ip in subnet:
+      if address.network != subnet:
+        raise ValueError(f"homelab addresses must use subnet {subnet}")
+      start = ipaddress.IPv4Address(inventory["static_range"]["start"])
+      end = ipaddress.IPv4Address(inventory["static_range"]["end"])
+      if not start <= address.ip <= end:
+        raise ValueError(f"homelab static addresses must be in {start}–{end}, outside the DHCP pool")
+      args.gateway = args.gateway or inventory["gateway"]
+      args.dns = args.dns or list(inventory["dns"])
+    if not args.gateway or not args.dns:
+      raise ValueError("addresses outside the homelab subnet require explicit --gateway and --dns")
+    validate_network(args)
+  except ValueError as error:
+    raise BootstrapError(str(error)) from error
+  ip = str(address.ip)
+  for entry in inventory["machines"]:
+    if ip == entry["ip"]:
+      raise BootstrapError(f"IP {ip} is already recorded for {entry['hostname']} ({entry['comment']}) in lab/network.json")
+  if ip in {inventory["gateway"], *inventory["dns"]}:
+    raise BootstrapError(f"IP {ip} is already used by an inventory gateway or DNS server")
+  print(f"Static IP: {args.static_ip}; gateway: {args.gateway}; DNS: {', '.join(args.dns)}")
+
+
+def reserve_ip(args, inventory):
+  updated = dict(inventory)
+  updated["machines"] = [*inventory["machines"], {
+    "hostname": args.hostname,
+    "ip": str(ipaddress.IPv4Interface(args.static_ip).ip),
+    "comment": args.description,
+  }]
+  return json.dumps(updated, indent=2) + "\n"
+
+
+def unique_json_keys(pairs):
+  result = {}
+  for key, value in pairs:
+    if key in result:
+      raise ValueError(f"duplicate JSON key: {key}")
+    result[key] = value
+  return result
 
 
 def check_repository(repo, hostname):
@@ -215,7 +352,18 @@ def main(argv=None):
   args = arguments(argv)
   repo = Path(__file__).resolve().parent.parent
   try:
+    if args.suggest_ip:
+      print(suggest_ip(load_inventory(repo)))
+      print("Suggestion only: checks this local inventory, not live devices or unpublished allocations. Nothing was reserved.", file=sys.stderr)
+      return 0
     check_repository(repo, args.hostname)
+    if not args.skip_update:
+      update_repository(repo)
+    elif args.static_ip or args.interactive:
+      print("Using --skip-update: duplicate checks use this local snapshot; newer or unpublished allocations may be missing.", file=sys.stderr)
+    flake = check_repository(repo, args.hostname)
+    inventory = load_inventory(repo)
+    configure_network(args, inventory)
     required = ["git", "sudo", "nixos-generate-config", "nix-instantiate", "findmnt", "lsblk"]
     if args.static_ip:
       required.append("ip")
@@ -231,9 +379,6 @@ def main(argv=None):
     boot = boot_configuration()
     interface = detect_interface(args.interface) if args.static_ip else None
     hardware = run(["sudo", "-n", "nixos-generate-config", "--show-hardware-config"])
-    if not args.skip_update:
-      update_repository(repo)
-    flake = check_repository(repo, args.hostname)
     host = repo / "hosts" / args.hostname
     home = repo / "home/hosts" / args.hostname
     contents = {
@@ -253,11 +398,18 @@ def main(argv=None):
         run(["nix-instantiate", "--parse", str(candidate)])
     host.mkdir()
     home.mkdir()
+    if args.static_ip:
+      contents[repo / "lab/network.json"] = reserve_ip(args, inventory)
     for path, content in contents.items():
       atomic_write(path, content)
-    run(["git", "add", "--", str(host), str(home), "flake.nix"], cwd=repo)
+    staged = [str(host), str(home), "flake.nix"]
+    if args.static_ip:
+      staged.append("lab/network.json")
+    run(["git", "add", "--", *staged], cwd=repo)
     print(run(["git", "diff", "--cached", "--stat"], cwd=repo), end="")
     print(f"Review: git diff --cached\nCommit when ready: git commit -m 'Add {args.hostname} VM'\nPush when ready: git push")
+    if args.static_ip:
+      print("The IP allocation is staged in lab/network.json. Publish it before bootstrapping another clone; this is not a network-wide reservation or a UniFi change.")
     command = ["sudo", "-n", "nixos-rebuild", "switch", "--flake", f"{repo}#{args.hostname}"]
     print("Rebuild command: " + " ".join(command), flush=True)
     if args.no_switch:

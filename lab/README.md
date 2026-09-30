@@ -61,25 +61,44 @@ Import the untouched prepared qcow2 into a new VM with compatible UEFI firmware 
 
 1. Clone the template. For a VM needing more than 20 GiB, enlarge its disk before first boot. Leave the template disk unchanged.
 2. Boot the clone and find its DHCP address in Proxmox or your DHCP leases. SSH in as `dbalatero` using an authorized key.
-3. In `/home/dbalatero/.config/nixpkgs`, run the bootstrap command:
+3. In `/home/dbalatero/.config/nixpkgs`, update the clean checkout before invoking bootstrap so an older image uses the latest script and address inventory:
 
    ```bash
-   bin/bootstrap-nixos-vm my-service --skip-update --description "My service"
+   git pull --ff-only
    ```
 
-   The local tests used `--skip-update` to exercise the embedded committed snapshot. These examples retain that choice for the first trial; omit it to fetch the configured upstream and update fast-forward-only, preserving local ahead commits. DHCP and the `headless` profile are the defaults; `headless` is the only supported profile. The script detects boot firmware and hardware, creates host and home modules, stages them, and runs the first rebuild.
-4. For static IPv4 networking, supply the address with a prefix, an on-subnet gateway, and one or more DNS servers:
+   The bootstrap updates the checkout again by default, but an already-running Python process does not reload its script after a pull. Updating first makes the new options available without rebuilding the base image. Publish the implementation from the desktop manually before pulling it into a VM. If Git reports divergence or local changes, resolve them without discarding guest work.
+4. For a static address, use the Proxmox console for bootstrap: changing the IP can disconnect SSH. Ask for a suggestion, then allocate automatically or specify an address:
 
    ```bash
-   bin/bootstrap-nixos-vm my-service --skip-update \
-     --static-ip 192.168.1.210/24 --gateway 192.168.1.1 \
-     --dns 192.168.1.169 --description "My service"
+   bin/bootstrap-nixos-vm --suggest-ip
+
+   bin/bootstrap-nixos-vm my-service \
+     --static-ip auto --description "My service"
    ```
 
-   Use addresses appropriate to your network. Static configuration passed argument tests and Nix evaluation; a live static-network trial remains pending. The interface is detected from the default route or a sole non-loopback interface; use `--interface ens18` when ambiguous. Missing hostname, gateway, and DNS inputs can be prompted for at a terminal. Noninteractive use requires all needed values.
+   Replace `auto` with a CIDR such as `192.168.1.210/24` to select it yourself. For this LAN, gateway `192.168.1.1` and DNS `192.168.1.169` default from the inventory; override them with `--gateway` and repeatable `--dns` flags. Other subnets require explicit gateway and DNS values. The interface is detected from the default route or a sole non-loopback interface; use `--interface ens18` when ambiguous. Static configuration has automated checks, but a live static-network trial remains pending.
+
+   With no arguments at a terminal, the script prompts for hostname and static IP (default `auto`; enter `dhcp` to keep DHCP). Supplying a hostname without `--static-ip` preserves DHCP, including for local NAT tests. The `headless` profile is the only supported profile. Bootstrap detects boot firmware and hardware, creates host and home modules, stages them together with a static allocation when applicable, and runs the first rebuild.
 5. Check root growth with `lsblk` and `df -h /`. Edit `hosts/<hostname>/configuration.nix`, then run `sudo nixos-rebuild switch --flake .#<hostname>` from the repo. Test a small package or service change and confirm SSH and console recovery still work.
 6. Review `git diff --cached`, commit the new host and subsequent changes, and push manually when ready. Scripts never commit or push.
 
 Bootstrap requires a clean checkout and normally fetches and updates with fast-forward-only Git operations. Local unpushed commits are preserved. If the remote and local histories diverge, reconcile them deliberately; local work is never reset. `--skip-update` uses the current clean snapshot for local tests or offline work. `--no-switch` creates and stages configuration for review without applying it. If a rebuild fails, fix the staged files and rerun the printed rebuild command; rerunning bootstrap with the same hostname is intentionally rejected.
+
+## LAN address inventory
+
+[network.json](network.json) records the LAN subnet, DHCP/static ranges, gateway, DNS server, and known address allocations. Its `machines` array contains an `ip`, `hostname`, and `comment` for each entry. Keep the JSON human-readable with two-space indentation and a trailing newline; bootstrap preserves that formatting when writing it. UniFi DHCP uses `192.168.1.2`–`192.168.1.200`; new static VM addresses must use `.201`–`.254`. Initially recorded addresses are:
+
+| Address | Purpose |
+| --- | --- |
+| `192.168.1.1` | UniFi gateway |
+| `192.168.1.169` | Raspberry Pi Pi-hole DNS |
+| `192.168.1.201` | TrueNAS VM |
+| `192.168.1.209` | iMessage Mac Mini server |
+| `192.168.1.250` | Proxmox host |
+
+The inventory labels describe existing devices; they do not establish DNS records. `--suggest-ip` reads the local inventory without fetching, reserving, or changing anything; the initial suggestion is `192.168.1.202/24`. `--static-ip auto` selects an unallocated address during bootstrap. Duplicate known addresses are rejected before generating a host, and the new allocation is staged with its configuration, including with `--no-switch`.
+
+An unallocated address in this file is not proof that the LAN address is unused. Add other manually configured devices to the inventory, and keep it current when changing or retiring a host. The script does not query UniFi or act as a central allocator. Two stale or concurrent checkouts can select the same address: provision VMs sequentially, review and commit each allocation, then push it manually before provisioning from another checkout. Leave normal bootstrap synchronization enabled for real provisioning; `--skip-update` can use stale assignments. After editing an existing VM's address, update both its Nix configuration and the inventory in the same change. DNS records remain a separate Pi-hole task.
 
 SSH password login is disabled. For recovery, use the VM console with `dbalatero` and the password stored in 1Password. The password and GitHub private key are shared by all clones. Rotate existing VMs individually when replacing either credential; rebuilding a template does not update existing clones.

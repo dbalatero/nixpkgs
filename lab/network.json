@@ -1,0 +1,42 @@
+{
+  "subnet": "192.168.1.0/24",
+  "dhcp_range": {
+    "start": "192.168.1.2",
+    "end": "192.168.1.200"
+  },
+  "static_range": {
+    "start": "192.168.1.201",
+    "end": "192.168.1.254"
+  },
+  "gateway": "192.168.1.1",
+  "dns": [
+    "192.168.1.169"
+  ],
+  "machines": [
+    {
+      "hostname": "gateway",
+      "ip": "192.168.1.1",
+      "comment": "UniFi Dream Machine gateway; hostname is an inventory label"
+    },
+    {
+      "hostname": "pihole",
+      "ip": "192.168.1.169",
+      "comment": "Current Raspberry Pi DNS server; inside DHCP range; hostname is an inventory label"
+    },
+    {
+      "hostname": "truenas",
+      "ip": "192.168.1.201",
+      "comment": "TrueNAS VM; hostname is an inventory label"
+    },
+    {
+      "hostname": "imessage",
+      "ip": "192.168.1.209",
+      "comment": "iMessage Mac Mini server; hostname is an inventory label"
+    },
+    {
+      "hostname": "proxmox",
+      "ip": "192.168.1.250",
+      "comment": "Proxmox host; hostname is an inventory label"
+    }
+  ]
+}
