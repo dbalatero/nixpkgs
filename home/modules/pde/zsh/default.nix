@@ -69,9 +69,9 @@ in {
         "$character"
       ];
 
-      # Show hostname
+      # Show hostname in both local and SSH sessions
       hostname = {
-        ssh_only = true;
+        ssh_only = false;
         format = "[$hostname]($style) ";
         style = "bold green";
       };
