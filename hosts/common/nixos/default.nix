@@ -9,6 +9,7 @@
     ./nix-ld.nix
     ./ssh.nix
     ./users.nix
+    ../media
     ./packages.nix
   ];
 

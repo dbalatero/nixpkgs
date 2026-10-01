@@ -5,6 +5,7 @@
     inputs.home-manager.nixosModules.home-manager
     ../nixos/nix-ld.nix
     ../lab-network
+    ../media
     ../nix-build-client
   ];
   lab.nixBuildClient.enable = lib.mkDefault
