@@ -1,4 +1,11 @@
-{config, inputs, lib, pkgs, modulesPath, ...}: {
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}: {
   imports = [
     ../media.nix
     (modulesPath + "/profiles/qemu-guest.nix")
@@ -8,7 +15,8 @@
     ../media
     ../nix-build-client
   ];
-  lab.nixBuildClient.enable = lib.mkDefault
+  lab.nixBuildClient.enable =
+    lib.mkDefault
     (!(builtins.elem config.networking.hostName ["builder" "nixos-base" "proxmox-base"]));
 
   # Keep PDE dependencies identical in the image and generated VM hosts.
@@ -44,7 +52,8 @@
   networking.useNetworkd = true;
   # Updating /etc/hostname alone leaves the running kernel's name unchanged.
   # Apply the declared VM name during switch as well as on the next boot.
-  system.activationScripts.vm-hostname = lib.mkIf (config.networking.hostName != "")
+  system.activationScripts.vm-hostname =
+    lib.mkIf (config.networking.hostName != "")
     (lib.stringAfter ["etc"] ''
       ${pkgs.hostname}/bin/hostname -- ${lib.escapeShellArg config.networking.hostName}
     '');
@@ -75,14 +84,15 @@
 
   nix.settings.experimental-features = ["nix-command" "flakes"];
   environment.systemPackages = with pkgs; [
-    git
-    vim
-    python3
-    openssh
     curl
     dig
+    git
     jq
+    openssh
     parted
+    pciutils
+    python3
+    vim
   ];
   environment.variables.EDITOR = "vim";
   time.timeZone = lib.mkDefault "America/New_York";
