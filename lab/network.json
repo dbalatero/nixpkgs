@@ -64,6 +64,13 @@
   ],
   "services": [
     {
+      "name": "homepage",
+      "hostname": "@",
+      "machine": "caddy",
+      "scheme": "http",
+      "port": 8082
+    },
+    {
       "name": "gateway",
       "hostname": "gateway",
       "machine": "gateway",

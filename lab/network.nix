@@ -16,6 +16,7 @@
       && lib.toInt part <= 255
     ) (lib.splitString "." value);
   unique = values: builtins.length values == builtins.length (lib.unique values);
+  serviceFqdn = hostname: if hostname == "@" then domain else "${hostname}.${domain}";
   machines = inventory.machines;
   names = map (machine: machine.hostname) machines;
   services = inventory.services or null;
@@ -34,7 +35,7 @@
   servicesByName = builtins.listToAttrs (map (service: {
     name = service.name;
     value = service // {
-      fqdn = "${service.hostname}.${domain}";
+      fqdn = serviceFqdn service.hostname;
       upstream = "${service.scheme}://${machinesByName.${service.machine}.fqdn}:${toString service.port}";
     };
   }) services);
@@ -50,7 +51,7 @@ assert lib.assertMsg (builtins.isList services && builtins.all builtins.isAttrs 
   "lab/network.json: services must be a list of service objects";
 assert lib.assertMsg (builtins.all validLabel serviceNames && unique serviceNames)
   "lab/network.json: invalid or duplicate service name";
-assert lib.assertMsg (builtins.all validLabel aliases && unique aliases)
+assert lib.assertMsg (builtins.all (alias: alias == "@" || validLabel alias) aliases && unique aliases)
   "lab/network.json: invalid or duplicate service hostname";
 assert lib.assertMsg (builtins.all (service:
   validLabel (service.machine or null) && builtins.hasAttr service.machine machinesByName
@@ -64,7 +65,7 @@ assert lib.assertMsg (builtins.all (service:
   "lab/network.json: service port must be an integer from 1 to 65535";
 assert lib.assertMsg (builtins.all (machine: validDomain "${machine.hostname}.${machineDomain}") machines)
   "lab/network.json: machine FQDN exceeds DNS limits";
-assert lib.assertMsg (builtins.all (alias: validDomain "${alias}.${domain}") aliases)
+assert lib.assertMsg (builtins.all (alias: validDomain (serviceFqdn alias)) aliases)
   "lab/network.json: service FQDN exceeds DNS limits";
 assert lib.assertMsg (builtins.all (machine: validIPv4 machine.ip) machines && unique (map (machine: machine.ip) machines))
   "lab/network.json: invalid or duplicate machine IPv4 address";

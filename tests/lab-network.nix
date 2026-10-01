@@ -39,6 +39,7 @@
         "192.168.1.203 caddy.vm.netcat.cloud"
         "192.168.1.204 builder.vm.netcat.cloud"
         "192.168.1.205 media.vm.netcat.cloud"
+        "192.168.1.203 netcat.cloud"
         "192.168.1.203 gateway.netcat.cloud"
         "192.168.1.203 nas.netcat.cloud"
         "192.168.1.203 proxmox.netcat.cloud"
@@ -54,6 +55,14 @@
     testAliasRename = {
       expr = (read (changeService "truenas" {hostname = "storage";})).servicesByName.truenas.fqdn;
       expected = "storage.netcat.cloud";
+    };
+    testApexHostname = {
+      expr = network.servicesByName.homepage.fqdn;
+      expected = "netcat.cloud";
+    };
+    testDuplicateApexRejected = {
+      expr = rejects (changeService "truenas" {hostname = "@";});
+      expected = true;
     };
     testSharedSearchOnLabHosts = {
       expr = map searchFor ["pihole-dns" "caddy"];
@@ -88,6 +97,7 @@
       expr = builtins.mapAttrs (_: service: service.upstream) network.servicesByName;
       expected = {
         gateway = "https://gateway.vm.netcat.cloud:443";
+        homepage = "http://caddy.vm.netcat.cloud:8082";
         truenas = "http://truenas.vm.netcat.cloud:80";
         proxmox = "https://proxmox.vm.netcat.cloud:8006";
         pihole-dns = "http://pihole-dns.vm.netcat.cloud:80";
