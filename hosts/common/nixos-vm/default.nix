@@ -92,6 +92,7 @@
     parted
     pciutils
     python3
+    screen
     vim
   ];
   environment.variables.EDITOR = "vim";
