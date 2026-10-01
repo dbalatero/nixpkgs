@@ -21,7 +21,7 @@ passed; both full system derivations evaluated. Home Manager emitted its existin
 global-pkgs/overlay warnings. The refactor has not been deployed; apply the updated
 checkout with `./bin/switch` on Pi-hole and Caddy when ready.
 
-Log destinations and retention are unchanged. Caddy access files remain under
+The following retention details describe the inventory refactor before the Homepage deployment below. Caddy access files remain under
 `/var/log/caddy`, using its built-in file rotation defaults: 100 MiB per file,
 10 compressed archives, and 90-day archive retention checked during rotation.
 Caddy itself rotates/reopens these files; no separate cleanup timer is needed.
@@ -121,3 +121,31 @@ DNS-01 temporarily creates public TXT
 records, and production certificates publish these names in certificate
 transparency logs. Deployment evidence and outstanding checks are in
 [the handoff](../plans/netcat-cloud-dns-and-caddy.md).
+
+## Homepage (2026-10-01)
+
+`hosts/caddy/homepage.nix` enables the native NixOS Homepage service with only
+its title set to "Hello World". Services, bookmarks, and widgets are empty.
+The inventory service `homepage` uses `hostname: "@"` for `netcat.cloud`;
+Pi-hole resolves it to `192.168.1.203`. Caddy proxies to Homepage on
+`127.0.0.1:8082`, and Homepage accepts the `netcat.cloud` Host header.
+Services hosted on the Caddy machine use loopback upstreams.
+
+The existing Porkbun DNS-01 configuration obtains and renews the root-domain
+Let's Encrypt certificate. Access remains internal; no WAN forwarding or public
+address records are required. HTTP redirects to HTTPS.
+
+Homepage logs only to stdout/systemd journal. Host-wide journal limits are now
+512 MiB persistent, 128 MiB runtime, and 14 days of retention. Journald performs
+its own cleanup. Caddy access logs rotate at 10 MiB per file with five compressed
+archives and 14-day archive retention checked during rotation. These are
+per-hostname limits, not a combined quota; Caddy handles rotation and reopening.
+Neither service adds per-job logs or requires a separate cleanup timer.
+
+After applying with `./bin/switch`, verify with:
+
+```bash
+curl --fail https://netcat.cloud/ -o /dev/null
+curl -I http://netcat.cloud/
+systemctl is-active homepage-dashboard caddy
+```

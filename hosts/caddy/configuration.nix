@@ -6,6 +6,7 @@ in {
     ./hardware-configuration.nix
     ../common/nixos-vm
     ./caddy.nix
+    ./homepage.nix
   ];
 
   networking.hostName = "caddy";

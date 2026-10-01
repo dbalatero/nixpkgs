@@ -119,7 +119,7 @@ The top-level `domain` is `netcat.cloud`, `machine_subdomain` is `vm`, and `reve
 }
 ```
 
-`name` is a stable service identifier used for application-specific proxy behavior. `hostname` is the frontend DNS label; `machine` references a machine's hostname; `scheme` and `port` describe the backend. For this entry, `nas.netcat.cloud` resolves to Caddy at `.203`, which proxies to `http://truenas.vm.netcat.cloud:80` at `.201`. Several services may reference the same machine with different hostnames and ports. Machine entries no longer accept `public_hostname`.
+`name` is a stable service identifier used for application-specific proxy behavior. `hostname` is the frontend DNS label (`@` selects the root domain, `netcat.cloud`); `machine` references a machine's hostname; `scheme` and `port` describe the backend. For this entry, `nas.netcat.cloud` resolves to Caddy at `.203`, which proxies to `http://truenas.vm.netcat.cloud:80` at `.201`. Several services may reference the same machine with different hostnames and ports. Machine entries no longer accept `public_hostname`.
 
 `lab/network.nix` validates service names and frontend labels for uniqueness, machine references, HTTP/HTTPS schemes, and integer ports from 1 through 65535. It exports `machinesByName`, `servicesByName` (including derived `fqdn` and `upstream`), and `dnsHosts`. Caddy keeps app-specific routing behavior in Nix, keyed by stable service name. Bootstrap preserves the service list when adding machines.
 

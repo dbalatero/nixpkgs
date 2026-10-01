@@ -28,6 +28,13 @@ in {
       # Stable service names select app-specific behavior; routes come from inventory.
       virtualHosts = lib.mapAttrs' (name: service: lib.nameValuePair service.fqdn {
         listenAddresses = [network.proxy.ip];
+        logFormat = ''
+          output file /var/log/caddy/access-${service.fqdn}.log {
+            roll_size 10MiB
+            roll_keep 5
+            roll_keep_for 14d
+          }
+        '';
         extraConfig = ''
           tls {
             issuer acme {
@@ -47,7 +54,7 @@ in {
             # NixOS pihole-web serves its dashboard at /; leave /api intact.
             uri /admin/* strip_prefix /admin
           ''}
-          reverse_proxy ${service.upstream} {
+          reverse_proxy ${if service.machine == config.networking.hostName then "${service.scheme}://127.0.0.1:${toString service.port}" else service.upstream} {
             # Preserve the browser's hostname, including for HTTPS upstreams.
             header_up Host {host}
             ${lib.optionalString (builtins.elem name ["gateway" "proxmox"]) ''
