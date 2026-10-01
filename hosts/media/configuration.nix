@@ -3,6 +3,7 @@
   imports = [
     ./hardware-configuration.nix
     ../common/nixos-vm
+    ../common/nfs
   ];
 
   networking.hostName = "media";

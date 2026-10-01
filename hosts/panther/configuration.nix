@@ -11,6 +11,7 @@
 
     # Common NixOS configuration (SSH, users, base packages, etc.)
     ../common/nixos
+    ../common/nfs
 
     # Desktop environment configuration (KDE, gaming, audio, etc.)
     ../common/desktop
