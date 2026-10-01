@@ -85,6 +85,17 @@
       self.nixosConfigurations.proxmox-base.config.system.build.images.qcow;
 
     # NEW_HOST_SENTINEL - Do not remove this comment (used by bin/new-host)
+    nixosConfigurations.media = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./hosts/media/configuration.nix
+        {
+          home-manager.users.dbalatero = import ./home/hosts/media;
+        }
+      ];
+    };
+
     nixosConfigurations.builder = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = {inherit inputs;};

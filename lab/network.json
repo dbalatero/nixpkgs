@@ -59,6 +59,11 @@
       "hostname": "builder",
       "ip": "192.168.1.204",
       "comment": "NixOS homelab VM"
+    },
+    {
+      "hostname": "media",
+      "ip": "192.168.1.205",
+      "comment": "Media stack and Immich"
     }
   ]
 }
