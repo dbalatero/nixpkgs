@@ -89,7 +89,7 @@ Bootstrap requires a clean checkout and normally fetches and updates with fast-f
 
 ## LAN address inventory
 
-[network.json](network.json) records the LAN subnet, DHCP/static ranges, gateway, DNS server, known address allocations, and internal DNS naming. Its `machines` array contains an `ip`, `hostname`, and `comment` for each entry, plus an optional `public_hostname` service alias. Entries can describe unmanaged appliances or documentation-only devices; inventory membership does not mean Nix manages the device. Keep the JSON human-readable with two-space indentation and a trailing newline; bootstrap preserves that formatting and existing metadata. UniFi DHCP uses `192.168.1.2`–`192.168.1.200`; new static VM addresses must use `.201`–`.254`. Recorded addresses include:
+[network.json](network.json) records the LAN subnet, DHCP/static ranges, gateway, DNS server, known address allocations, and internal DNS naming. Its `machines` array contains an `ip`, `hostname`, and `comment` for each entry, while the top-level `services` list defines proxied applications independently of machines. Entries can describe unmanaged appliances or documentation-only devices; inventory membership does not mean Nix manages the device. Keep the JSON human-readable with two-space indentation and a trailing newline; bootstrap preserves that formatting and existing metadata. UniFi DHCP uses `192.168.1.2`–`192.168.1.200`; new static VM addresses must use `.201`–`.254`. Recorded addresses include:
 
 | Address | Purpose |
 | --- | --- |
@@ -107,7 +107,23 @@ An unallocated address in this file is not proof that the LAN address is unused.
 
 ### Internal DNS and bare hostnames
 
-The top-level `domain` is `netcat.cloud`, `machine_subdomain` is `vm`, and `reverse_proxy_hostname` selects the Caddy inventory entry. Every machine gets a direct `<hostname>.vm.netcat.cloud` record, including unmanaged devices. An optional single-label `public_hostname` adds `<public_hostname>.netcat.cloud` pointing to Caddy's IP. For example, `truenas.vm.netcat.cloud` resolves to `.201`, while its `public_hostname: "nas"` makes `nas.netcat.cloud` resolve to `.203`. The alias creates DNS only; add the corresponding proxy mapping in Caddy's Nix configuration.
+The top-level `domain` is `netcat.cloud`, `machine_subdomain` is `vm`, and `reverse_proxy_hostname` selects the Caddy inventory entry. Every machine gets a direct `<hostname>.vm.netcat.cloud` record, including unmanaged devices. Each entry in `services` creates `<hostname>.netcat.cloud` pointing to Caddy and a corresponding Caddy route to the referenced machine. These are internal DNS records, not public DNS changes or WAN access.
+
+```json
+{
+  "name": "truenas",
+  "hostname": "nas",
+  "machine": "truenas",
+  "scheme": "http",
+  "port": 80
+}
+```
+
+`name` is a stable service identifier used for application-specific proxy behavior. `hostname` is the frontend DNS label; `machine` references a machine's hostname; `scheme` and `port` describe the backend. For this entry, `nas.netcat.cloud` resolves to Caddy at `.203`, which proxies to `http://truenas.vm.netcat.cloud:80` at `.201`. Several services may reference the same machine with different hostnames and ports. Machine entries no longer accept `public_hostname`.
+
+`lab/network.nix` validates service names and frontend labels for uniqueness, machine references, HTTP/HTTPS schemes, and integer ports from 1 through 65535. It exports `machinesByName`, `servicesByName` (including derived `fqdn` and `upstream`), and `dnsHosts`. Caddy keeps app-specific routing behavior in Nix, keyed by stable service name. Bootstrap preserves the service list when adding machines.
+
+To add a standard proxy, add a service object and rebuild both Pi-hole and Caddy. Keep the stable names of existing special-case services (`gateway`, `proxmox`, `truenas`, `pihole-dns`) unless also updating their Caddy behavior. Changing a frontend hostname does not require changing the service name.
 
 Pi-hole handles the entire `netcat.cloud` zone locally. Unknown names receive negative answers instead of being forwarded upstream. The old Raspberry Pi remains reachable as `pihole-legacy.vm.netcat.cloud` until the user explicitly removes it after migration. `pihole.netcat.cloud` refers to the new Pi-hole service through Caddy.
 

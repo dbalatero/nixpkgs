@@ -332,14 +332,17 @@ class BootstrapTests(unittest.TestCase):
       "domain": "netcat.cloud",
       "machine_subdomain": "vm",
       "reverse_proxy_hostname": "caddy",
+      "services": [
+        {"name": "truenas", "hostname": "nas", "machine": "truenas", "scheme": "http", "port": 80},
+        {"name": "second-service", "hostname": "second", "machine": "truenas", "scheme": "http", "port": 8080},
+      ],
     })
-    self.inventory["machines"][0]["public_hostname"] = "nas"
     self.write_inventory(self.inventory)
     inventory = bootstrap.load_inventory(self.repo)
     args = bootstrap.arguments(["lab-test", "--static-ip", "auto"])
     bootstrap.configure_network(args, inventory)
     updated = json.loads(bootstrap.reserve_ip(args, inventory))
-    for key in ("domain", "machine_subdomain", "reverse_proxy_hostname"):
+    for key in ("domain", "machine_subdomain", "reverse_proxy_hostname", "services"):
       self.assertEqual(updated[key], self.inventory[key])
     self.assertEqual(updated["machines"][:-1], self.inventory["machines"])
 

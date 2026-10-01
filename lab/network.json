@@ -19,7 +19,6 @@
     {
       "hostname": "gateway",
       "ip": "192.168.1.1",
-      "public_hostname": "gateway",
       "comment": "UniFi Dream Machine gateway; hostname is an inventory label"
     },
     {
@@ -30,7 +29,6 @@
     {
       "hostname": "truenas",
       "ip": "192.168.1.201",
-      "public_hostname": "nas",
       "comment": "TrueNAS VM; hostname is an inventory label"
     },
     {
@@ -41,13 +39,11 @@
     {
       "hostname": "proxmox",
       "ip": "192.168.1.250",
-      "public_hostname": "proxmox",
       "comment": "Proxmox host; hostname is an inventory label"
     },
     {
       "hostname": "pihole-dns",
       "ip": "192.168.1.202",
-      "public_hostname": "pihole",
       "comment": "NixOS homelab VM"
     },
     {
@@ -64,6 +60,36 @@
       "hostname": "media",
       "ip": "192.168.1.205",
       "comment": "Media stack and Immich"
+    }
+  ],
+  "services": [
+    {
+      "name": "gateway",
+      "hostname": "gateway",
+      "machine": "gateway",
+      "scheme": "https",
+      "port": 443
+    },
+    {
+      "name": "truenas",
+      "hostname": "nas",
+      "machine": "truenas",
+      "scheme": "http",
+      "port": 80
+    },
+    {
+      "name": "proxmox",
+      "hostname": "proxmox",
+      "machine": "proxmox",
+      "scheme": "https",
+      "port": 8006
+    },
+    {
+      "name": "pihole-dns",
+      "hostname": "pihole",
+      "machine": "pihole-dns",
+      "scheme": "http",
+      "port": 80
     }
   ]
 }

@@ -1,13 +1,6 @@
 {config, lib, pkgs, ...}: let
   network = import ../../lab/network.nix {inherit lib;};
   cfg = config.lab.caddy;
-  # Keys name inventory machines; aliases and backend DNS names come from there.
-  upstreams = {
-    gateway = {scheme = "https"; port = 443;};
-    proxmox = {scheme = "https"; port = 8006;};
-    truenas = {scheme = "http"; port = 80;};
-    pihole-dns = {scheme = "http"; port = 80;};
-  };
 in {
   options.lab.caddy.staging = lib.mkOption {
     type = lib.types.bool;
@@ -16,11 +9,6 @@ in {
   };
 
   config = {
-    assertions = lib.mapAttrsToList (name: _: {
-      assertion = network.machinesByName.${name}.serviceFqdn != null;
-      message = "Caddy upstream ${name} needs a public_hostname in lab/network.json";
-    }) upstreams;
-
     services.caddy = {
       enable = true;
       package = pkgs.caddy.withPlugins {
@@ -37,9 +25,8 @@ in {
           root /var/lib/caddy/${if cfg.staging then "staging" else "production"}
         }
       '';
-      virtualHosts = lib.mapAttrs' (name: upstream: let
-        machine = network.machinesByName.${name};
-      in lib.nameValuePair machine.serviceFqdn {
+      # Stable service names select app-specific behavior; routes come from inventory.
+      virtualHosts = lib.mapAttrs' (name: service: lib.nameValuePair service.fqdn {
         listenAddresses = [network.proxy.ip];
         extraConfig = ''
           tls {
@@ -60,7 +47,7 @@ in {
             # NixOS pihole-web serves its dashboard at /; leave /api intact.
             uri /admin/* strip_prefix /admin
           ''}
-          reverse_proxy ${upstream.scheme}://${machine.fqdn}:${toString upstream.port} {
+          reverse_proxy ${service.upstream} {
             # Preserve the browser's hostname, including for HTTPS upstreams.
             header_up Host {host}
             ${lib.optionalString (builtins.elem name ["gateway" "proxmox"]) ''
@@ -69,11 +56,11 @@ in {
               }
             ''}
             ${lib.optionalString (name == "truenas") ''
-              header_down Location ^http://${lib.replaceStrings ["."] ["\\."] machine.serviceFqdn}(/.*)$ https://${machine.serviceFqdn}$1
+              header_down Location ^http://${lib.replaceStrings ["."] ["\\."] service.fqdn}(/.*)$ https://${service.fqdn}$1
             ''}
           }
         '';
-      }) upstreams;
+      }) network.servicesByName;
     };
 
     # Only the LAN-facing interface admits HTTP(S); admin stays on loopback.

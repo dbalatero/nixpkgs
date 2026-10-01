@@ -4,11 +4,35 @@ Production was deployed and verified on 2026-09-30. Credentials are already
 provisioned. The setup steps below are for fresh provisioning or deliberate
 issuance testing; normal operation does not require rerunning them.
 
-`hosts/caddy/caddy.nix` maps inventory machines to reverse proxies. Frontend
-aliases and backend names come from `lab/network.nix`. Caddy uses Pi-hole for
-backend resolution and public resolvers for DNS-01 propagation checks. Only
-the gateway transport skips upstream certificate verification. Authentication
+`hosts/caddy/caddy.nix` generates reverse proxies from the `services` list in
+`lab/network.json`. Frontend names, backend machine references, schemes, and
+ports come through `lab/network.nix`; one machine can host multiple services.
+Special behavior stays in Nix, keyed by stable service `name`. Caddy uses Pi-hole
+for backend resolution and public resolvers for DNS-01 propagation checks.
+The gateway and Proxmox transports skip upstream certificate verification. Authentication
 is deferred, including the existing passwordless Pi-hole dashboard.
+
+## Inventory refactor verification (2026-10-01)
+
+Only the existing gateway, NAS, Proxmox, and Pi-hole services were migrated.
+Generated Caddy virtual hosts and Pi-hole DNS host records match their captured
+pre-refactor output byte for byte. All 22 inventory tests and 29 bootstrap tests
+passed; both full system derivations evaluated. Home Manager emitted its existing
+global-pkgs/overlay warnings. The refactor has not been deployed; apply the updated
+checkout with `./bin/switch` on Pi-hole and Caddy when ready.
+
+Log destinations and retention are unchanged. Caddy access files remain under
+`/var/log/caddy`, using its built-in file rotation defaults: 100 MiB per file,
+10 compressed archives, and 90-day archive retention checked during rotation.
+Caddy itself rotates/reopens these files; no separate cleanup timer is needed.
+These limits apply per hostname, not as a total logging quota. See
+[Caddy file logging](https://caddyserver.com/docs/caddyfile/directives/log#file).
+Runtime logs use the systemd journal. Both evaluated hosts have no extra journald
+overrides and retain systemd's default size limits (10% of each applicable
+filesystem, capped at 4 GiB); journal housekeeping is internal to journald.
+See [journald retention](https://www.freedesktop.org/software/systemd/man/252/journald.conf.html).
+Pi-hole retains its declared daily/size-triggered logrotate policy and 30-day
+query database history in `hosts/pihole-dns/pihole.nix`. No per-job logs are added.
 
 ## Provision Porkbun credentials locally
 
@@ -54,7 +78,7 @@ sudo systemctl status caddy --no-pager
 sudo journalctl -u caddy --since '10 minutes ago' --no-pager
 ```
 
-Confirm successful staging issuance for all three names before proceeding.
+Confirm successful staging issuance for all four names before proceeding.
 Staging certificates intentionally fail normal browser trust. Set
 `lab.caddy.staging = false;` (or remove the override) and rerun `bin/switch`.
 Staging and production certificate/account storage are separate directories
@@ -62,7 +86,7 @@ under `/var/lib/caddy`; switching modes restarts Caddy. Caddy automatically
 renews production certificates using the same DNS credentials.
 
 ```bash
-for name in gateway nas pihole; do
+for name in gateway nas proxmox pihole; do
   curl --fail --show-error --silent --output /dev/null --dump-header - "https://$name.netcat.cloud/"
   curl --show-error --silent --output /dev/null --dump-header - "http://$name.netcat.cloud/"
 done
@@ -82,7 +106,7 @@ navigation staying on the frontend names, Pi-hole dashboard/API behavior,
 and WebSocket connections in developer tools. Check public DNS independently:
 
 ```bash
-for name in gateway nas pihole; do
+for name in gateway nas proxmox pihole; do
   dig @1.1.1.1 "$name.netcat.cloud" A +noall +answer
   dig @1.1.1.1 "$name.netcat.cloud" AAAA +noall +answer
 done

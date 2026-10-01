@@ -1,5 +1,7 @@
 # Handoff: Internal DNS and HTTPS for netcat.cloud
 
+2026-10-01 inventory refactor: the current schema uses separate `machines` and `services` lists. Machine-level `public_hostname` and handwritten machine-keyed upstream tables have been replaced by service entries (`name`, `hostname`, `machine`, `scheme`, `port`). Gateway, NAS, Proxmox, and Pi-hole were migrated with identical generated DNS records and Caddy virtual hosts. No additional services were added or deployed. The sections below preserve the original deployment history; current schema instructions are in `lab/README.md` and `lab/caddy.md`.
+
 ## Status and transfer
 
 As of 2026-09-30, Caddy at `192.168.1.203` is deployed with production Let's Encrypt certificates for all three services. Porkbun DNS-01 passed staging before production, using separate storage. DNS/Pi-hole and UniFi DHCP were already deployed. The user confirmed that browser access works. The requested Caddy work is complete; the user explicitly deferred public parking DNS cleanup. See the Caddy implementation evidence below for results.

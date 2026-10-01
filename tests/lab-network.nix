@@ -7,6 +7,13 @@
   changeMachine = hostname: changes: inventory // {
     machines = map (machine: if machine.hostname == hostname then machine // changes else machine) inventory.machines;
   };
+  changeService = name: changes: inventory // {
+    services = map (service: if service.name == name then service // changes else service) inventory.services;
+  };
+  mediaServices = [
+    {name = "sonarr"; hostname = "sonarr"; machine = "media"; scheme = "http"; port = 8989;}
+    {name = "radarr"; hostname = "radarr"; machine = "media"; scheme = "http"; port = 7878;}
+  ];
   searchFor = hostname: (lib.evalModules {
     modules = [
       ../hosts/common/lab-network
@@ -30,19 +37,22 @@
         "192.168.1.250 proxmox.vm.netcat.cloud"
         "192.168.1.202 pihole-dns.vm.netcat.cloud"
         "192.168.1.203 caddy.vm.netcat.cloud"
+        "192.168.1.204 builder.vm.netcat.cloud"
+        "192.168.1.205 media.vm.netcat.cloud"
         "192.168.1.203 gateway.netcat.cloud"
         "192.168.1.203 nas.netcat.cloud"
+        "192.168.1.203 proxmox.netcat.cloud"
         "192.168.1.203 pihole.netcat.cloud"
       ];
     };
     testAddressChangeReachesAllServiceRecords = {
-      expr = builtins.all (line: lib.hasPrefix "192.168.1.204 " line)
+      expr = builtins.all (line: lib.hasPrefix "192.168.1.206 " line)
         (builtins.filter (line: lib.hasSuffix "netcat.cloud" line && !(lib.hasInfix ".vm." line))
-          (read (changeMachine "caddy" {ip = "192.168.1.204";})).dnsHosts);
+          (read (changeMachine "caddy" {ip = "192.168.1.206";})).dnsHosts);
       expected = true;
     };
     testAliasRename = {
-      expr = (read (changeMachine "truenas" {public_hostname = "storage";})).machinesByName.truenas.serviceFqdn;
+      expr = (read (changeService "truenas" {hostname = "storage";})).servicesByName.truenas.fqdn;
       expected = "storage.netcat.cloud";
     };
     testSharedSearchOnLabHosts = {
@@ -54,13 +64,69 @@
       expected = [[] []];
     };
     testInvalidAliases = {
-      expr = builtins.all (alias: rejects (changeMachine "truenas" {public_hostname = alias;}))
+      expr = builtins.all (alias: rejects (changeService "truenas" {hostname = alias;}))
         ["" "NAS" "nas.example" "-nas" "nas-" "nas\nother" null];
       expected = true;
     };
     testDuplicateAlias = {
-      expr = rejects (changeMachine "truenas" {public_hostname = "pihole";});
+      expr = rejects (changeService "truenas" {hostname = "pihole";});
       expected = true;
+    };
+    testSeveralServicesOnOneMachine = {
+      expr = let n = read (inventory // {services = inventory.services ++ mediaServices;}); in {
+        sonarr = n.servicesByName.sonarr.upstream;
+        radarr = n.servicesByName.radarr.upstream;
+        records = lib.takeEnd 2 n.dnsHosts;
+      };
+      expected = {
+        sonarr = "http://media.vm.netcat.cloud:8989";
+        radarr = "http://media.vm.netcat.cloud:7878";
+        records = ["192.168.1.203 sonarr.netcat.cloud" "192.168.1.203 radarr.netcat.cloud"];
+      };
+    };
+    testExistingUpstreams = {
+      expr = builtins.mapAttrs (_: service: service.upstream) network.servicesByName;
+      expected = {
+        gateway = "https://gateway.vm.netcat.cloud:443";
+        truenas = "http://truenas.vm.netcat.cloud:80";
+        proxmox = "https://proxmox.vm.netcat.cloud:8006";
+        pihole-dns = "http://pihole-dns.vm.netcat.cloud:80";
+      };
+    };
+    testServiceCanChangeBackend = {
+      expr = (read (changeService "truenas" {machine = "media"; port = 8080;})).servicesByName.truenas;
+      expected = {
+        name = "truenas"; hostname = "nas"; machine = "media"; scheme = "http"; port = 8080;
+        fqdn = "nas.netcat.cloud"; upstream = "http://media.vm.netcat.cloud:8080";
+      };
+    };
+    testInvalidServices = {
+      expr = builtins.all (changes: rejects (changeService "truenas" changes)) [
+        {name = "gateway";} {name = "";} {name = null;} {name = "bad name";}
+        {machine = "missing";} {machine = null;}
+        {scheme = "ftp";} {scheme = null;}
+        {port = 0;} {port = 65536;} {port = "80";} {port = 80.5;} {port = null;}
+      ];
+      expected = true;
+    };
+    testMissingServiceFields = {
+      expr = builtins.all (field: rejects (inventory // {
+        services = [(builtins.removeAttrs (builtins.head inventory.services) [field])];
+      })) ["name" "hostname" "machine" "scheme" "port"];
+      expected = true;
+    };
+    testMalformedServiceList = {
+      expr = builtins.all (services: rejects (inventory // {inherit services;})) [null {} [null] ["service"]]
+        && rejects (builtins.removeAttrs inventory ["services"]);
+      expected = true;
+    };
+    testLegacyAliasesRejected = {
+      expr = rejects (changeMachine "truenas" {public_hostname = "nas";});
+      expected = true;
+    };
+    testEmptyServiceList = {
+      expr = (read (inventory // {services = [];})).dnsHosts;
+      expected = map (machine: "${machine.ip} ${machine.hostname}.vm.netcat.cloud") inventory.machines;
     };
     testInvalidMachineName = {
       expr = rejects (changeMachine "imessage" {hostname = "bad name";});

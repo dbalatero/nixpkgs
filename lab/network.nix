@@ -18,8 +18,9 @@
   unique = values: builtins.length values == builtins.length (lib.unique values);
   machines = inventory.machines;
   names = map (machine: machine.hostname) machines;
-  services = builtins.filter (machine: machine ? public_hostname) machines;
-  aliases = map (machine: machine.public_hostname) services;
+  services = inventory.services or null;
+  serviceNames = map (service: service.name or null) services;
+  aliases = map (service: service.hostname or null) services;
   domain = inventory.domain;
   machineDomain = "${inventory.machine_subdomain}.${domain}";
   subnetParts = lib.splitString "/" inventory.subnet;
@@ -28,17 +29,39 @@
     name = machine.hostname;
     value = machine // {
       fqdn = "${machine.hostname}.${machineDomain}";
-      serviceFqdn = if machine ? public_hostname then "${machine.public_hostname}.${domain}" else null;
     };
   }) machines);
+  servicesByName = builtins.listToAttrs (map (service: {
+    name = service.name;
+    value = service // {
+      fqdn = "${service.hostname}.${domain}";
+      upstream = "${service.scheme}://${machinesByName.${service.machine}.fqdn}:${toString service.port}";
+    };
+  }) services);
   proxy = machinesByName.${inventory.reverse_proxy_hostname};
 in
 assert lib.assertMsg (validDomain domain && validLabel inventory.machine_subdomain && validDomain machineDomain)
   "lab/network.json: invalid domain or machine_subdomain";
 assert lib.assertMsg (builtins.all validLabel names && unique names)
   "lab/network.json: invalid or duplicate machine hostname";
+assert lib.assertMsg (builtins.all (machine: !(machine ? public_hostname)) machines)
+  "lab/network.json: move machine public_hostname entries into services";
+assert lib.assertMsg (builtins.isList services && builtins.all builtins.isAttrs services)
+  "lab/network.json: services must be a list of service objects";
+assert lib.assertMsg (builtins.all validLabel serviceNames && unique serviceNames)
+  "lab/network.json: invalid or duplicate service name";
 assert lib.assertMsg (builtins.all validLabel aliases && unique aliases)
-  "lab/network.json: invalid or duplicate public_hostname";
+  "lab/network.json: invalid or duplicate service hostname";
+assert lib.assertMsg (builtins.all (service:
+  validLabel (service.machine or null) && builtins.hasAttr service.machine machinesByName
+) services)
+  "lab/network.json: service machine must name an inventory machine";
+assert lib.assertMsg (builtins.all (service: builtins.elem (service.scheme or null) ["http" "https"]) services)
+  "lab/network.json: service scheme must be http or https";
+assert lib.assertMsg (builtins.all (service:
+  builtins.isInt (service.port or null) && service.port >= 1 && service.port <= 65535
+) services)
+  "lab/network.json: service port must be an integer from 1 to 65535";
 assert lib.assertMsg (builtins.all (machine: validDomain "${machine.hostname}.${machineDomain}") machines)
   "lab/network.json: machine FQDN exceeds DNS limits";
 assert lib.assertMsg (builtins.all (alias: validDomain "${alias}.${domain}") aliases)
@@ -50,9 +73,9 @@ assert lib.assertMsg (validLabel inventory.reverse_proxy_hostname && builtins.ha
 assert lib.assertMsg (builtins.length subnetParts == 2 && validIPv4 (builtins.head subnetParts) && prefixLength >= 0 && prefixLength <= 32 && validIPv4 inventory.gateway)
   "lab/network.json: invalid subnet or gateway";
 {
-  inherit domain machineDomain machinesByName proxy prefixLength;
+  inherit domain machineDomain machinesByName servicesByName proxy prefixLength;
   inherit (inventory) gateway dns;
   dnsHosts =
     map (machine: "${machine.ip} ${machinesByName.${machine.hostname}.fqdn}") machines
-    ++ map (machine: "${proxy.ip} ${machinesByName.${machine.hostname}.serviceFqdn}") services;
+    ++ map (service: "${proxy.ip} ${servicesByName.${service.name}.fqdn}") services;
 }

@@ -4,6 +4,8 @@ Status: infrastructure partly complete; Whatbox rsync transfer complete accordin
 
 ## Current priority: correctly import existing media through hardlinks
 
+Prerequisite completed in the repository on 2026-10-01: `lab/network.json` now separates `machines` from `services`. Each service has a stable `name`, frontend `hostname`, backend `machine`, `scheme`, and `port`. DNS and Caddy consume the same entries, so Media can host several frontend names. Only the four existing services were migrated; no Media service routes have been added. Generated DNS records and Caddy virtual hosts were compared with their pre-refactor output and are unchanged. See `lab/README.md` for the schema. This is a configuration refactor, not a live deployment.
+
 The user has repeatedly been unable to turn existing release folders into a correctly matched, organized library with the *arr apps. Solving that workflow is the immediate objective. A running service or a completed folder scan is not success: the correct movie/episodes must appear at the intended library paths as verified hardlinks, with original torrent payloads preserved.
 
 Bootstrap Sonarr and Radarr first and prove this using the already-synced collection. GPU userspace work, Plex deployment, Immich, books/comics, new downloads, tracker/indexer integration, and active local seeding are deferred until the import workflow succeeds. These remain long-term goals. Prowlarr is part of the eventual stack but is not a prerequisite for importing local files. Metadata-provider access is still needed to identify and add titles.
