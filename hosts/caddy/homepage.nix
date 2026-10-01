@@ -7,7 +7,71 @@ in {
     listenPort = homepage.port;
     allowedHosts = homepage.fqdn;
     openFirewall = false;
-    settings.title = "Hello World";
+    settings = {
+      title = "netcat homelab";
+      description = "Infrastructure and markets, at a glance.";
+      theme = "dark";
+      color = "slate";
+      headerStyle = "clean";
+      useEqualHeights = true;
+      hideVersion = true;
+      disableCollapse = true;
+      layout = {
+        Infrastructure = {style = "row"; columns = 2;};
+        Markets = {style = "row"; columns = 1;};
+      };
+      providers.finnhub = "{{HOMEPAGE_VAR_FINNHUB_API_KEY}}";
+    };
+    widgets = [
+      {greeting = {text = "netcat homelab"; text_size = "3xl";};}
+      {datetime = {
+        text_size = "sm";
+        format = {dateStyle = "medium"; timeStyle = "short"; hour12 = false;};
+      };}
+    ];
+    customCSS = builtins.readFile ./homepage.css;
+    environmentFiles = ["/etc/homepage-dashboard.env"];
+    services = [{
+      Infrastructure = [{
+        Proxmox = {
+          icon = "mdi-server-network";
+          description = "Compute / virtual machines";
+          href = "https://${network.servicesByName.proxmox.fqdn}/";
+          widget = {
+            type = "proxmox";
+            url = "https://${network.servicesByName.proxmox.fqdn}";
+            username = "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}";
+            password = "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}";
+          };
+        };
+      } {
+        "Pi-hole" = {
+          icon = "mdi-shield-check-outline";
+          description = "Network / DNS filtering";
+          href = "https://${network.servicesByName.pihole-dns.fqdn}/admin/";
+          widget = {
+            type = "pihole";
+            url = "https://${network.servicesByName.pihole-dns.fqdn}";
+            version = 6;
+            # Pi-hole currently has authentication disabled; no key is needed.
+            fields = ["queries" "blocked" "blocked_percent" "gravity"];
+          };
+        };
+      }];
+    } {
+      Markets = [{
+        Stocks = {
+          icon = "mdi-chart-line";
+          description = "SPCX / market watch";
+          widget = {
+            type = "stocks";
+            provider = "finnhub";
+            showUSMarketStatus = true;
+            watchlist = ["SPCX"];
+          };
+        };
+      }];
+    }];
   };
 
   systemd.services.homepage-dashboard.environment = {

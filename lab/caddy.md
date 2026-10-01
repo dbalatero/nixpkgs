@@ -9,7 +9,8 @@ issuance testing; normal operation does not require rerunning them.
 ports come through `lab/network.nix`; one machine can host multiple services.
 Special behavior stays in Nix, keyed by stable service `name`. Caddy uses Pi-hole
 for backend resolution and public resolvers for DNS-01 propagation checks.
-The gateway and Proxmox transports skip upstream certificate verification. Authentication
+The gateway transport skips upstream certificate verification. Proxmox uses the
+public cluster CA in `hosts/caddy/proxmox-ca.pem` and verifies its IP identity. Authentication
 is deferred, including the existing passwordless Pi-hole dashboard.
 
 ## Inventory refactor verification (2026-10-01)
@@ -149,3 +150,29 @@ curl --fail https://netcat.cloud/ -o /dev/null
 curl -I http://netcat.cloud/
 systemctl is-active homepage-dashboard caddy
 ```
+
+## Homepage widgets (2026-10-01)
+
+Homepage now has Proxmox, Pi-hole v6, and SPCX stock widgets. Pi-hole shows
+queries, blocked queries, blocking percentage, and blocklist size through
+`https://pihole.netcat.cloud`. Its current passwordless API needs no widget key. Credentials are provisioned
+manually in `/etc/homepage-dashboard.env` (root:root, mode 0600) and consumed
+through the NixOS service's `environmentFiles`. Keep values in a password
+manager, never in Git or Nix expressions. Edit with `sudoedit`; after initial
+configuration deployment, restart `homepage-dashboard` to load changed values.
+
+Required variables: `HOMEPAGE_VAR_PROXMOX_TOKEN_ID`,
+`HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET`, and `HOMEPAGE_VAR_FINNHUB_API_KEY`.
+The Proxmox account and privilege-separated token both receive propagated
+`PVEAuditor` permissions at `/`. The widget connects through Caddy's HTTPS
+frontend; Caddy verifies backend TLS using the supplied cluster CA and the
+inventory IP as the certificate identity. The CA is public and safe to track.
+The existing journal and access-log retention policies cover these widgets.
+
+## Dashboard appearance
+
+The page is titled `netcat homelab`, using a dark slate palette with cyan,
+mint, and lavender accents. `hosts/caddy/homepage.css` supplies local monospace
+font fallbacks, a centered responsive layout, metric panels, and keyboard focus
+styles. Infrastructure uses two columns on wider screens, followed by Markets.
+The header contains the lab name and date/time. No external font service is used.

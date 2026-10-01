@@ -57,9 +57,16 @@ in {
           reverse_proxy ${if service.machine == config.networking.hostName then "${service.scheme}://127.0.0.1:${toString service.port}" else service.upstream} {
             # Preserve the browser's hostname, including for HTTPS upstreams.
             header_up Host {host}
-            ${lib.optionalString (builtins.elem name ["gateway" "proxmox"]) ''
+            ${lib.optionalString (name == "gateway") ''
               transport http {
                 tls_insecure_skip_verify
+              }
+            ''}
+            ${lib.optionalString (name == "proxmox") ''
+              transport http {
+                tls_trust_pool file ${./proxmox-ca.pem}
+                # The Proxmox certificate covers its IP, not the inventory alias.
+                tls_server_name ${network.machinesByName.${service.machine}.ip}
               }
             ''}
             ${lib.optionalString (name == "truenas") ''
