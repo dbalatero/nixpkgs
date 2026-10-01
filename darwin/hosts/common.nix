@@ -1,4 +1,6 @@
 {lib, ...}: {
+  imports = [../modules/media.nix];
+
   nix.enable = false;
 
   # Home Manager initializes completion after assembling the complete fpath.

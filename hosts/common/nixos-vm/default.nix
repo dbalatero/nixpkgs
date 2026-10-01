@@ -1,5 +1,6 @@
 {config, inputs, lib, pkgs, modulesPath, ...}: {
   imports = [
+    ../media.nix
     (modulesPath + "/profiles/qemu-guest.nix")
     inputs.home-manager.nixosModules.home-manager
     ../nixos/nix-ld.nix

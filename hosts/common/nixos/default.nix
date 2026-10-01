@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [
+    ../media.nix
     ./nix-ld.nix
     ./ssh.nix
     ./users.nix
