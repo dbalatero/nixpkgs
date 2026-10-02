@@ -8,6 +8,8 @@ Status: initial import stack and incremental audit tooling implemented on 2026-1
 
 The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/data`. Keep `/mnt/warez/torrents` unchanged. Library directories are ordinary directories under `/mnt/warez/media`: `movies`, `tv`, `music`, `audiobooks`, `spoken-word`, and `alternates`.
 
+The shared NFS module disables idle unmounting (`x-systemd.idle-timeout=0`) for both Media and Panther. The former ten-minute timeout was confirmed to stop Media's dependent applications before unmounting the share. Automounting and mount-presence checks remain enabled; an idle share stays mounted.
+
 ### Records and incremental behavior
 
 The authoritative database is `/var/lib/media-import/audit.sqlite`, owned by `dbalatero`. It records source paths, immutable file revisions, probes, metadata lookup evidence, proposals, decisions, approved manifests, operations, and verification history. The database is not stored on NFS. Runtime credentials in this directory are secrets, not repository files.

@@ -12,7 +12,9 @@
       "nofail"
       "x-systemd.automount"
       "x-systemd.mount-timeout=30s"
-      "x-systemd.idle-timeout=10min"
+      # Keep the share mounted once accessed. Idle unmounting also stops
+      # services with RequiresMountsFor dependencies on this filesystem.
+      "x-systemd.idle-timeout=0"
     ];
   };
 
