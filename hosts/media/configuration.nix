@@ -4,6 +4,7 @@
     ./hardware-configuration.nix
     ../common/nixos-vm
     ../common/nfs
+    ./import-stack.nix
   ];
 
   networking.hostName = "media";

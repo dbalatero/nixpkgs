@@ -1,6 +1,78 @@
 # Media stack, Whatbox migration, and Immich
 
-Status: infrastructure partly complete; Whatbox rsync transfer complete according to the user on 2026-10-01. Application deployment, library imports, and local seeding verification remain pending. Updated 2026-10-01. This plan records the conversation, repository configuration, and read-only Proxmox MCP inspection. It does not authorize deploying the remaining services automatically.
+Status: initial import stack and incremental audit tooling implemented on 2026-10-01. Whatbox rsync transfer was reported complete. Library imports require saved terminal batch approvals; no existing media has been imported yet. Local seeding remains deferred. The implementation notes below supersede earlier workflow details where they differ.
+
+## Implemented incremental audit workflow
+
+`hosts/media/import-stack.nix` declares Sonarr, Radarr, Lidarr, Audiobookshelf, and the `media-import` CLI. All four applications bind to localhost. A Nix-managed initializer sets migration safety options via the applications' APIs, generates local login credentials, and supplies private API-key files. Application state and the audit database stay on the VM disk.
+
+The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/data`. Keep `/mnt/warez/torrents` unchanged. Library directories are ordinary directories under `/mnt/warez/media`: `movies`, `tv`, `music`, `audiobooks`, `spoken-word`, and `alternates`.
+
+### Records and incremental behavior
+
+The authoritative database is `/var/lib/media-import/audit.sqlite`, owned by `dbalatero`. It records source paths, immutable file revisions, probes, metadata lookup evidence, proposals, decisions, approved manifests, operations, and verification history. The database is not stored on NFS. Runtime credentials in this directory are secrets, not repository files.
+
+- Inventory scans register new paths and update observations without re-probing or rehashing unchanged files. A new file must have two unchanged observations at least ten minutes apart before proposal generation. This is a stability heuristic; batch approval also requires confirming transfers are finished.
+- Changed source metadata produces a new revision. Existing approval no longer applies. Files touched after an import operation began are held for investigation rather than automatically requeued.
+- Missing files are recorded only after a complete successful scan. No library file is deleted. Mount mismatches, traversal errors, symlinks, and partial transfers fail closed or remain explicit exceptions.
+- A verified operation is skipped on subsequent `apply` runs, including hashing and application calls. `verify` explicitly requests full content and application checks again.
+- `propose` performs local ffprobe/filename analysis and queries the local Radarr, Sonarr, or Lidarr APIs. Metadata responses are cached. No per-file LLM calls are used. Audiobook proposals use existing tags and explicit author/title/order review.
+- Source paths are separate records even if content is identical. Before-hash comparisons flag duplicate content among import operations; alternate imports must be explicitly selected.
+
+### Commands, run on Media as dbalatero
+
+```bash
+media-import inventory
+# After transfers finish and at least ten minutes have elapsed:
+media-import inventory
+media-import status
+
+# Prepare a small, bounded first review queue:
+media-import propose --kind movie --limit 10
+media-import review
+
+# Preview and approve exactly the accepted, unbatched mappings:
+media-import approve --accepted
+# This is separate from approval; substitute the displayed batch ID:
+media-import apply 1
+media-import verify 1
+
+media-import backup
+media-import export /var/lib/media-import/export
+```
+
+The terminal review offers candidate selection, full evidence, mapping edits in `$EDITOR`, explicit exclusions/deferrals, and alternate versions outside app-managed roots. TV seasons and music albums can be reviewed as a group with every source-to-destination mapping displayed before acceptance. Music requires selecting a specific MusicBrainz release. Review and approval never execute imports. Use explicit proposal IDs with `approve` to select a smaller batch instead of `--accepted`.
+
+For focused investigation, `media-import list --kind movie --contains Brazil` finds stable file IDs and outcomes; `media-import show FILE_ID` shows their observations, proposals, decisions, and operations. CSV exports include a joined `current.csv` with one row per source path, its current outcome, destination, identity, reason, and recorded hash. `propose --files FILE_ID --kind KIND --retry` regenerates an unreviewed proposal, optionally with `--refresh-metadata`; it does not reopen decisions or completed imports. `reopen FILE_ID` explicitly edits a previously reviewed mapping while preserving history and refuses files with existing import operations. Difficult corrections after an operation began need investigation of that operation; there is deliberately no bulk reset/delete command.
+
+Archive work stays separate: `propose --kind archive --files FILE_ID ...` records member listings without extraction. Do not approve an archive as a media file. The known movie/TV/music exceptions include five Conan RAR releases, Malcolm in the Middle season-one ZIP, Prison Break subtitle RARs, The Threepenny Opera FLAC ZIP, and a misplaced software ZIP. Other categories remain inventoried even though ebook/comic/software application management is deferred.
+
+### Execution and verification
+
+Implementation adjustment: the importer registers the approved identity unmonitored through supported app APIs, creates the exact approved hardlink itself using `link(2)`, and then asks the app to scan its organized library path. It never falls back to copying. Apps see the NAS read-only, preventing tag rewrites, source deletion, renames, or replacements. Lidarr tag writing is additionally disabled through the API. All app metadata/database writes stay local.
+
+Every approved manifest has a digest and specific source revision IDs. The executor revalidates decisions, source observations, and destination collisions; backs up app state; saves a pre-import SHA-256; records progress before side effects; and checks both inode identity and the app's movie/episode/track assignment before marking an operation verified. A crash after creating a hardlink can be reconciled against the saved hash. Failed app matching leaves a recorded linked-but-unverified operation for correction, never a false success. No source move, deletion, permission rewrite, tag modification, or automatic extraction is performed.
+
+The first real collection pilot still requires user approval. Cover a flat movie, a movie with companions, a TV season, single/multidisc music, and single/multipart audiobooks. Synthetic filesystem tests do not establish that the real collection has been correctly matched.
+
+### Access, backups, and logs
+
+For UI access from another machine, use SSH forwarding; do not open public ports:
+
+```bash
+ssh -N -L 7878:127.0.0.1:7878 -L 8989:127.0.0.1:8989 \
+  -L 8686:127.0.0.1:8686 -L 8000:127.0.0.1:8000 dbalatero@media.vm.netcat.cloud
+```
+
+The initialized username is `dbalatero`; private generated passwords are `/var/lib/media-import/{radarr,sonarr,lidarr,audiobookshelf}.password`. Read them locally when needed; do not paste them into chat or Git. API keys are separate files. The initializer does not reset an existing Audiobookshelf account.
+
+SQLite online backups are taken locally after review/approval and before imports. `media-import backup` copies a consistent snapshot to `/mnt/warez/media-import-audit`; a daily Nix-managed timer also does this. Keep migration history and backups through handover; these are persistent audit artifacts, not disposable logs. Backups on the same NAS are not an independent failure-domain backup.
+
+Journald uses the existing 512 MiB persistent / 128 MiB runtime / 14-day limits. Servarr uses native rotation, explicitly configured for ten 1 MiB archives per enabled level, with info logging and its separate log database disabled. Audiobookshelf daily and scan logs older than fourteen days are removed by a timer; this is age-based, not a strict quota. Crash logs rotate daily or when checked above 10 MiB, with seven compressed rotations. Log cleanup never deletes application databases, media, or Nix packages.
+
+Validation includes `python3 -m unittest discover -s tests/media_import -v`, Nix evaluation/build, actual service/API checks, and a temporary NAS hardlink readable by all four service identities. The initial live inventory found 16,471 files without scan errors. Actual collection import, real-match verification, and future torrent rechecks remain separate milestones.
+
+Later pulls must preserve relative paths and avoid `--inplace` and `--delete`. Run inventory/propose/review again after each completed pull; completed imports remain closed. Preserve original torrent metadata and save-root semantics. A future local client must force-recheck each torrent to 100% before seeding.
 
 ## Current priority: correctly import existing media through hardlinks
 
