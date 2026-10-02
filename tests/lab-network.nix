@@ -11,8 +11,8 @@
     services = map (service: if service.name == name then service // changes else service) inventory.services;
   };
   mediaServices = [
-    {name = "sonarr"; hostname = "sonarr"; machine = "media"; scheme = "http"; port = 8989;}
-    {name = "radarr"; hostname = "radarr"; machine = "media"; scheme = "http"; port = 7878;}
+    {name = "test-sonarr"; hostname = "test-sonarr"; machine = "media"; scheme = "http"; port = 8989;}
+    {name = "test-radarr"; hostname = "test-radarr"; machine = "media"; scheme = "http"; port = 7878;}
   ];
   searchFor = hostname: (lib.evalModules {
     modules = [
@@ -44,6 +44,10 @@
         "192.168.1.203 nas.netcat.cloud"
         "192.168.1.203 proxmox.netcat.cloud"
         "192.168.1.203 pihole.netcat.cloud"
+        "192.168.1.203 tv.netcat.cloud"
+        "192.168.1.203 movies.netcat.cloud"
+        "192.168.1.203 music.netcat.cloud"
+        "192.168.1.203 audiobooks.netcat.cloud"
       ];
     };
     testAddressChangeReachesAllServiceRecords = {
@@ -83,14 +87,14 @@
     };
     testSeveralServicesOnOneMachine = {
       expr = let n = read (inventory // {services = inventory.services ++ mediaServices;}); in {
-        sonarr = n.servicesByName.sonarr.upstream;
-        radarr = n.servicesByName.radarr.upstream;
+        sonarr = n.servicesByName.test-sonarr.upstream;
+        radarr = n.servicesByName.test-radarr.upstream;
         records = lib.takeEnd 2 n.dnsHosts;
       };
       expected = {
         sonarr = "http://media.vm.netcat.cloud:8989";
         radarr = "http://media.vm.netcat.cloud:7878";
-        records = ["192.168.1.203 sonarr.netcat.cloud" "192.168.1.203 radarr.netcat.cloud"];
+        records = ["192.168.1.203 test-sonarr.netcat.cloud" "192.168.1.203 test-radarr.netcat.cloud"];
       };
     };
     testExistingUpstreams = {
@@ -101,6 +105,10 @@
         truenas = "http://truenas.vm.netcat.cloud:80";
         proxmox = "https://proxmox.vm.netcat.cloud:8006";
         pihole-dns = "http://pihole-dns.vm.netcat.cloud:80";
+        sonarr = "http://media.vm.netcat.cloud:8989";
+        radarr = "http://media.vm.netcat.cloud:7878";
+        lidarr = "http://media.vm.netcat.cloud:8686";
+        audiobookshelf = "http://media.vm.netcat.cloud:8000";
       };
     };
     testServiceCanChangeBackend = {

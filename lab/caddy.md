@@ -176,3 +176,93 @@ mint, and lavender accents. `hosts/caddy/homepage.css` supplies local monospace
 font fallbacks, a centered responsive layout, metric panels, and keyboard focus
 styles. Infrastructure uses two columns on wider screens, followed by Markets.
 The header contains the lab name and date/time. No external font service is used.
+
+
+## Media routes and ordered deployment (2026-10-02)
+
+The shared service inventory now declares these internal HTTPS routes:
+
+| Service name | Frontend | Media backend port |
+| --- | --- | --- |
+| sonarr | tv.netcat.cloud | 8989 |
+| radarr | movies.netcat.cloud | 7878 |
+| lidarr | music.netcat.cloud | 8686 |
+| audiobookshelf | audiobooks.netcat.cloud | 8000 |
+
+All four entries use `machine: "media"` and `scheme: "http"`. Pi-hole generates
+A records pointing to Caddy (`192.168.1.203`); Caddy generates upstreams at
+`media.vm.netcat.cloud` (`192.168.1.205`). No handwritten duplicate virtual hosts
+are needed. The existing proxy supports WebSockets and forwarded headers; see
+[Caddy reverse proxy documentation](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+
+Media binds the apps on wildcard addresses, retaining localhost API access.
+Its NixOS firewall admits the four TCP ports only from Caddy's inventory IPv4
+address on `ens18`. App authentication remains enabled. The service ports are
+derived from the same inventory as the routes. Media's existing app log and
+journal policies continue to apply. Generated Caddy access logs use the existing
+10 MiB / five compressed archives / 14-day per-hostname policy; Caddy's journal
+uses 512 MiB persistent / 128 MiB runtime / 14-day limits. Pi-hole retains its
+10 MiB rotation check, seven compressed archives, and 30-day query history.
+
+Local validation: all three NixOS system derivations evaluated and all 24
+inventory tests passed. Media was rebuilt successfully; all four services are
+active, their authenticated localhost API requests returned 200, and the live
+IPv4 firewall admits only Caddy on the four backend ports (IPv6 admits none).
+Caddy and Pi-hole have not been deployed by this session; their network and TLS
+checks below remain pending.
+
+Deploy in this order: Media (already applied), Pi-hole, then Caddy. Run the
+remote steps locally on their respective machines. Pull the updated repository
+with `git pull --ff-only` before rebuilding; preserve unrelated local changes.
+The new DNS names may temporarily fail HTTPS until Caddy is deployed. This is
+expected during the handoff and does not indicate a DNS failure.
+
+1. **Media:** already rebuilt and verified as described above. The permitted
+   LAN source still needs verification from Caddy, and the denied source from
+   Pi-hole; localhost API requests do not test the LAN firewall.
+2. **Pi-hole:** apply `./bin/switch --max-jobs 1 --cores 1`. Confirm each new
+   hostname resolves through Pi-hole to `192.168.1.203`. Check existing DNS
+   records and DNS service health. Direct connections from Pi-hole to Media's
+   four backend ports must fail. HTTPS verification waits until step 3; do not
+   broaden Media's firewall or change DNS to work around a pending Caddy route.
+3. **Caddy:** before rebuilding, request each backend from this machine using
+   its frontend Host header. Arr roots should redirect to login; Audiobookshelf
+   should return its UI. Unauthenticated protected API requests must remain
+   rejected. Apply `./bin/switch --max-jobs 1 --cores 1`, using the existing
+   production Porkbun DNS-01 credentials. Verify the generated routes and log
+   retention, successful certificate issuance, and existing services. Test all
+   four new HTTPS frontends using normal DNS with certificate verification;
+   do not use `-k`. Verify UI assets and the Audiobookshelf Socket.IO/WebSocket
+   handshake if available without login. Never print credentials, API keys,
+   or cookies. After Caddy passes, HTTPS can also be checked from Pi-hole or
+   a LAN browser.
+
+Do not duplicate inventory entries, recreate credentials, reset app accounts,
+change public address DNS, or alter WAN forwarding. `curl --resolve` remains
+useful for isolating DNS from proxy issues, but is not needed for normal checks
+once Pi-hole serves the new records.
+
+Examples for Caddy (repeat the frontend test for all four aliases):
+
+```bash
+curl --connect-timeout 5 -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'Host: tv.netcat.cloud' http://media.vm.netcat.cloud:8989/
+curl --connect-timeout 5 -sS -o /dev/null -w '%{http_code}\n' \
+  https://tv.netcat.cloud/
+curl -sSI http://tv.netcat.cloud/
+```
+
+Examples for Pi-hole (repeat for all four aliases):
+
+```bash
+dig @192.168.1.202 tv.netcat.cloud A +short
+# After Caddy is deployed:
+curl --connect-timeout 5 -sS -o /dev/null -w '%{http_code}\n' https://tv.netcat.cloud/
+# This direct backend request is expected to fail from Pi-hole:
+curl --connect-timeout 3 --max-time 5 -sS -o /dev/null http://192.168.1.205:8989/
+```
+
+A 200 or login redirect is expected for UI routes; 502 is not success. Report
+certificate failures separately from app responses. Authenticated UI navigation
+and playback remain user checks. These instructions are a handoff, not a claim
+that Caddy or Pi-hole has already been deployed.

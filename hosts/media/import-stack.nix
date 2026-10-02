@@ -1,4 +1,9 @@
 {config, lib, pkgs, ...}: let
+  network = import ../../lab/network.nix {inherit lib;};
+  proxyPorts = lib.concatStringsSep "," (map
+    (name: toString network.servicesByName.${name}.port)
+    ["sonarr" "radarr" "lidarr" "audiobookshelf"]);
+  proxyRule = "-i ens18 -s ${network.proxy.ip}/32 -p tcp -m multiport --dports ${proxyPorts} -j nixos-fw-accept";
   python = pkgs.python3.withPackages (p: [p.guessit]);
   importer = pkgs.stdenvNoCC.mkDerivation {
     pname = "media-import";
@@ -65,7 +70,7 @@ in {
       keyFile = "${state}/${name}.key";
     }) // {
       audiobookshelf = {
-        url = "http://127.0.0.1:8000/api";
+        url = "http://127.0.0.1:${toString config.services.audiobookshelf.port}/api";
         keyFile = "${state}/audiobookshelf.token";
         bearer = true;
       };
@@ -91,12 +96,33 @@ in {
   services.lidarr.enable = true;
   services.audiobookshelf = {
     enable = true;
-    host = "127.0.0.1";
+    host = "0.0.0.0";
+    port = network.servicesByName.audiobookshelf.port;
     openFirewall = false;
   };
-  services.sonarr.settings.server.bindaddress = "127.0.0.1";
-  services.radarr.settings.server.bindaddress = "127.0.0.1";
-  services.lidarr.settings.server.bindaddress = "127.0.0.1";
+  services.sonarr.openFirewall = false;
+  services.sonarr.settings.server = {
+    bindaddress = "*";
+    port = network.servicesByName.sonarr.port;
+  };
+  services.radarr.openFirewall = false;
+  services.radarr.settings.server = {
+    bindaddress = "*";
+    port = network.servicesByName.radarr.port;
+  };
+  services.lidarr.openFirewall = false;
+  services.lidarr.settings.server = {
+    bindaddress = "*";
+    port = network.servicesByName.lidarr.port;
+  };
+
+  # The importer keeps using loopback; only Caddy may reach the LAN backends.
+  networking.firewall.extraCommands = ''
+    iptables -A nixos-fw ${proxyRule}
+  '';
+  networking.firewall.extraStopCommands = ''
+    iptables -D nixos-fw ${proxyRule} 2>/dev/null || true
+  '';
 
   users.users = lib.genAttrs (apps ++ ["audiobookshelf"]) (_: {extraGroups = ["media"];});
   systemd.tmpfiles.rules = [

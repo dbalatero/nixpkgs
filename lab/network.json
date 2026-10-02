@@ -97,6 +97,34 @@
       "machine": "pihole-dns",
       "scheme": "http",
       "port": 80
+    },
+    {
+      "name": "sonarr",
+      "hostname": "tv",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8989
+    },
+    {
+      "name": "radarr",
+      "hostname": "movies",
+      "machine": "media",
+      "scheme": "http",
+      "port": 7878
+    },
+    {
+      "name": "lidarr",
+      "hostname": "music",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8686
+    },
+    {
+      "name": "audiobookshelf",
+      "hostname": "audiobooks",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8000
     }
   ]
 }

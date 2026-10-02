@@ -4,7 +4,7 @@ Status: initial import stack and incremental audit tooling implemented on 2026-1
 
 ## Implemented incremental audit workflow
 
-`hosts/media/import-stack.nix` declares Sonarr, Radarr, Lidarr, Audiobookshelf, and the `media-import` CLI. All four applications bind to localhost. A Nix-managed initializer sets migration safety options via the applications' APIs, generates local login credentials, and supplies private API-key files. Application state and the audit database stay on the VM disk.
+`hosts/media/import-stack.nix` declares Sonarr, Radarr, Lidarr, Audiobookshelf, and the `media-import` CLI. All four applications accept local API connections and connections from Caddy through a source-restricted firewall rule; other LAN clients cannot connect directly to their backend ports. A Nix-managed initializer sets migration safety options via the applications' APIs, generates local login credentials, and supplies private API-key files. Application state and the audit database stay on the VM disk.
 
 The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/data`. Keep `/mnt/warez/torrents` unchanged. Library directories are ordinary directories under `/mnt/warez/media`: `movies`, `tv`, `music`, `audiobooks`, `spoken-word`, and `alternates`.
 
@@ -59,7 +59,9 @@ The first real collection pilot still requires user approval. Cover a flat movie
 
 ### Access, backups, and logs
 
-For UI access from another machine, use SSH forwarding; do not open public ports:
+The internal HTTPS names are `tv.netcat.cloud` (Sonarr), `movies.netcat.cloud` (Radarr), `music.netcat.cloud` (Lidarr), and `audiobooks.netcat.cloud` (Audiobookshelf). DNS and Caddy routes are generated from `lab/network.json`. Media allows backend connections from Caddy (`192.168.1.203`) only, plus localhost for the importer. Caddy and Pi-hole deployment must be completed on their respective machines; see the ordered handoff in `lab/caddy.md`. No public service address records or WAN forwarding are needed.
+
+Until that deployment is complete, SSH forwarding remains available:
 
 ```bash
 ssh -N -L 7878:127.0.0.1:7878 -L 8989:127.0.0.1:8989 \
