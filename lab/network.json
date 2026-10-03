@@ -64,6 +64,13 @@
   ],
   "services": [
     {
+      "name": "authentik",
+      "hostname": "auth",
+      "machine": "caddy",
+      "scheme": "http",
+      "port": 9000
+    },
+    {
       "name": "homepage",
       "hostname": "@",
       "machine": "caddy",
