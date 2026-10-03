@@ -49,6 +49,12 @@ in {
             }
           }
           ${lib.optionalString (name == "pihole-dns") ''
+            route {
+              reverse_proxy /outpost.goauthentik.io/* http://127.0.0.1:9000
+              forward_auth http://127.0.0.1:9000 {
+                uri /outpost.goauthentik.io/auth/caddy
+                copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Email X-Authentik-Name X-Authentik-Uid
+              }
             redir / /admin/ 302
             redir /admin /admin/ 308
             # NixOS pihole-web serves its dashboard at /; leave /api intact.
@@ -73,6 +79,7 @@ in {
               header_down Location ^http://${lib.replaceStrings ["."] ["\\."] service.fqdn}(/.*)$ https://${service.fqdn}$1
             ''}
           }
+          ${lib.optionalString (name == "pihole-dns") "}"}
         '';
       }) network.servicesByName;
     };

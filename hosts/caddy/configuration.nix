@@ -7,6 +7,7 @@ in {
     ../common/nixos-vm
     ./caddy.nix
     ./homepage.nix
+    ./authentik.nix
   ];
 
   networking.hostName = "caddy";

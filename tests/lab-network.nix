@@ -39,6 +39,7 @@
         "192.168.1.203 caddy.vm.netcat.cloud"
         "192.168.1.204 builder.vm.netcat.cloud"
         "192.168.1.205 media.vm.netcat.cloud"
+        "192.168.1.203 auth.netcat.cloud"
         "192.168.1.203 netcat.cloud"
         "192.168.1.203 gateway.netcat.cloud"
         "192.168.1.203 nas.netcat.cloud"
@@ -102,6 +103,7 @@
       expected = {
         gateway = "https://gateway.vm.netcat.cloud:443";
         homepage = "http://caddy.vm.netcat.cloud:8082";
+        authentik = "http://caddy.vm.netcat.cloud:9000";
         truenas = "http://truenas.vm.netcat.cloud:80";
         proxmox = "https://proxmox.vm.netcat.cloud:8006";
         pihole-dns = "http://pihole-dns.vm.netcat.cloud:80";

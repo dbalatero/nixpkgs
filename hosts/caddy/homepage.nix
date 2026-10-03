@@ -51,7 +51,8 @@ in {
           href = "https://${network.servicesByName.pihole-dns.fqdn}/admin/";
           widget = {
             type = "pihole";
-            url = "https://${network.servicesByName.pihole-dns.fqdn}";
+            # Server-side widget requests do not have a browser SSO session.
+            url = network.servicesByName.pihole-dns.upstream;
             version = 6;
             # Pi-hole currently has authentication disabled; no key is needed.
             fields = ["queries" "blocked" "blocked_percent" "gravity"];

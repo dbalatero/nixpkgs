@@ -10,8 +10,74 @@ ports come through `lab/network.nix`; one machine can host multiple services.
 Special behavior stays in Nix, keyed by stable service `name`. Caddy uses Pi-hole
 for backend resolution and public resolvers for DNS-01 propagation checks.
 The gateway transport skips upstream certificate verification. Proxmox uses the
-public cluster CA in `hosts/caddy/proxmox-ca.pem` and verifies its IP identity. Authentication
-is deferred, including the existing passwordless Pi-hole dashboard.
+public cluster CA in `hosts/caddy/proxmox-ca.pem` and verifies its IP identity.
+Pi-hole now has a declared Authentik gate at Caddy; see the Authentik section below.
+
+## Authentik and Pi-hole
+
+`hosts/caddy/authentik.nix` runs Authentik server, worker, embedded proxy outpost,
+and local PostgreSQL on Caddy. The `authentik-nix` flake input pins its package
+and NixOS module; the upstream signed nix-community cache supplies binaries.
+`auth.netcat.cloud` resolves to Caddy through the shared inventory. Authentik's
+HTTP and metrics listeners bind to loopback; Caddy provides HTTPS.
+
+The Nix-generated blueprint declares the Pi-hole provider, application, and
+`Pi-hole admins` group, initially containing `akadmin`. Group creation is
+bootstrap-only so subsequent memberships can be managed in Authentik. Either
+`authentik Admins` or `Pi-hole admins` grants access (the application combines
+these bindings with OR). Pi-hole's dashboard and API
+at `pihole.netcat.cloud` require an Authentik browser session. The outpost's
+callback paths remain accessible for login. Requests are authenticated before
+the existing `/admin/` rewrite. If Authentik is unavailable, access fails closed.
+
+Pi-hole itself remains passwordless and its firewall is unchanged, as requested.
+Direct IP access still bypasses this gate. Homepage's server-side Pi-hole widget
+uses the private backend URL instead of the protected browser hostname.
+
+On first boot, `authentik-secrets.service` generates the signing secret and a
+random initial admin password locally. No secrets enter Git or the Nix store.
+Log in at `https://auth.netcat.cloud` as `akadmin`; retrieve the initial password
+in your own terminal on Caddy:
+
+```bash
+sudo cat /var/lib/authentik-secrets/initial-admin-password
+```
+
+Change the password after first login. The bootstrap hash is only used for initial
+setup; restarts do not reset a changed password. Back up the PostgreSQL database
+and `/var/lib/authentik-secrets` together with Authentik's media state. The
+root-only initial-password file is a bootstrap credential, not a recovery key
+after the password changes.
+
+For a personal administrator account, open Admin interface → Directory → Users,
+create the user and set its password. Add it to `authentik Admins` for full
+administration, including Pi-hole access. Use `Pi-hole admins` for users who
+only need Pi-hole access. These memberships survive
+blueprint reconciliation. Browser SSO uses an Authentik session on
+`auth.netcat.cloud` and a separate Pi-hole proxy cookie; no parent-domain cookie
+is needed for later service integrations to reuse the Authentik session.
+
+Runtime logs from Authentik, PostgreSQL, and cleanup use the existing journal
+policy: 512 MiB persistent, 128 MiB runtime, maximum 14 days. Caddy's access logs
+rotate at 10 MiB per file with five compressed archives and 14-day retention.
+`authentik-log-retention.timer` runs daily and after boot: audit events retain
+30 days, and completed/rejected-task log rows retain 14 days. These database
+limits are age-based, not strict disk quotas; PostgreSQL reuses freed space.
+Active job logs and application data are excluded from this cleanup.
+
+Validate the deployed setup with:
+
+```bash
+systemctl is-active authentik authentik-worker postgresql caddy
+systemctl list-timers authentik-log-retention.timer
+curl -I https://pihole.netcat.cloud/admin/
+curl -I https://pihole.netcat.cloud/api/info/version
+```
+
+Both Pi-hole requests should redirect to authentication without a browser
+session. After login, verify the dashboard, API-backed statistics, and Homepage
+widget. Apply future Caddy changes with `./bin/switch` on Caddy. DNS inventory
+changes require a separate Pi-hole rebuild; this deployment does not rebuild it.
 
 ## Inventory refactor verification (2026-10-01)
 

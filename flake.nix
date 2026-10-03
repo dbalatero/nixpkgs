@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    authentik-nix.url = "github:nix-community/authentik-nix";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     claude-code = {
       url = "github:sadjow/claude-code-nix";
@@ -63,6 +64,7 @@
     neovim-nightly-overlay,
     claude-code,
     codex-cli,
+    authentik-nix,
   }: {
     homeConfigurations."racknerd-a61953" = home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
