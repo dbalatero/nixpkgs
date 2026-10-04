@@ -130,6 +130,11 @@ in {
   services.sonarr.enable = true;
   services.radarr.enable = true;
   services.lidarr.enable = true;
+  # Caddy's Authentik gate owns browser authentication. Backend firewall rules
+  # admit only Caddy; loopback integrations continue using their existing keys.
+  services.sonarr.settings.auth = {method = "External"; required = "Enabled";};
+  services.radarr.settings.auth = {method = "External"; required = "Enabled";};
+  services.lidarr.settings.auth = {method = "External"; required = "Enabled";};
   services.audiobookshelf = {
     enable = true;
     host = "0.0.0.0";

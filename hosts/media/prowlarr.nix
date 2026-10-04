@@ -18,6 +18,8 @@ in {
     openFirewall = false;
     settings = {
       server = {bindaddress = "*"; inherit port;};
+      # Browser access is gated by Caddy/Authentik; local apps retain API keys.
+      auth = {method = "External"; required = "Enabled";};
       # Native rotation: ten 1 MiB archives plus the active file per level.
       # No separate log database or per-job log files.
       log = {level = "info"; rotate = 10; sizeLimit = 1; dbEnabled = false;};

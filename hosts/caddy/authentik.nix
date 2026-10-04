@@ -3,6 +3,7 @@
   cfg = config.services.authentik;
   components = cfg.authentikComponents;
   authURL = "https://${network.servicesByName.authentik.fqdn}";
+  mediaApps = ["radarr" "lidarr" "prowlarr" "sonarr"];
   blueprint = pkgs.writeText "netcat-authentik.yaml" ''
     version: 1
     metadata:
@@ -61,6 +62,46 @@
           target: !KeyOf pihole-app
           group: !Find [authentik_core.group, [name, authentik Admins]]
           order: 1
+      - model: authentik_core.group
+        # Seed once; later memberships are managed in Authentik.
+        state: created
+        id: media-admins
+        identifiers:
+          name: Media admins
+        attrs:
+          users:
+            - !Find [authentik_core.user, [username, akadmin]]
+      ${lib.replaceStrings ["\n"] ["\n  "] (lib.concatMapStringsSep "\n" (name: ''
+      - model: authentik_providers_proxy.proxyprovider
+        id: ${name}-provider
+        identifiers:
+          name: ${lib.toUpper (builtins.substring 0 1 name)}${builtins.substring 1 (-1) name}
+        attrs:
+          mode: forward_single
+          external_host: https://${network.servicesByName.${name}.fqdn}
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      - model: authentik_core.application
+        id: ${name}-app
+        identifiers:
+          slug: ${name}
+        attrs:
+          name: ${lib.toUpper (builtins.substring 0 1 name)}${builtins.substring 1 (-1) name}
+          provider: !KeyOf ${name}-provider
+          meta_launch_url: https://${network.servicesByName.${name}.fqdn}
+          policy_engine_mode: any
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf ${name}-app
+          group: !KeyOf media-admins
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf ${name}-app
+          group: !Find [authentik_core.group, [name, authentik Admins]]
+          order: 1
+      '') mediaApps)}
       - model: authentik_outposts.outpost
         identifiers:
           managed: goauthentik.io/outposts/embedded
@@ -69,6 +110,7 @@
           type: proxy
           providers:
             - !KeyOf pihole-provider
+            ${lib.concatMapStringsSep "\n        " (name: "- !KeyOf ${name}-provider") mediaApps}
           config:
             authentik_host: ${authURL}
             log_level: info

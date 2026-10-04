@@ -79,6 +79,63 @@ session. After login, verify the dashboard, API-backed statistics, and Homepage
 widget. Apply future Caddy changes with `./bin/switch` on Caddy. DNS inventory
 changes require a separate Pi-hole rebuild; this deployment does not rebuild it.
 
+## Media dashboard authentication
+
+The shared proxy blueprint also declares Radarr (`movies.netcat.cloud`), Lidarr
+(`music.netcat.cloud`), Prowlarr (`trackers.netcat.cloud`), and Sonarr
+(`tv.netcat.cloud`). Membership in either `Media admins` or `authentik Admins`
+grants access to all four dashboards. `Media admins` is seeded with `akadmin`
+once; later membership changes belong in Authentik. These apps expose full
+administrative dashboards, so this group is for administrators, not requesters.
+The embedded outpost's provider list is owned by the same blueprint as Pi-hole,
+so reconciliation retains all five providers together.
+
+Caddy gates every path, including APIs and live updates, except the outpost's
+own login/callback paths. The apps use `AUTH__METHOD=External` and
+`AUTH__REQUIRED=Enabled` through NixOS service settings. Backend ports remain
+firewalled to Caddy; local callers retain their existing API keys. Do not replace
+internal localhost URLs with the browser hostnames or add public API bypasses.
+Prowlarr connects to Sonarr/Radarr/Lidarr over localhost; their indexer URLs point
+back to localhost Prowlarr. Seerr likewise uses localhost Sonarr/Radarr URLs.
+Seerr keeps Plex login and has no additional Authentik gate.
+
+Apply the updated checkout on **Caddy first** with `./bin/switch`. Confirm the
+blueprint is applied, all four applications appear in Authentik, and logged-out
+requests to each dashboard and `/api/v1/system/status` (Lidarr/Prowlarr) or
+`/api/v3/system/status` (Radarr/Sonarr) redirect to login. Then apply the updated
+checkout on **media** with `./bin/switch` to remove the apps' second login.
+Never enable external authentication before the proxy gate is in place.
+
+After both switches:
+
+- Check browser access with an allowed account, and denial for an account in
+  neither allowed group. Confirm dashboards and live updates work.
+- On media, run `sudo systemctl restart prowlarr-apps` to reconcile and test
+  Prowlarr's three application connections; check its journal for successful tests.
+- In each app, test its Prowlarr indexer connection; in Seerr, test both configured
+  Sonarr and Radarr servers. These use the existing stored API keys.
+- Verify a separate LAN client cannot connect directly to media ports 7878,
+  8686, 8989, or 9696.
+
+Existing retention covers these changes: each app keeps ten 1 MiB log archives
+per level plus its active file, with the log database disabled. Caddy keeps five
+compressed 10 MiB access-log archives per hostname for at most 14 days, with
+cleanup during rotation. Both hosts' journals are bounded to 512 MiB persistent,
+128 MiB runtime, and 14 days. Authentik's daily retention timer keeps 30 days of
+audit events and 14 days of finished-task logs; these database limits are
+age-based, not disk quotas. No additional log destinations are introduced.
+
+Validation before deployment: both system derivations evaluated; the generated
+blueprint parsed and Caddy configuration adapted. Disposable instances of all
+four pinned apps accepted valid API keys, rejected invalid keys, and served the
+UI with external authentication. Prowlarr's application tests passed against
+all three disposable apps, and Seerr's API client read Sonarr/Radarr profiles
+and roots. Generated Caddy routes were exercised with mock auth/backend servers:
+unauthenticated browser/API requests redirected, authenticated requests passed,
+spoofed identity headers did not bypass authentication, callbacks worked, and an
+unavailable auth server failed closed. Live deployment and browser acceptance
+checks remain separate from these isolated tests.
+
 ## Inventory refactor verification (2026-10-01)
 
 Only the existing gateway, NAS, Proxmox, and Pi-hole services were migrated.
