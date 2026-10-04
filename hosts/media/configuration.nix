@@ -6,6 +6,7 @@
     ../common/nfs
     ./import-stack.nix
     ./qbittorrent.nix
+    ./ebook-import.nix
   ];
 
   networking.hostName = "media";
