@@ -1,5 +1,7 @@
 """Durable inventory and append-only review history (standard library only)."""
 import csv
+import fcntl
+import re
 import hashlib
 import json
 import os
@@ -24,12 +26,16 @@ def signature(path):
   return [s.st_size, s.st_mtime_ns, s.st_ctime_ns, s.st_dev, s.st_ino]
 
 
-def checksum(path):
+def checksum(path, progress=None):
   before = signature(path)
   h = hashlib.sha256()
+  read = 0
   with open(path, "rb") as stream:
     for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
       h.update(block)
+      read += len(block)
+      if progress:
+        progress(read)
   if signature(path) != before:
     raise ValueError(f"File changed while hashing: {path}")
   return h.hexdigest()
@@ -66,11 +72,29 @@ def classify(relative):
     return "tv" if p.parts[0] == "TV Shows" else "movie" if p.parts[0] == "Movies" else "video"
   if ext in {".flac", ".mp3", ".m4a", ".m4b", ".ogg", ".opus", ".wav", ".aac", ".aiff", ".ape"}:
     if "hardcore history" in low:
-      return "spoken-word"
+      return "podcast"
     return "audiobook" if p.parts[0] in {"Books", "Audio"} or ext == ".m4b" else "music"
   if ext in {".srt", ".sub", ".idx", ".ass", ".ssa", ".jpg", ".jpeg", ".png", ".cue", ".log", ".m3u", ".m3u8", ".nfo", ".txt", ".sfv", ".srr", ".lrc"}:
     return "companion"
   return "other"
+
+
+def validate_book_mappings(manifest):
+  positions, identities = {}, {}
+  for item in manifest:
+    mapping = item["mapping"]
+    if mapping["kind"] not in {"audiobook", "spoken-word", "podcast"} or mapping.get("alternate"):
+      continue
+    folder = mapping["entityPath"]
+    position = (folder, mapping["order"])
+    if position in positions and positions[position] != mapping["destination"]:
+      raise ValueError(f"Conflicting audio part {mapping['order']} in {folder}: "
+        "each file in a shared book needs a distinct order; separate episodes need separate book folders")
+    positions[position] = mapping["destination"]
+    identity = packed(mapping["identity"])
+    if folder in identities and identities[folder] != identity:
+      raise ValueError(f"Conflicting book identities in {folder}")
+    identities[folder] = identity
 
 
 SCHEMA = """
@@ -105,11 +129,24 @@ CREATE TABLE IF NOT EXISTS operations (
   proposal_id INTEGER UNIQUE NOT NULL REFERENCES proposals(id), status TEXT NOT NULL,
   before_hash TEXT, verified_signature TEXT, app_record TEXT, error TEXT
 );
+CREATE TABLE IF NOT EXISTS import_jobs (
+  batch_id INTEGER PRIMARY KEY REFERENCES batches(id), status TEXT NOT NULL,
+  error TEXT, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS music_copies (
+  operation_id INTEGER PRIMARY KEY REFERENCES operations(id), phase TEXT NOT NULL,
+  temp_path TEXT NOT NULL, source_signature TEXT NOT NULL, converting INTEGER NOT NULL DEFAULT 0,
+  sha256 TEXT, destination_signature TEXT
+);
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY, created REAL NOT NULL, category TEXT NOT NULL,
   file_id INTEGER, detail TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS hashes (
+  revision_id INTEGER PRIMARY KEY REFERENCES revisions(id), signature TEXT NOT NULL,
+  sha256 TEXT NOT NULL, created REAL NOT NULL
+);
 CREATE INDEX IF NOT EXISTS revisions_file ON revisions(file_id);
 CREATE INDEX IF NOT EXISTS proposals_revision ON proposals(revision_id);
 CREATE INDEX IF NOT EXISTS decisions_revision ON decisions(revision_id);
@@ -117,15 +154,33 @@ CREATE INDEX IF NOT EXISTS operations_batch ON operations(batch_id);
 """
 
 
+def audit_snapshots(directory):
+  return sorted((p for p in Path(directory).iterdir() if
+    re.fullmatch(r'audit-[0-9]+\.sqlite', p.name) and p.is_file() and not p.is_symlink()),
+    key=lambda p: int(p.stem.split('-')[1]), reverse=True)
+
+
+def prune_audit_snapshots(directory, keep):
+  if keep < 1:
+    raise ValueError('At least one audit backup must be retained')
+  for path in audit_snapshots(directory)[keep:]:
+    print(f"Removing old audit backup: {path}", flush=True)
+    path.unlink()
+
+
 class Store:
-  def __init__(self, path, root):
+  def __init__(self, path, root, readonly=False):
     self.path = Path(path)
-    self.path.parent.mkdir(parents=True, exist_ok=True)
-    self.db = sqlite3.connect(self.path)
+    if readonly:
+      self.db = sqlite3.connect(self.path.resolve().as_uri() + "?mode=ro", uri=True)
+    else:
+      self.path.parent.mkdir(parents=True, exist_ok=True)
+      self.db = sqlite3.connect(self.path)
     self.db.row_factory = sqlite3.Row
     self.db.execute("PRAGMA foreign_keys=ON")
-    self.db.execute("PRAGMA journal_mode=WAL")
-    self.db.executescript(SCHEMA)
+    if not readonly:
+      self.db.execute("PRAGMA journal_mode=WAL")
+      self.db.executescript(SCHEMA)
     version = self.db.execute("SELECT value FROM meta WHERE key='schema'").fetchone()
     if version and version[0] != "1":
       raise ValueError("Unsupported audit database version")
@@ -133,23 +188,79 @@ class Store:
     source_root = os.path.abspath(root)
     if previous and previous[0] != source_root:
       raise ValueError("Database belongs to a different source root")
-    self.db.execute("INSERT OR IGNORE INTO meta VALUES ('schema', '1')")
-    self.db.execute("INSERT OR IGNORE INTO meta VALUES ('source_root', ?)", (source_root,))
-    self.db.commit()
+    if not readonly:
+      self.db.execute("INSERT OR IGNORE INTO meta VALUES ('schema', '1')")
+      self.db.execute("INSERT OR IGNORE INTO meta VALUES ('source_root', ?)", (source_root,))
+      self.db.commit()
     self.root = Path(source_root)
+
+  def relocate_mapping(self, mapping):
+    """Apply recorded library moves without rewriting historical manifests."""
+    row = self.db.execute("SELECT value FROM meta WHERE key='library_relocations'").fetchone()
+    moves = json.loads(row[0]) if row else []
+    def visit(value):
+      if isinstance(value, list):
+        return [visit(v) for v in value]
+      if not isinstance(value, dict):
+        return value
+      result = {k: visit(v) for k, v in value.items()}
+      for old, new in moves:
+        for key in ("destination", "entityPath"):
+          path = result.get(key, "")
+          if path == old or path.startswith(old + "/"):
+            result[key] = new + path[len(old):]
+        if old == "spoken-word" and new == "podcasts" and result.get("kind") == "spoken-word":
+          result["kind"] = "podcast"
+      return result
+    return visit(mapping)
+
+  def relocate_record(self, record, media):
+    if not record:
+      return record
+    record = dict(record)
+    for key in ("bookPath", "expectedPath"):
+      if key in record:
+        relative = str(Path(record[key]).relative_to(media))
+        record[key] = str(Path(media) / self.relocate_mapping({"destination": relative})["destination"])
+    return record
 
   def event(self, category, detail, file_id=None):
     self.db.execute("INSERT INTO events(created,category,file_id,detail) VALUES (?,?,?,?)",
       (time.time(), category, file_id, packed(detail)))
 
-  def backup(self, directory):
+  def backup(self, directory, force=False):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    target = directory / f"audit-{time.time_ns()}.sqlite"
     self.db.commit()
-    with sqlite3.connect(target) as other:
-      self.db.backup(other)
-    return target
+    # Review and worker processes can both request backups. Serialize publication
+    # and pruning, and never expose an incomplete database as a usable snapshot.
+    with (directory / '.backup.lock').open('a') as lock:
+      fcntl.flock(lock, fcntl.LOCK_EX)
+      for partial in directory.glob('.audit-*.sqlite.partial'):
+        if partial.is_file() and not partial.is_symlink():
+          partial.unlink()
+      existing = audit_snapshots(directory)
+      if not force and existing and 0 <= time.time() - existing[0].stat().st_mtime < 300:
+        print(f"Reusing recent audit backup: {existing[0]} (less than 5 minutes old)", flush=True)
+        prune_audit_snapshots(directory, 3)
+        return existing[0]
+      target = directory / f"audit-{time.time_ns()}.sqlite"
+      temporary = directory / ('.' + target.name + '.partial')
+      print(f"Writing audit backup: {target}…", flush=True)
+      started = time.monotonic()
+      try:
+        with sqlite3.connect(temporary) as other:
+          self.db.backup(other)
+        os.chmod(temporary, 0o600)
+        with temporary.open('rb') as stream:
+          os.fsync(stream.fileno())
+        temporary.replace(target)
+        print(f"Audit backup complete: {target.stat().st_size / (1024 ** 2):.0f} MiB in {time.monotonic() - started:.1f}s", flush=True)
+        prune_audit_snapshots(directory, 3)
+        return target
+      finally:
+        temporary.unlink(missing_ok=True)
+
 
   def inventory(self, now=None):
     now = time.time() if now is None else now
@@ -206,6 +317,24 @@ class Store:
     self.db.commit()
     return {**counts, "errors": errors, "scan": scan}
 
+  def cached_hash(self, revision, observed):
+    row = self.db.execute("SELECT signature,sha256 FROM hashes WHERE revision_id=?", (revision,)).fetchone()
+    return row["sha256"] if row and json.loads(row["signature"]) == observed else None
+
+  def save_hash(self, revision, observed, sha256):
+    self.db.execute("INSERT OR REPLACE INTO hashes VALUES (?,?,?,?)",
+      (revision, packed(observed), sha256, time.time()))
+    self.db.commit()
+
+  def hash_candidates(self, stability=600):
+    return self.db.execute("""SELECT f.id,f.path,f.kind,r.id AS revision_id,r.signature
+      FROM files f JOIN revisions r ON r.id=f.current_revision
+      WHERE f.present=1 AND r.observations>=2 AND r.last_seen-r.first_seen>=?
+      AND f.kind<>'partial'
+      AND NOT EXISTS (SELECT 1 FROM operations o JOIN proposals p ON p.id=o.proposal_id
+        JOIN revisions old ON old.id=p.revision_id WHERE old.file_id=f.id)
+      ORDER BY f.path""", (stability,)).fetchall()
+
   def candidates(self, stability=600, retry=False):
     return self.db.execute("""
       SELECT f.*,r.id AS revision_id,r.signature,r.probe FROM files f
@@ -237,12 +366,13 @@ class Store:
         raise ValueError(f"Proposal {proposal} is not currently accepted")
       if self.db.execute("SELECT 1 FROM operations WHERE proposal_id=?", (proposal,)).fetchone():
         raise ValueError(f"Proposal {proposal} already belongs to a batch")
-      mapping = json.loads(row["mapping"])
+      mapping = self.relocate_mapping(json.loads(row["mapping"]))
       if not mapping.get("destination") or not mapping.get("identity"):
         raise ValueError(f"Proposal {proposal} has unresolved mapping")
       manifest.append({"proposal": proposal, "revision": row["revision_id"], "source": row["path"], "signature": json.loads(row["signature"]), "mapping": mapping})
     if not manifest:
       raise ValueError("Empty batch")
+    validate_book_mappings(manifest)
     destinations = [m["mapping"]["destination"] for m in manifest]
     if len(set(destinations)) != len(destinations):
       raise ValueError("Batch has duplicate destinations")
@@ -256,7 +386,7 @@ class Store:
   def export(self, directory):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    for table in ("files", "revisions", "proposals", "decisions", "batches", "operations", "events", "scans"):
+    for table in ("files", "revisions", "proposals", "decisions", "batches", "operations", "events", "scans", "hashes"):
       cursor = self.db.execute(f"SELECT * FROM {table}")
       with (directory / f"{table}.csv").open("w", newline="") as stream:
         writer = csv.writer(stream)
@@ -275,7 +405,7 @@ class Store:
         WHERE r.file_id=? ORDER BY o.id DESC LIMIT 1""", (row["id"],)).fetchone()
       decision = self.db.execute("SELECT * FROM decisions WHERE revision_id=? ORDER BY id DESC LIMIT 1", (row["current_revision"],)).fetchone()
       proposal = self.db.execute("SELECT mapping FROM proposals WHERE revision_id=? ORDER BY id DESC LIMIT 1", (row["current_revision"],)).fetchone()
-      mapping = json.loads(op["mapping"] if op else proposal[0]) if op or proposal else {}
+      mapping = self.relocate_mapping(json.loads(op["mapping"] if op else proposal[0])) if op or proposal else {}
       reason = op["error"] if op and op["error"] else decision["reason"] if decision else mapping.get("issue", "")
       if not row["present"]:
         state = "missing-source"

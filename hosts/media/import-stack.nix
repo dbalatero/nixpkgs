@@ -54,9 +54,27 @@ in {
   environment.systemPackages = [importer pkgs.sqlite pkgs.ffmpeg pkgs.acl];
 
   environment.etc."media-import.json".text = builtins.toJSON {
+    musicRoot = "${media}/music";
+    musicMetadataProfile = "Existing library import";
+    musicBackground = true;
     database = "${state}/audit.sqlite";
     source = "/mnt/warez/torrents";
     inherit media;
+    torrentClients = lib.genAttrs apps (name: let
+      category = {sonarr = "tv"; radarr = "movie"; lidarr = "music";}.${name};
+    in {
+      name = "qBittorrent";
+      fields = {
+        host = "127.0.0.1";
+        port = network.servicesByName.qbittorrent.port;
+        useSsl = false;
+        username = "";
+        password = "";
+        "${category}Category" = category;
+        "${category}ImportedCategory" = "";
+        initialState = 0;
+      };
+    });
     localBackups = "${state}/backups";
     nasBackups = "/mnt/warez/media-import-audit";
     stabilitySeconds = 600;
@@ -81,9 +99,9 @@ in {
         "config/mediamanagement" = policy."config/mediamanagement" // {autoRenameFolders = false;};
       };
       lidarr = policy // {
-        "config/mediamanagement" = policy."config/mediamanagement" // {watchLibraryForChanges = false;};
+        "config/mediamanagement" = policy."config/mediamanagement" // {watchLibraryForChanges = false; copyUsingHardlinks = false;};
         "config/metadataprovider" = {
-          writeAudioTags = "no";
+          writeAudioTags = "sync";
           scrubAudioTags = false;
           embedCoverArt = false;
         };
@@ -146,15 +164,25 @@ in {
     script = ''
       test -d /mnt/warez/torrents
       test "$(findmnt -n -t nfs4 -T /mnt/warez/torrents -o SOURCE)" = 'truenas.vm.netcat.cloud:/mnt/warez/data'
-      mkdir -p ${media}/{movies,tv,music,audiobooks,spoken-word,alternates} /mnt/warez/media-import-audit
-      chmod 2770 ${media} ${media}/{movies,tv,music,audiobooks,spoken-word,alternates}
+      mkdir -p ${media}/{movies,tv,music,audiobooks,podcasts,alternates} /mnt/warez/media-import-audit
+      chmod 2770 ${media} ${media}/{movies,tv,music,audiobooks,podcasts,alternates}
     '';
   };
 
   systemd.services = {
-    sonarr = arrGuard;
-    radarr = arrGuard;
-    lidarr = arrGuard;
+    sonarr = arrGuard // {
+      serviceConfig = arrGuard.serviceConfig // {ReadWritePaths = ["${media}/tv"];};
+    };
+    radarr = arrGuard // {
+      serviceConfig = arrGuard.serviceConfig // {ReadWritePaths = ["${media}/movies"];};
+    };
+    lidarr = arrGuard // {
+      # Music contains independent copies. Torrents and other libraries remain
+      # read-only; tag writing can only affect the music library.
+      serviceConfig = arrGuard.serviceConfig // {
+        ReadWritePaths = ["${media}/music"];
+      };
+    };
     audiobookshelf = serviceGuard // {
       serviceConfig.ReadOnlyPaths = ["/mnt/warez"];
     };
@@ -200,6 +228,20 @@ in {
         exit 1
       '';
     };
+    media-import-worker = serviceGuard // {
+      description = "Import approved music batches in the background";
+      after = serviceGuard.after ++ ["lidarr.service" "media-import-configure.service"];
+      serviceConfig = {
+        Type = "oneshot";
+        User = "dbalatero";
+        Group = "media";
+        UMask = "0007";
+        ExecStart = "${importer}/bin/media-import work-queue";
+        # Output goes only to the existing size-bounded system journal.
+        StandardOutput = "journal";
+        StandardError = "journal";
+      };
+    };
     media-import-audit-backup = serviceGuard // {
       description = "Back up the media audit database to the NAS";
       serviceConfig = {
@@ -209,6 +251,10 @@ in {
         ExecStart = "${importer}/bin/media-import backup";
       };
     };
+  };
+  systemd.timers.media-import-worker = {
+    wantedBy = ["timers.target"];
+    timerConfig = {OnBootSec = "15s"; OnUnitInactiveSec = "15s"; AccuracySec = "1s";};
   };
   systemd.timers.media-import-audit-backup = {
     wantedBy = ["timers.target"];

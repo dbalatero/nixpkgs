@@ -1,12 +1,12 @@
 # Media stack, Whatbox migration, and Immich
 
-Status: initial import stack and incremental audit tooling implemented on 2026-10-01. Whatbox rsync transfer was reported complete. Library imports require saved terminal batch approvals; no existing media has been imported yet. Local seeding remains deferred. The implementation notes below supersede earlier workflow details where they differ.
+Status: initial import stack and incremental audit tooling implemented on 2026-10-01. Whatbox rsync transfer was reported complete. Library imports require saved terminal batch approvals; batch 1 imported five movies, and their Radarr identities, exact paths, and source hardlinks were independently verified on 2026-10-02. Local seeding remains deferred. The implementation notes below supersede earlier workflow details where they differ.
 
 ## Implemented incremental audit workflow
 
 `hosts/media/import-stack.nix` declares Sonarr, Radarr, Lidarr, Audiobookshelf, and the `media-import` CLI. All four applications accept local API connections and connections from Caddy through a source-restricted firewall rule; other LAN clients cannot connect directly to their backend ports. A Nix-managed initializer sets migration safety options via the applications' APIs, generates local login credentials, and supplies private API-key files. Application state and the audit database stay on the VM disk.
 
-The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/data`. Keep `/mnt/warez/torrents` unchanged. Library directories are ordinary directories under `/mnt/warez/media`: `movies`, `tv`, `music`, `audiobooks`, `spoken-word`, and `alternates`.
+The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/data`. Keep `/mnt/warez/torrents` unchanged. Library directories are ordinary directories under `/mnt/warez/media`: `movies`, `tv`, `music`, `audiobooks`, `podcasts`, and `alternates`.
 
 The shared NFS module disables idle unmounting (`x-systemd.idle-timeout=0`) for both Media and Panther. The former ten-minute timeout was confirmed to stop Media's dependent applications before unmounting the share. Automounting and mount-presence checks remain enabled; an idle share stays mounted.
 
@@ -17,33 +17,210 @@ The authoritative database is `/var/lib/media-import/audit.sqlite`, owned by `db
 - Inventory scans register new paths and update observations without re-probing or rehashing unchanged files. A new file must have two unchanged observations at least ten minutes apart before proposal generation. This is a stability heuristic; batch approval also requires confirming transfers are finished.
 - Changed source metadata produces a new revision. Existing approval no longer applies. Files touched after an import operation began are held for investigation rather than automatically requeued.
 - Missing files are recorded only after a complete successful scan. No library file is deleted. Mount mismatches, traversal errors, symlinks, and partial transfers fail closed or remain explicit exceptions.
-- A verified operation is skipped on subsequent `apply` runs, including hashing and application calls. `verify` explicitly requests full content and application checks again.
+- A verified operation is skipped on subsequent `apply` runs, including application calls. `verify` rechecks source metadata, destination ownership (hardlinks or music copies), and application assignments; `verify --hash` additionally reads file contents.
 - `propose` performs local ffprobe/filename analysis and queries the local Radarr, Sonarr, or Lidarr APIs. Metadata responses are cached. No per-file LLM calls are used. Audiobook proposals use existing tags and explicit author/title/order review.
-- Source paths are separate records even if content is identical. Before-hash comparisons flag duplicate content among import operations; alternate imports must be explicitly selected.
+- Source paths are separate records even if content is identical. Alternate imports must be explicitly selected; content hashes are optional investigation evidence.
+
+### Music review
+
+Run `media-import run --kind music --limit 50`. Review groups pending tracks by
+album source folder. Immediate `CD1`/`CD2`, `Disc 1`/`Disc 2`, and `Disk1`/`Disk2`
+subfolders share one review, while separate album/copy folders stay separate.
+Disc folder numbers supply missing disc tags; conflicting explicit tags block
+approval. The file limit expands to finish selected album folders; explicit `--files` filters still
+apply. `run` prepares any remaining eligible tracks in those folders. `review`
+uses only prepared proposals. Deferred, previously selected, imported, and unstable
+files are not silently added to the group.
+
+Choose the artist/album once for every pending track in the source folder, even
+when individual tracks returned different or empty search results. Each track
+keeps its own local title, duration, and disc/track numbering for the release
+comparison; the folder is approved together or left unapproved. Then choose an
+edition labeled by format, edition date, country, track count, record label, and
+disambiguation. Edition dates come from the MusicBrainz release API joined by exact
+release ID and cached in SQLite for 30 days; identities and tracks still come from
+Lidarr. Unavailable dates show as unknown, never the original album year. Date
+lookup failures leave review usable. Menus show the page count. Menus use single keys with `n`/`p` for pages and `v` for
+full details. Confirm loading metadata into Lidarr: this registers an unmonitored
+artist and selects the album release, but does not import files or enable searches.
+That catalog state may remain if the review is deferred or quit. The intent is
+recorded in SQLite before the API mutation. Lidarr search alone has no track list;
+registered release tracks are fetched using its supported track API.
+
+The comparison shows local and expected track titles/durations at each disc/track
+position and the destination paths. A complete, continuously numbered vinyl rip
+can map across side labels (for example, local 1–4 to two records labeled A–D).
+This requires explicit confirmation of the displayed titles and durations; partial
+rips and ambiguous positions remain unresolved. Import follows the approved
+MusicBrainz track IDs and rechecks their metadata, preserving local numbering. It records MusicBrainz track and recording IDs,
+release metadata, and comparison warnings per file. Missing/ambiguous track IDs or
+duplicate disc/track positions block group approval. Titles ignore punctuation,
+case, and accents; duration differences above three seconds or two percent
+(whichever is larger) are flagged. Missing comparison evidence and track-count
+differences are also flagged. Warnings require explicit `y`; otherwise Enter saves
+the entire displayed group atomically. This is metadata comparison, not audio
+fingerprinting. Existing approvals are unchanged.
+
+`d` defers the folder; `q` saves prior decisions and exits; `i` at the album/edition
+menu proceeds to the final import preview for previously saved selections. Final
+import still requires explicit `y`. Apply rechecks saved track metadata before
+linking, and verification checks the exact file association and track identity.
+Matching evidence lives in SQLite and application records.
+Music imports now use independent copies. Lidarr synchronizes embedded tags on
+those copies; tag scrubbing and cover embedding remain disabled. Only the music
+library is writable by Lidarr; torrent sources and other libraries remain
+read-only. Source filenames and bytes remain unchanged.
+
+### Music throughput and background queue
+
+Music-only `run` and `review` sessions (`--kind music`) now enqueue explicitly
+approved batches instead of waiting for import. `media-import queue` shows the last
+20 jobs, completion percentages, and errors. `media-import-worker.service` drains
+the durable SQLite `import_jobs` queue; its timer checks every 15 seconds. Jobs
+interrupted while running resume at their saved checkpoints. Failed jobs stop
+retrying and show `media-import apply BATCH` for a deliberate resume after repair.
+Previously approved batches are not silently enqueued. Mixed-category sessions
+and explicit `apply` remain synchronous.
+
+Review and the music worker use separate process locks with shared coordination;
+other CLI operations keep exclusive coordination. Source music files are read-only
+in both paths. A short-lived catalog lock prevents review from changing release
+selection during an album import; loading a new preview can briefly wait for the
+current album. Each file retains its own approval and verification record. Artist
+metadata refresh runs once per artist per batch, copies are staged per file, and
+one ManualImport command registers the pending tracks in an album together. Command
+polling is every 250 ms, removing the old fixed two-second wait per command.
+
+The named `Existing library import` metadata profile includes all primary and
+secondary album types and release statuses, including live/bootleg recordings.
+It is assigned to artists explicitly prepared by the importer; existing standard
+profiles are untouched. Monitoring, search, indexers, and download clients remain
+disabled, so metadata inclusion does not authorize downloads.
+
+Artist refresh can finish before album releases and tracks are populated. The
+importer waits for the exact selected release and its complete track list, with
+one targeted album refresh when needed. It never substitutes another edition;
+a metadata timeout leaves the folder available for another review.
+
+The worker writes only to the system journal, covered by Media's existing shared
+NFS module policy: 512 MiB persistent journal, 128 MiB runtime journal, and 14-day
+maximum retention. It creates no per-job log files or extra cleanup directories.
+
+### Independent music copies and tagging
+
+Music alone is copied, including already-approved batches. Other categories
+continue to use hardlinks. Each copy streams to an operation-owned temporary file
+in its destination directory, verifies its initial SHA-256 against the bytes read
+from the stable source, and publishes only the completed file. The `music_copies`
+ledger records staging, publication, initial hash, and destination inode separately
+from the immutable source manifest. Interrupted copies resume or recreate their
+recorded partial staging file; unrelated destination files are never overwritten.
+
+After publication, Lidarr may change the independent copy's tags. Verification
+checks source stability, independent destination ownership, and exact approved
+track assignment, not byte equality between a retagged copy and the torrent.
+Verified source operations remain terminal and are skipped on later apply/runs.
+Explicit `verify --hash` compares the torrent source with its saved source hash.
+
+For the one-time conversion, stop Lidarr and the policy initializer, run
+`media-import migrate-music-copies`, then apply the updated Nix configuration.
+The conversion preserves the original manifests, records the transition, replaces
+only recorded music hardlinks with verified copies, and updates the source ctime
+checkpoint after unlinking. It checks once that no library hardlinks or symlinks
+remain. There is no permanent whole-library startup scan.
+
+Lidarr receives the approved artist, album, release and track IDs via ManualImport,
+with replacement disabled and the destination already inside its artist folder.
+Music root registration and `writeAudioTags = sync`, `copyUsingHardlinks = false`
+are declared through the Nix-managed initializer. Monitoring/acquisition remain
+disabled. Lidarr retains existing bounded NLog archives and journal retention;
+the background import worker adds no standalone log files. Incomplete staging files are preserved
+for resume, not subject to log cleanup.
+
+### Background hash cache
+
+Hashing is optional and is not a prerequisite for import. On Media, run
+`screen -S media-hash`, then `media-import hash`. Detach with Ctrl-a followed
+by d; return with `screen -r media-hash`. An already-running worker can continue
+through CLI upgrades without being restarted. Ctrl-C stops the
+worker, preserving completed hashes. Rerunning skips valid cached hashes and
+all files with import operations, including completed imports. The unfinished
+file is restarted. The worker processes the stable files in the current
+inventory; run `inventory` after later downloads, and observe new files twice
+at least ten minutes apart before hashing them.
+
+The display reports a byte-weighted queue percentage, current-file percentage,
+read throughput, and estimated remaining time while large files are read. Queue
+progress includes files checked and skipped; the final counters distinguish
+cached, newly hashed, changed/skipped, and failed files. `hash --kind movie tv`
+limits categories and `hash --limit 10` limits the number of files checked.
+The worker writes no standalone log file; tmux retains bounded terminal history.
+
+SHA-256 values are stored in the audit database's `hashes` table, bound to the
+revision and exact size/mtime/ctime/device/inode signature. The worker hashes
+outside the audit lock and rechecks source and database state under the lock
+before publishing each result. Review and imports can proceed concurrently;
+the worker waits for their lock before saving. It never imports or changes media.
+
+Normal hardlink `apply` and `verify` do not hash file contents, including recovery of an
+interrupted hardlink operation. They check the recorded source signature,
+hardlink identity, and application assignment. Available cached hashes may be
+recorded for later investigation, but there is no automatic duplicate-content
+block based on whether the optional worker happened to finish a file.
+
+Use `media-import verify BATCH --hash` only when a content audit is wanted. It
+compares against a saved SHA-256 baseline, or clearly reports that it is creating
+the first baseline when none exists. A first hash cannot establish historical
+integrity. Metadata checks assume filesystem change reporting works; they do
+not detect silent storage corruption. Hash records remain in SQLite backups
+and CSV exports. A crash between linking and recording the new ctime can resume
+when the saved preparation, size, mtime, device, inode, and existing hardlink
+agree; a full content audit is available separately.
 
 ### Commands, run on Media as dbalatero
 
+Run the guided workflow:
+
 ```bash
-media-import inventory
-# After transfers finish and at least ten minutes have elapsed:
-media-import inventory
-media-import status
-
-# Prepare a small, bounded first review queue:
-media-import propose --kind movie --limit 10
-media-import review
-
-# Preview and approve exactly the accepted, unbatched mappings:
-media-import approve --accepted
-# This is separate from approval; substitute the displayed batch ID:
-media-import apply 1
-media-import verify 1
-
-media-import backup
-media-import export /var/lib/media-import/export
+media-import
+# Or focus the next small queue:
+media-import run --kind movie --limit 10
 ```
 
-The terminal review offers candidate selection, full evidence, mapping edits in `$EDITOR`, explicit exclusions/deferrals, and alternate versions outside app-managed roots. TV seasons and music albums can be reviewed as a group with every source-to-destination mapping displayed before acceptance. Music requires selecting a specific MusicBrainz release. Review and approval never execute imports. Use explicit proposal IDs with `approve` to select a smaller batch instead of `--accepted`.
+This refreshes inventory, prepares up to ten review records, shows the matches,
+and offers to import the saved selection in the same session. No proposal IDs
+or batch IDs need to be copied. New files still need two unchanged observations
+at least ten minutes apart, so newly discovered files become eligible on a later
+run. Existing verified imports remain closed.
+
+In a terminal, menus read a single key without requiring Enter:
+
+- Select a candidate by number (`0` selects the tenth candidate). Enter selects
+  the candidate only when exactly one is offered. Then Enter keeps the displayed
+  identity, episode/track assignment, and destination.
+- `v` shows supporting evidence; `e` edits the mapping; `d` defers; `x` excludes.
+  Deferrals/exclusions save a default reason immediately; `reopen FILE_ID` allows
+  explicit later correction. `g` previews a season/album/book group from the
+  current queue; music requires choosing a specific release.
+- `i` finishes reviewing early and shows the import preview. `q` saves and exits
+  without importing. Ctrl-C also keeps already saved decisions.
+- At the final exact batch preview, press `y` to import and verify, confirming
+  that transfers for those files are finished. Enter or `n` saves the selections
+  for later without importing. No typed confirmation words are required.
+- Saved selections are offered on the next run and shown in full before import.
+  The preview is scoped to any supplied `--files` or `--kind` filter.
+
+`media-import review` uses the same flow for already prepared proposals without
+rescanning or generating more. The older `inventory`, `propose`, `approve`, and
+`apply` commands remain available for diagnostics and automation. Approval is
+still an immutable database checkpoint, followed automatically by execution in
+the guided flow. A failed batch prints its `media-import apply BATCH` resume
+command. Completed operations are skipped when resuming.
+
+Normal `apply` already verifies library files and app assignments; there is no
+need to run `verify` again immediately. `media-import verify BATCH` is a later
+metadata/app check, and `media-import verify BATCH --hash` adds a full content
+audit. `media-import backup` and `media-import export DIRECTORY` remain available.
 
 For focused investigation, `media-import list --kind movie --contains Brazil` finds stable file IDs and outcomes; `media-import show FILE_ID` shows their observations, proposals, decisions, and operations. CSV exports include a joined `current.csv` with one row per source path, its current outcome, destination, identity, reason, and recorded hash. `propose --files FILE_ID --kind KIND --retry` regenerates an unreviewed proposal, optionally with `--refresh-metadata`; it does not reopen decisions or completed imports. `reopen FILE_ID` explicitly edits a previously reviewed mapping while preserving history and refuses files with existing import operations. Difficult corrections after an operation began need investigation of that operation; there is deliberately no bulk reset/delete command.
 
@@ -51,11 +228,56 @@ Archive work stays separate: `propose --kind archive --files FILE_ID ...` record
 
 ### Execution and verification
 
-Implementation adjustment: the importer registers the approved identity unmonitored through supported app APIs, creates the exact approved hardlink itself using `link(2)`, and then asks the app to scan its organized library path. It never falls back to copying. Apps see the NAS read-only, preventing tag rewrites, source deletion, renames, or replacements. Lidarr tag writing is additionally disabled through the API. All app metadata/database writes stay local.
+Implementation adjustment: the importer registers approved identities unmonitored through supported app APIs, creates the approved library files itself, and verifies the app assignments. Non-music categories use hardlinks without a fallback copy. Music uses verified independent copies and explicit Lidarr track registration. Lidarr can write only to the music library, with tag synchronization enabled; torrent originals and other libraries remain read-only to it. The other apps retain read-only NAS access. Application databases stay local.
 
-Every approved manifest has a digest and specific source revision IDs. The executor revalidates decisions, source observations, and destination collisions; backs up app state; saves a pre-import SHA-256; records progress before side effects; and checks both inode identity and the app's movie/episode/track assignment before marking an operation verified. A crash after creating a hardlink can be reconciled against the saved hash. Failed app matching leaves a recorded linked-but-unverified operation for correction, never a false success. No source move, deletion, permission rewrite, tag modification, or automatic extraction is performed.
+Every approved manifest has a digest and specific source revision IDs. The executor revalidates decisions, source observations, and destination collisions; backs up app state; records an exact-signature cached SHA-256 when available without requiring one; records progress before side effects; and checks both inode identity and the app's movie/episode/track assignment before marking an operation verified. A crash after creating a hardlink can be reconciled using the recorded preparation and matching file identity/metadata. Failed app matching leaves a recorded linked-but-unverified operation for correction, never a false success. No source move, deletion, permission rewrite, tag modification, or automatic extraction is performed.
 
-The first real collection pilot still requires user approval. Cover a flat movie, a movie with companions, a TV season, single/multidisc music, and single/multipart audiobooks. Synthetic filesystem tests do not establish that the real collection has been correctly matched.
+The first real movie pilot is complete: batch 1 contains 20 Days in Mariupol, A Few Good Men, A Goofy Movie, A Separation, and Alien. All five were confirmed in Radarr with matching hardlinks. Music batch 17 also completed on 2026-10-03: 13 Siamese Dream tracks and 12 Calling Out of Context tracks were imported as independent copies, assigned to their approved Lidarr tracks, and tagged. All 25 torrent originals matched their saved SHA-256 baselines afterward; repeating apply was a no-op. TV and multidisc music still need pilots. Cover a flat movie, a movie with companions, a TV season, single/multidisc music, and single/multipart audiobooks. Synthetic filesystem tests do not establish that the real collection has been correctly matched.
+
+### Hardcore History repair
+
+The first Audiobookshelf pilot exposed two issues: a scan returned before the
+new file was registered, and generic album tags grouped unrelated podcast
+episodes into one `dancarlin.com` book with duplicate part numbers. The scanner
+now waits for the exact audio path; batch validation rejects duplicate part
+numbers within a shared book before applying anything.
+
+Hardcore History proposals now use the `dchhaNN - Title` filename for individual
+episode entries, with Dan Carlin as author and `Hardcore History` as a numbered
+Audiobookshelf series. Each entry has one audio file, at part 1. Series sequence
+and title are set and verified through the app API, without modifying audio tags.
+
+`media-import repair-hardcore-history 2` is the scoped, user-authorized repair
+for the early generic-album mappings. It preserves the original manifest and
+operation snapshots, creates a new repair batch, marks the replaced operations
+superseded, and verifies every new entry before unlinking the obsolete library
+names. It removes the obsolete Audiobookshelf record with filesystem deletion
+disabled, preserves its metadata snapshot in the audit log, and resumes the
+remaining approved original-batch work. Backups precede the repair. The command
+can resume/repeat without creating additional repair batches. Only the original
+library hardlinks are removed; torrent paths and payloads are preserved.
+
+### Podcasts naming and filename variants
+
+The former `/mnt/warez/media/spoken-word` directory is now
+`/mnt/warez/media/podcasts`; its Audiobookshelf library is named Podcasts.
+`media-import migrate-podcasts` moved the directory and used an overlapping-folder
+scan to retain all eight item IDs, then removed the obsolete library-folder
+registration after verifying every item belonged to the new folder. Audiobookshelf
+library type remains `book` to retain the chosen individual-episode/series layout;
+no RSS subscriptions or automatic downloads are introduced.
+
+The audit database records the relocation separately in `meta.library_relocations`
+and migration events. Historical manifests/proposals and their digests are not
+rewritten. Current review, import, reports, and verification interpret their old
+paths through this recorded relocation. Original torrent paths are unchanged.
+The inventory category is now `podcast`, and Nix creates the podcasts root.
+
+Both `dchhaNN - Title.mp3` and `dchhaNN_Title_.mp3` filename patterns are supported;
+underscores become spaces and trailing separators are discarded. All 54 existing
+Hardcore History paths parsed successfully. Ten unresolved proposals were
+regenerated without altering saved decisions or approving new imports. The
+migrated eight files were reverified and the audit database backed up to the NAS.
 
 ### Access, backups, and logs
 
@@ -74,7 +296,7 @@ SQLite online backups are taken locally after review/approval and before imports
 
 Journald uses the existing 512 MiB persistent / 128 MiB runtime / 14-day limits. Servarr uses native rotation, explicitly configured for ten 1 MiB archives per enabled level, with info logging and its separate log database disabled. Audiobookshelf daily and scan logs older than fourteen days are removed by a timer; this is age-based, not a strict quota. Crash logs rotate daily or when checked above 10 MiB, with seven compressed rotations. Log cleanup never deletes application databases, media, or Nix packages.
 
-Validation includes `python3 -m unittest discover -s tests/media_import -v`, Nix evaluation/build, actual service/API checks, and a temporary NAS hardlink readable by all four service identities. The initial live inventory found 16,471 files without scan errors. Actual collection import, real-match verification, and future torrent rechecks remain separate milestones.
+Validation includes 94 passing tests via `python3 -m unittest discover -s tests/media_import -v`, a live single-key quit smoke test, a no-hash recheck of all five batch-1 movies, Nix evaluation/build, actual service/API checks, and a temporary NAS hardlink readable by all four service identities. The initial live inventory found 16,471 files without scan errors. Actual collection import, real-match verification, and future torrent rechecks remain separate milestones.
 
 Later pulls must preserve relative paths and avoid `--inplace` and `--delete`. Run inventory/propose/review again after each completed pull; completed imports remain closed. Preserve original torrent metadata and save-root semantics. A future local client must force-recheck each torrent to 100% before seeding.
 
@@ -112,10 +334,10 @@ Review the app's interactive import preview against that proposal before writing
 
 ### D. Import and verify the pilot
 
-- Record a source manifest and content hashes for the small pilot before import. Snapshot/backup importer state before a batch so incorrect metadata assignments can be recovered.
+- Record a source manifest before import. Content hashing is optional; the current workflow above uses metadata, inode identity, and application checks. Snapshot/backup importer state before a batch so incorrect metadata assignments can be recovered.
 - Import with the explicit copy/hardlink mode, never move mode. Verify the installed app version's actual behavior; a setting named "use hardlinks" can still fall back to copying.
 - Compare source and destination `stat` data from the same client mount: device and inode must match and link count must reflect the additional name. File size equality alone is insufficient. If the app copied, stop expansion and diagnose mounts, permissions, or import mode.
-- Confirm source filenames, paths, and bytes match the pre-import manifest. A checksum comparison between two current hardlinks is not proof that neither was modified; compare against the pre-import hashes.
+- Confirm source filenames, paths, sizes, and modification times match the pre-import manifest. Use the optional full hash audit when investigating content integrity; a new hash without a previous baseline cannot prove historical integrity.
 - Verify each movie/episode assignment in Sonarr/Radarr and the physical destination naming. Check for omitted episodes, samples accidentally imported as episodes, unwanted duplicate replacements, and correct subtitle handling.
 - Rescan the organized library and repeat the import preview to check that the app recognizes existing imports instead of duplicating or replacing them unexpectedly.
 - Preserve source payloads during correction. Remove or relink only reviewed destination entries and correct app state; do not use a bulk delete operation that could include the download source.
@@ -360,3 +582,36 @@ Finish when the collection is transferred and reviewed, desired torrents seed lo
 - [Immich OpenVINO/ML acceleration](https://docs.immich.app/features/ml-hardware-acceleration/)
 - [Calibre library considerations](https://manual.calibre-ebook.com/faq.html)
 - [Komga](https://komga.org/docs/introduction/)
+
+`media-import status` reads a consistent, read-only SQLite snapshot without import
+locks, so record counts remain available during background work or review. It
+shows committed progress as of the start of the command.
+
+Review preparation uses 16 parallel workers by default (`--prep-workers 1–64` on
+`run` and `propose`). Identical metadata lookups share one request, with at most
+four distinct API lookups in flight. Progress reports saved files, percentage,
+worker count, and elapsed time. Only the main thread writes SQLite, checkpointing
+each completed proposal. Cached probes and lookups are reused.
+
+TV preparation checks that each approved episode has exactly one Sonarr record.
+If initial series refreshes produce duplicates, it refreshes once to reconcile
+them; persistent ambiguity stops before creating the library hardlink.
+Late duplicate episode rows detected during verification also trigger one refresh
+and rescan. Verification still requires the exact approved season/episode set and
+destination path; only Sonarr internal row IDs may be reconciled.
+
+TV group previews require the same parsed source title as well as the same series
+and season. Merely sharing a search candidate cannot pull a different show into
+the selection. Without parsed titles, grouping is limited to a shared source folder.
+
+Explicit filename SxxEyy tokens take precedence over incidental numbers in episode
+titles (for example, Ted Lasso S03E03 “4-5-1”). Contiguous multi-episode tokens are
+preserved; range syntax continues through the existing parser.
+
+Audit backups retain the latest three local snapshots and two nightly NAS snapshots.
+Routine requests reuse a completed local snapshot younger than five minutes; the
+explicit/nightly backup command forces a fresh snapshot. Publication is atomic,
+interrupted staging files are cleaned on the next request, and pruning follows a
+successful snapshot. Messages announce writing, reuse, completion size/time, NAS
+copying, and removal. This is a count bound, not a byte quota: storage scales with
+the live database size, with one extra snapshot temporarily during backup.
