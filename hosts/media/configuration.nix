@@ -7,6 +7,7 @@
     ./import-stack.nix
     ./qbittorrent.nix
     ./ebook-import.nix
+    ./calibre-web-automated.nix
   ];
 
   networking.hostName = "media";

@@ -64,6 +64,13 @@
   ],
   "services": [
     {
+      "name": "calibre-web-automated",
+      "hostname": "books",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8083
+    },
+    {
       "name": "authentik",
       "hostname": "auth",
       "machine": "caddy",
