@@ -71,6 +71,13 @@
       "port": 9000
     },
     {
+      "name": "qbittorrent",
+      "hostname": "torrents",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8080
+    },
+    {
       "name": "homepage",
       "hostname": "@",
       "machine": "caddy",
