@@ -13,6 +13,7 @@
     cddiscid
     cdparanoia
     flac
+    kdePackages.konversation
     vial
   ];
 

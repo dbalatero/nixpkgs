@@ -4,6 +4,25 @@
   pkgs,
   ...
 }: {
+  # Profile symlink changes can leave KDE's application cache stale. Rebuild it
+  # after activation, using the running desktop's environment and session bus.
+  # Output goes to the activation journal (bounded by the host journald policy).
+  home.activation.refreshPlasmaApplications = lib.hm.dag.entryAfter [
+    "installPackages"
+    "linkGeneration"
+    "reloadSystemd"
+  ] ''
+    (
+      export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+      if ${pkgs.systemd}/bin/systemctl --user is-active --quiet graphical-session.target; then
+        run ${pkgs.systemd}/bin/systemd-run --user --wait --pipe --collect \
+          --property=Type=oneshot --property=TimeoutStartSec=60s \
+          --setenv=QT_QPA_PLATFORM=offscreen \
+          ${pkgs.kdePackages.kservice}/bin/kbuildsycoca6 --noincremental
+      fi
+    )
+  '';
+
   # Install audio control tools
   home.packages = with pkgs; [
     pwvucontrol # Modern PipeWire volume control GUI
