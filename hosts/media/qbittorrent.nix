@@ -55,12 +55,14 @@ in {
         Address = "*";
         Username = "dbalatero";
         LocalHostAuth = false;
-        AuthSubnetWhitelistEnabled = false;
+        AuthSubnetWhitelistEnabled = true;
+        AuthSubnetWhitelist = "${network.proxy.ip}/32";
         ServerDomains = "torrents.netcat.cloud";
         HostHeaderValidation = true;
         CSRFProtection = true;
-        ReverseProxySupportEnabled = true;
-        TrustedReverseProxiesList = network.proxy.ip;
+        # Authenticate by the TCP peer (Caddy), not its forwarded browser IP.
+        # The firewall admits only Caddy; Host and CSRF checks remain enabled.
+        ReverseProxySupportEnabled = false;
         UseUPnP = false;
       };
     };
