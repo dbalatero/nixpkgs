@@ -2,6 +2,7 @@
   network = import ../../lab/network.nix {inherit lib;};
   port = network.servicesByName.qbittorrent.port;
   profile = config.services.qbittorrent.profileDir;
+  defaultSavePath = "/mnt/warez/torrents/Uncategorized";
   categories = {
     audio = "Audio";
     books = "Books";
@@ -17,6 +18,7 @@
     set -eu
     # Inspect the export mount, not the service's writable subtree bind mount.
     test "$( ${pkgs.util-linux}/bin/findmnt -n -t nfs4 -T /mnt/warez -o SOURCE)" = 'truenas.vm.netcat.cloud:/mnt/warez/data'
+    ${pkgs.coreutils}/bin/mkdir -p ${lib.escapeShellArg defaultSavePath}
     ${pkgs.python3}/bin/python ${./qbittorrent-init.py} ${profile} ${categoryFile}
   '';
   proxyRule = "-i ens18 -s ${network.proxy.ip}/32 -p tcp --dport ${toString port} -j nixos-fw-accept";
@@ -33,7 +35,7 @@ in {
       LegalNotice.Accepted = true;
       Application.FileLogger.Enabled = false;
       BitTorrent.Session = {
-        DefaultSavePath = "/mnt/warez/torrents";
+        DefaultSavePath = defaultSavePath;
         TempPathEnabled = false;
         DisableAutoTMMByDefault = false;
         DisableAutoTMMTriggers = {
