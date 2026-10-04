@@ -10,6 +10,29 @@ The actual mount is `/mnt/warez`, backed by `truenas.vm.netcat.cloud:/mnt/warez/
 
 The shared NFS module disables idle unmounting (`x-systemd.idle-timeout=0`) for both Media and Panther. The former ten-minute timeout was confirmed to stop Media's dependent applications before unmounting the share. Automounting and mount-presence checks remain enabled; an idle share stays mounted.
 
+### Subtitle backfill
+
+On 2026-10-04, user-authorized batch 55 hardlinked and verified 401 companion
+files for 160 imported movies/episodes: 193 SRT files and 104 VobSub IDX/SUB pairs.
+Their current audit status is `verified-companion`; prior exclusions remain
+historical. Each file has a SHA-256 baseline, parent-operation evidence, and its
+exact destination in the batch manifest. Names use the actual library video stem,
+language metadata, and distinct labels for Star Wars variants. Multilingual
+VobSub pairs retain their internal language streams. Source names and contents,
+including subtitle encodings and timing, were not modified.
+
+Five EverQuest disc-image `.sub` files remain excluded, as does the Red Dwarf
+S01E01 LATENCY subtitle pair: its specific source video was superseded, so those
+subtitles were not attached to the different imported release.
+
+`python -m media_import.companion_backfill PLAN.json` validates an explicit plan;
+`--apply` backs up the audit database, records approval atomically, and uses the
+existing resumable importer. It checks verified parents, source metadata,
+hardlinks, paired filenames, and destination collisions. A remounted NFS device
+number is recorded as a new subtitle revision only when all other signature
+fields match and the configured export is mounted. Reapplying the same plan
+resumes its recorded batch. This tool does not discover future subtitles.
+
 ### Records and incremental behavior
 
 The authoritative database is `/var/lib/media-import/audit.sqlite`, owned by `dbalatero`. It records source paths, immutable file revisions, probes, metadata lookup evidence, proposals, decisions, approved manifests, operations, and verification history. The database is not stored on NFS. Runtime credentials in this directory are secrets, not repository files.
