@@ -35,6 +35,8 @@ in {
       LegalNotice.Accepted = true;
       Application.FileLogger.Enabled = false;
       BitTorrent.Session = {
+        # Let bandwidth limits control activity without queueing torrents.
+        QueueingSystemEnabled = false;
         DefaultSavePath = defaultSavePath;
         TempPathEnabled = false;
         DisableAutoTMMByDefault = false;
