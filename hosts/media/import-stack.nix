@@ -54,6 +54,10 @@ in {
   environment.systemPackages = [importer pkgs.sqlite pkgs.ffmpeg pkgs.acl];
 
   environment.etc."media-import.json".text = builtins.toJSON {
+    movieRoot = "${media}/movies";
+    prowlarrUrl = if config.services.prowlarr.enable
+      then "http://127.0.0.1:${toString config.services.prowlarr.settings.server.port}"
+      else null;
     musicRoot = "${media}/music";
     musicMetadataProfile = "Existing library import";
     musicBackground = true;

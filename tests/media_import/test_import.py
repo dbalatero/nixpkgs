@@ -4,11 +4,41 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 from media_import.store import Store, checksum, contained, signature
 from media_import.cli import execute, precompute_hashes
+
+
+class MovieRootTest(unittest.TestCase):
+  def test_registers_declared_root_once_preserving_other_roots(self):
+    from media_import.apps import Apps
+    root = '/mnt/warez/media/movies'
+    roots = [{'id': 1, 'path': '/other/movies'}]
+    api = Mock()
+    def call(endpoint, method='GET', body=None):
+      self.assertEqual(endpoint, 'rootfolder')
+      if method == 'GET':
+        return list(roots)
+      self.assertEqual(method, 'POST')
+      self.assertEqual(body, {'path': root})
+      roots.append({'id': 2, **body})
+    api.call.side_effect = call
+    apps = Apps({'movieRoot': root})
+    with patch.object(apps, 'api', return_value=api) as get_api:
+      apps.configure_movie_root()
+      apps.configure_movie_root()
+    self.assertEqual(roots, [{'id': 1, 'path': '/other/movies'}, {'id': 2, 'path': root}])
+    self.assertEqual(api.call.call_count, 3)
+    get_api.assert_called_with('radarr')
+
+  def test_undeclared_root_does_not_contact_radarr(self):
+    from media_import.apps import Apps
+    apps = Apps({})
+    with patch.object(apps, 'api') as get_api:
+      apps.configure_movie_root()
+    get_api.assert_not_called()
 
 
 class FakeApps:

@@ -1,5 +1,6 @@
 """Supported HTTP interfaces only; never access an application's SQLite tables."""
 import json
+import re
 import secrets
 import time
 import urllib.error
@@ -95,9 +96,18 @@ class Apps:
           or client.get("removeFailedDownloads", True)
           or any(fields.get(key, "") != value for key, value in allowed["fields"].items())):
         raise ValueError(f"{name} has an undeclared or unsafe download client")
-    for endpoint in ("indexer", "importlist"):
-      if api.call(endpoint):
-        raise ValueError(f"{name} has {endpoint} entries; migration-only instance required")
+    # Prowlarr supplies search results; allow its declared proxy endpoints while
+    # retaining the checks on monitoring, upgrades and source deletion.
+    prowlarr = self.config.get("prowlarrUrl")
+    for indexer in api.call("indexer"):
+      fields = {field["name"]: field.get("value", "") for field in indexer.get("fields", [])}
+      if (not prowlarr
+          or indexer.get("implementation") not in {"Torznab", "Newznab"}
+          or not re.fullmatch(re.escape(prowlarr.rstrip("/")) + r"/[1-9][0-9]*/?", str(fields.get("baseUrl", "")))
+          or fields.get("apiPath") != "/api"):
+        raise ValueError(f"{name} has undeclared indexer entries; only the declared Prowlarr proxy is allowed")
+    if api.call("importlist"):
+      raise ValueError(f"{name} has importlist entries; automatic library additions are not allowed during migration")
     for profile in api.call("qualityprofile"):
       if profile.get("upgradeAllowed"):
         if not configure:
@@ -117,9 +127,20 @@ class Apps:
           secret.chmod(0o600)
         host.update(authenticationMethod="forms", authenticationRequired="enabled", username="dbalatero", password=secret.read_text(), passwordConfirmation=secret.read_text())
         api.call("config/host", "PUT", host)
+    self.configure_movie_root()
     self.music_metadata_profile()
     self.configure_music_root()
     self.bootstrap_books()
+
+  def configure_movie_root(self):
+    root = self.config.get('movieRoot')
+    if not root:
+      return
+    api = self.api('radarr')
+    # Movies added with explicit paths still need a registered collection root.
+    if any(r['path'] == root for r in api.call('rootfolder')):
+      return
+    api.call('rootfolder', 'POST', {'path': root})
 
   def music_metadata_profile(self):
     name = self.config.get('musicMetadataProfile')
@@ -261,7 +282,7 @@ class Apps:
     profiles = api.call("qualityprofile")
     if not profiles:
       raise ValueError(f"{name} has no quality profiles")
-    # The profile is only needed by the API: there are no acquisition connections.
+    # Imported entities stay unmonitored even when acquisition is configured.
     profile = profiles[0]["id"]
     desired_id = identity[foreign]
     records = [x for x in api.call(resource) if str(x[foreign]) == str(desired_id)]
