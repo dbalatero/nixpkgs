@@ -64,6 +64,20 @@
   ],
   "services": [
     {
+      "name": "seerr",
+      "hostname": "download",
+      "machine": "media",
+      "scheme": "http",
+      "port": 5055
+    },
+    {
+      "name": "plex",
+      "hostname": "plex",
+      "machine": "media",
+      "scheme": "http",
+      "port": 32400
+    },
+    {
       "name": "prowlarr",
       "hostname": "trackers",
       "machine": "media",

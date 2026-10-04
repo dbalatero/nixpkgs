@@ -6,6 +6,8 @@
     ../common/nfs
     ./import-stack.nix
     ./prowlarr.nix
+    ./seerr.nix
+    ./plex.nix
     ./qbittorrent.nix
     ./ebook-import.nix
     ./calibre-web-automated.nix
