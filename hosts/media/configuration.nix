@@ -1,5 +1,5 @@
 # Media stack and Immich
-{...}: {
+{pkgs, ...}: {
   imports = [
     ./hardware-configuration.nix
     ../common/nixos-vm
@@ -14,6 +14,12 @@
   ];
 
   networking.hostName = "media";
+  # Firmware and VA-API userspace support for the passed-through Intel Arc A380.
+  hardware.enableRedistributableFirmware = true;
+  hardware.graphics = {
+    enable = true;
+    extraPackages = [pkgs.intel-media-driver];
+  };
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = false;
   boot.loader.efi.efiSysMountPoint = "/boot";

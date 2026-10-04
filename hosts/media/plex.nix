@@ -18,6 +18,9 @@
       ScheduledLibraryUpdateInterval = "3600";
       autoEmptyTrash = "0";
       allowMediaDeletion = "0";
+      HardwareAcceleratedCodecs = "1";
+      HardwareAcceleratedEncoders = "1";
+      HardwareDevicePath = "/dev/dri/renderD128";
       logDebug = "0";
       LogVerbose = "0";
       LogNumFiles = "5";
@@ -35,10 +38,9 @@ in {
   services.plex = {
     enable = true;
     openFirewall = false;
-    # This VM currently has no declared GPU passthrough.
-    accelerationDevices = [];
+    accelerationDevices = ["/dev/dri/renderD128"];
   };
-  users.users.plex.extraGroups = ["media"];
+  users.users.plex.extraGroups = ["media" "render"];
   networking.firewall.extraCommands = "iptables -A nixos-fw ${proxyRule}";
   networking.firewall.extraStopCommands = "iptables -D nixos-fw ${proxyRule} 2>/dev/null || true";
   systemd.services.plex = {
