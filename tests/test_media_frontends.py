@@ -30,7 +30,7 @@ class FrontendTests(unittest.TestCase):
         'apps': {name: {'hostname': '127.0.0.1', 'port': port,
           'qualityProfile': 'HD-1080p', 'root': root, 'externalUrl': 'https://' + name}
           for name, port, root in [('radarr', 7878, '/media/movies'), ('sonarr', 8989, '/media/tv')]}}
-      current = {'main': {'apiKey': 'seerr-secret'}, 'plex': {'machineId': 'server-id'},
+      current = {'main': {'apiKey': 'seerr-secret', 'mediaServerType': 1}, 'plex': {'machineId': 'server-id'},
         'public': {'initialized': True}, 'radarr': [{'id': 9, 'name': 'radarr'}]}
       roots = set()
       def call(app, key, endpoint, body=None):
@@ -66,6 +66,14 @@ class FrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'quality profile'):
           seerr.configure({}, desired, credentials)
       self.assertEqual(api.call_count, 1)
+
+  def test_first_start_requires_owner_login(self):
+    desired = {'applicationUrl': 'https://download.example', 'defaultPermissions': 160, 'apps': {}}
+    for current in ({}, {'main': {'mediaServerType': 1}}):
+      result = seerr.configure(current, desired, Path('/unused'), has_owner=False)
+      self.assertEqual(result['main']['mediaServerType'], 4)
+    result = seerr.configure({'main': {'mediaServerType': 1}}, desired, Path('/unused'), has_owner=True)
+    self.assertEqual(result['main']['mediaServerType'], 1)
 
   def test_plex_preferences_preserve_claim(self):
     with tempfile.TemporaryDirectory() as folder:

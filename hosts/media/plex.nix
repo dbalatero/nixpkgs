@@ -9,7 +9,9 @@
     preferences = {
       FriendlyName = "Media";
       customConnections = "https://${network.servicesByName.plex.fqdn}:443";
-      PublishServerOnPlexOnlineKey = "1";
+      # Keep Plex's automatic remote-access/port-mapping feature disabled.
+      # Caddy access is controlled separately by the proxy and router firewall.
+      PublishServerOnPlexOnlineKey = "0";
       # NFS does not reliably deliver inotify events; scan hourly instead.
       FSEventLibraryUpdatesEnabled = "0";
       ScheduledLibraryUpdatesEnabled = "1";

@@ -57,6 +57,16 @@ class EbookImportTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       e.unpack(self.root, self.settings['sevenzip'])
 
+  def test_archive_duplicate_member_only_accepts_identical_bytes(self):
+    (self.root / 'book.epub').write_bytes(b'same')
+    with zipfile.ZipFile(self.root / 'pack.zip', 'w') as archive:
+      archive.writestr('book.epub', b'same')
+    e.unpack(self.root, self.settings['sevenzip'])
+    (self.root / 'book.epub').write_bytes(b'different')
+    with self.assertRaisesRegex(ValueError, 'collision'):
+      e.unpack(self.root, self.settings['sevenzip'])
+    self.assertEqual((self.root / 'book.epub').read_bytes(), b'different')
+
   def test_split_archive(self):
     source = self.root / 'original'
     source.mkdir()
@@ -102,6 +112,54 @@ class EbookImportTest(unittest.TestCase):
     self.assertEqual((status, result['copied'], result['alternativesSkipped']), ('done', 1, 1))
     self.assertEqual((source / 'a.mobi').read_bytes(), b'mobi')
     self.assertEqual(list(Path(self.settings['work']).iterdir()), [])
+
+  def test_backfill_preview_then_apply_skips_delivered_books(self):
+    root = Path(self.settings['source'])
+    existing = root / 'existing.epub'
+    existing.write_bytes(b'already imported')
+    e.deliver(self.db, self.settings, existing)
+    next(Path(self.settings['incoming']).iterdir()).unlink()
+    folder = root / 'new book'
+    folder.mkdir()
+    with zipfile.ZipFile(folder / 'pack.zip', 'w') as archive:
+      archive.writestr('new.epub', b'new epub')
+      archive.writestr('new.mobi', b'new mobi')
+      archive.writestr('comic.cbz', b'comic')
+    with patch('builtins.print'):
+      preview = e.backfill(self.db, self.settings, root)
+      self.assertEqual(sum(g['alreadyDelivered'] for g in preview['groups']), 1)
+      self.assertEqual(list(Path(self.settings['incoming']).iterdir()), [])
+      applied = e.backfill(self.db, self.settings, root, apply=True)
+      self.assertEqual(sum(g['copied'] for g in applied['groups']), 1)
+      repeated = e.backfill(self.db, self.settings, root, apply=True)
+      self.assertEqual(sum(g['copied'] for g in repeated['groups']), 0)
+    self.assertEqual(existing.read_bytes(), b'already imported')
+    self.assertEqual(len(list(Path(self.settings['incoming']).iterdir())), 1)
+
+  def test_backfill_continues_after_bad_archive(self):
+    root = Path(self.settings['source'])
+    (root / 'bad').mkdir()
+    (root / 'bad/broken.zip').write_bytes(b'not an archive')
+    (root / 'good').mkdir()
+    (root / 'good/book.epub').write_bytes(b'good')
+    with patch('builtins.print'):
+      report = e.backfill(self.db, self.settings, root, apply=True)
+    self.assertEqual(report['groups'][0]['status'], 'review')
+    self.assertEqual(report['groups'][1]['copied'], 1)
+
+  def test_backfill_rejects_outside_source(self):
+    with self.assertRaises(ValueError):
+      e.backfill(self.db, self.settings, self.root)
+
+  def test_backfill_excluded_collection_is_not_extracted_or_delivered(self):
+    root = Path(self.settings['source'])
+    (root / 'chapter collection').mkdir()
+    (root / 'chapter collection/pack.zip').write_bytes(b'not an archive')
+    with patch('builtins.print'), patch.object(e, 'process_sources') as process:
+      report = e.backfill(self.db, self.settings, root, apply=True, exclude=['chapter collection'])
+    process.assert_not_called()
+    self.assertEqual(report['groups'][0]['status'], 'review')
+    self.assertEqual(list(Path(self.settings['incoming']).iterdir()), [])
 
 
 if __name__ == '__main__':

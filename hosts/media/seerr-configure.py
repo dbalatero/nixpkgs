@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import sqlite3
 import time
 import urllib.error
 import urllib.request
@@ -21,11 +22,15 @@ def call(app, key, endpoint, body=None):
     raise RuntimeError(f"Servarr {endpoint}: HTTP {error.code}") from None
 
 
-def configure(current, desired, credentials):
+def configure(current, desired, credentials, has_owner=True):
   current.setdefault('main', {}).update(
     applicationUrl=desired['applicationUrl'],
-    defaultPermissions=desired['defaultPermissions'],
-    mediaServerType=desired['mediaServerType'])
+    defaultPermissions=desired['defaultPermissions'])
+  # NOT_CONFIGURED=4 avoids legacy Overseerr migration detection while keeping
+  # the login step visible. PLEX=1 before login incorrectly skips owner creation.
+  current['main'].setdefault('mediaServerType', 4)
+  if not has_owner and not current.get('public', {}).get('initialized', False):
+    current['main']['mediaServerType'] = 4
   current.setdefault('network', {})['trustProxy'] = True
   for name, app in desired['apps'].items():
     key = ET.parse(credentials / f'{name}.xml').getroot().findtext('ApiKey')
@@ -71,7 +76,13 @@ def main():
   for attempt in range(12):
     try:
       current = json.loads(path.read_text()) if path.exists() else {}
-      result = configure(current, desired, Path(os.environ['CREDENTIALS_DIRECTORY']))
+      database = path.parent / 'db/db.sqlite3'
+      has_owner = False
+      if database.exists():
+        with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as db:
+          if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='user'").fetchone():
+            has_owner = db.execute('SELECT 1 FROM user WHERE id=1').fetchone() is not None
+      result = configure(current, desired, Path(os.environ['CREDENTIALS_DIRECTORY']), has_owner)
       temporary = path.with_suffix('.json.tmp')
       temporary.write_text(json.dumps(result, indent=2) + '\n')
       temporary.chmod(0o600)

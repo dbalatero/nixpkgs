@@ -27,6 +27,20 @@ in {
   networking.firewall.extraCommands = "iptables -A nixos-fw ${proxyRule}";
   networking.firewall.extraStopCommands = "iptables -D nixos-fw ${proxyRule} 2>/dev/null || true";
 
+  # Provision this private file on the host, outside Git and the Nix store.
+  # systemd passes it to the dynamic service user at runtime. Provision this
+  # file before applying the configuration on a new host.
+  systemd.services.prowlarr = {
+    serviceConfig.LoadCredential = ["custom-definition:/etc/prowlarr/custom-definition.yml"];
+    preStart = ''
+      if test -f "$CREDENTIALS_DIRECTORY/custom-definition"; then
+        ${pkgs.coreutils}/bin/install -d -m 0700 /var/lib/prowlarr/Definitions/Custom
+        ${pkgs.coreutils}/bin/install -m 0600 "$CREDENTIALS_DIRECTORY/custom-definition" \
+          /var/lib/prowlarr/Definitions/Custom/private.yml
+      fi
+    '';
+  };
+
   # Read API keys only at runtime; no credentials enter the Nix store.
   # Both services log to the journal, bounded by common/nfs to 512 MiB
   # persistent / 128 MiB runtime and 14 days. Caddy rotates access logs.

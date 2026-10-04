@@ -7,8 +7,6 @@
     applicationUrl = "https://${network.servicesByName.seerr.fqdn}";
     # REQUEST | AUTO_APPROVE; users receive no administrative/advanced access.
     defaultPermissions = 160;
-    # Seerr's MediaServerType.PLEX; avoids legacy Overseerr migration detection.
-    mediaServerType = 1;
     apps = lib.genAttrs apps (name: {
       hostname = "127.0.0.1";
       port = config.services.${name}.settings.server.port;

@@ -50,6 +50,20 @@
       ReadOnlyPaths = ["/mnt/warez"];
     };
   };
+  videoGuard = library: serviceGuard // {
+    serviceConfig = {
+      PrivateUsers = lib.mkForce false;
+      UMask = lib.mkForce "0007";
+      # link(2) requires source and destination on the same writable mount.
+      # A read-only NAS with a writable library bind mount causes EXDEV.
+      # Keep torrents and this app's library on the common NAS mount; source
+      # preservation is enforced by the download-client/import policies above.
+      ReadWritePaths = ["/mnt/warez"];
+      ReadOnlyPaths = map (name: "-${media}/${name}")
+        (lib.filter (name: name != library)
+          ["movies" "tv" "music" "audiobooks" "podcasts" "alternates" "ebooks" "comics"]);
+    };
+  };
 in {
   environment.systemPackages = [importer pkgs.sqlite pkgs.ffmpeg pkgs.acl];
 
@@ -174,12 +188,8 @@ in {
   };
 
   systemd.services = {
-    sonarr = arrGuard // {
-      serviceConfig = arrGuard.serviceConfig // {ReadWritePaths = ["${media}/tv"];};
-    };
-    radarr = arrGuard // {
-      serviceConfig = arrGuard.serviceConfig // {ReadWritePaths = ["${media}/movies"];};
-    };
+    sonarr = videoGuard "tv";
+    radarr = videoGuard "movies";
     lidarr = arrGuard // {
       # Music contains independent copies. Torrents and other libraries remain
       # read-only; tag writing can only affect the music library.
