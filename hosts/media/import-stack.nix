@@ -20,6 +20,29 @@
         --prefix PATH : ${lib.makeBinPath [pkgs.ffmpeg pkgs._7zz pkgs.util-linux]}
     '';
   };
+  apiCredentialsScript = ''
+    # Apps create their config files asynchronously on first start.
+    for attempt in $(seq 1 30); do
+      if test -f ${dataDirs.sonarr}/config.xml && test -f ${dataDirs.radarr}/config.xml && test -f ${dataDirs.lidarr}/config.xml; then
+        break
+      fi
+      sleep 1
+    done
+    ${python}/bin/python - <<'PY'
+    import json, os, xml.etree.ElementTree as ET
+    from pathlib import Path
+    settings = json.loads(Path('/etc/media-import.json').read_text())
+    for name in ('sonarr', 'radarr', 'lidarr'):
+      app = settings['apps'][name]
+      key = ET.parse(app['configXml']).getroot().findtext('ApiKey')
+      if not key:
+        raise SystemExit('Application API key not initialized')
+      path = Path(app['keyFile'])
+      path.write_text(key)
+      os.chmod(path, 0o600)
+      os.chown(path, 1000, 2000)
+    PY
+  '';
   state = "/var/lib/media-import";
   media = "/mnt/warez/media";
   apps = ["sonarr" "radarr" "lidarr"];
@@ -205,7 +228,24 @@ in {
     audiobookshelf = serviceGuard // {
       serviceConfig.ReadOnlyPaths = ["/mnt/warez"];
     };
+    # Migration jobs are temporarily disabled; keep their definitions and data.
+    media-api-credentials = {
+      description = "Prepare runtime Servarr API credentials for download integrations";
+      wantedBy = ["multi-user.target"];
+      after = map (name: "${name}.service") apps;
+      requires = map (name: "${name}.service") apps;
+      script = apiCredentialsScript;
+      # Output uses the existing size-bounded system journal; no file logs.
+      serviceConfig = {
+        Type = "oneshot";
+        Restart = "on-failure";
+        RestartSec = 15;
+        TimeoutStartSec = 60;
+        UMask = "0077";
+      };
+    };
     media-import-configure = {
+      enable = false;
       description = "Apply declarative migration safety policy through Servarr APIs";
       wantedBy = ["multi-user.target"];
       after = map (name: "${name}.service") (apps ++ ["audiobookshelf"]);
@@ -216,28 +256,7 @@ in {
         RestartSec = 15;
         TimeoutStartSec = 180;
       };
-      script = ''
-        # Apps create their config files asynchronously on first start.
-        for attempt in $(seq 1 30); do
-          if test -f ${dataDirs.sonarr}/config.xml && test -f ${dataDirs.radarr}/config.xml && test -f ${dataDirs.lidarr}/config.xml; then
-            break
-          fi
-          sleep 1
-        done
-        ${python}/bin/python - <<'PY'
-        import json, os, xml.etree.ElementTree as ET
-        from pathlib import Path
-        settings = json.loads(Path('/etc/media-import.json').read_text())
-        for name in ('sonarr', 'radarr', 'lidarr'):
-          app = settings['apps'][name]
-          key = ET.parse(app['configXml']).getroot().findtext('ApiKey')
-          if not key:
-            raise SystemExit('Application API key not initialized')
-          path = Path(app['keyFile'])
-          path.write_text(key)
-          os.chmod(path, 0o600)
-          os.chown(path, 1000, 2000)
-        PY
+      script = apiCredentialsScript + ''
         for attempt in $(seq 1 12); do
           if ${pkgs.util-linux}/bin/runuser -u dbalatero -- ${importer}/bin/media-import configure; then
             exit 0
@@ -248,6 +267,7 @@ in {
       '';
     };
     media-import-worker = serviceGuard // {
+      enable = false;
       description = "Import approved music batches in the background";
       after = serviceGuard.after ++ ["lidarr.service" "media-import-configure.service"];
       serviceConfig = {
@@ -262,6 +282,7 @@ in {
       };
     };
     media-import-audit-backup = serviceGuard // {
+      enable = false;
       description = "Back up the media audit database to the NAS";
       serviceConfig = {
         Type = "oneshot";
@@ -272,10 +293,12 @@ in {
     };
   };
   systemd.timers.media-import-worker = {
+    enable = false;
     wantedBy = ["timers.target"];
     timerConfig = {OnBootSec = "15s"; OnUnitInactiveSec = "15s"; AccuracySec = "1s";};
   };
   systemd.timers.media-import-audit-backup = {
+    enable = false;
     wantedBy = ["timers.target"];
     timerConfig = {OnCalendar = "daily"; Persistent = true;};
   };

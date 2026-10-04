@@ -98,8 +98,8 @@ in {
   systemd.services.media-torrent-clients = {
     description = "Configure the declarative qBittorrent clients in Servarr";
     wantedBy = ["multi-user.target"];
-    requires = ["qbittorrent.service" "media-import-configure.service"];
-    after = ["qbittorrent.service" "media-import-configure.service"];
+    requires = ["qbittorrent.service" "media-api-credentials.service"];
+    after = ["qbittorrent.service" "media-api-credentials.service"];
     serviceConfig = {
       Type = "oneshot";
       Restart = "on-failure";

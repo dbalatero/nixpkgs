@@ -8,6 +8,7 @@
     ./prowlarr.nix
     ./seerr.nix
     ./plex.nix
+    ./sabnzbd.nix
     ./qbittorrent.nix
     ./ebook-import.nix
     ./calibre-web-automated.nix
