@@ -54,6 +54,7 @@
         "192.168.1.203 movies.netcat.cloud"
         "192.168.1.203 music.netcat.cloud"
         "192.168.1.203 audiobooks.netcat.cloud"
+        "192.168.1.203 usenet.netcat.cloud"
       ];
     };
     testAddressChangeReachesAllServiceRecords = {
@@ -112,6 +113,7 @@
         calibre-web-automated = "http://media.vm.netcat.cloud:8083";
         gateway = "https://gateway.vm.netcat.cloud:443";
         qbittorrent = "http://media.vm.netcat.cloud:8080";
+        sabnzbd = "http://media.vm.netcat.cloud:8085";
         homepage = "http://caddy.vm.netcat.cloud:8082";
         authentik = "http://caddy.vm.netcat.cloud:9000";
         truenas = "http://truenas.vm.netcat.cloud:80";

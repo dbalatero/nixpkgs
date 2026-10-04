@@ -1,7 +1,7 @@
 {config, lib, pkgs, ...}: let
   network = import ../../lab/network.nix {inherit lib;};
   cfg = config.lab.caddy;
-  protectedApps = ["pihole-dns" "radarr" "lidarr" "prowlarr" "sonarr"];
+  protectedApps = ["pihole-dns" "radarr" "lidarr" "prowlarr" "sonarr" "sabnzbd"];
 in {
   options.lab.caddy.staging = lib.mkOption {
     type = lib.types.bool;

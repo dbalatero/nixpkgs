@@ -3,7 +3,7 @@
   cfg = config.services.authentik;
   components = cfg.authentikComponents;
   authURL = "https://${network.servicesByName.authentik.fqdn}";
-  mediaApps = ["radarr" "lidarr" "prowlarr" "sonarr"];
+  mediaApps = ["radarr" "lidarr" "prowlarr" "sonarr" "sabnzbd"];
   blueprint = pkgs.writeText "netcat-authentik.yaml" ''
     version: 1
     metadata:

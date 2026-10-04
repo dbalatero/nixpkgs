@@ -167,6 +167,13 @@
       "machine": "media",
       "scheme": "http",
       "port": 8000
+    },
+    {
+      "name": "sabnzbd",
+      "hostname": "usenet",
+      "machine": "media",
+      "scheme": "http",
+      "port": 8085
     }
   ]
 }
