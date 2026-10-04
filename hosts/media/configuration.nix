@@ -5,6 +5,7 @@
     ../common/nixos-vm
     ../common/nfs
     ./import-stack.nix
+    ./prowlarr.nix
     ./qbittorrent.nix
     ./ebook-import.nix
     ./calibre-web-automated.nix

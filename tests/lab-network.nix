@@ -39,6 +39,7 @@
         "192.168.1.203 caddy.vm.netcat.cloud"
         "192.168.1.204 builder.vm.netcat.cloud"
         "192.168.1.205 media.vm.netcat.cloud"
+        "192.168.1.203 trackers.netcat.cloud"
         "192.168.1.203 books.netcat.cloud"
         "192.168.1.203 auth.netcat.cloud"
         "192.168.1.203 torrents.netcat.cloud"
@@ -103,6 +104,7 @@
     testExistingUpstreams = {
       expr = builtins.mapAttrs (_: service: service.upstream) network.servicesByName;
       expected = {
+        prowlarr = "http://media.vm.netcat.cloud:9696";
         calibre-web-automated = "http://media.vm.netcat.cloud:8083";
         gateway = "https://gateway.vm.netcat.cloud:443";
         qbittorrent = "http://media.vm.netcat.cloud:8080";

@@ -64,6 +64,13 @@
   ],
   "services": [
     {
+      "name": "prowlarr",
+      "hostname": "trackers",
+      "machine": "media",
+      "scheme": "http",
+      "port": 9696
+    },
+    {
       "name": "calibre-web-automated",
       "hostname": "books",
       "machine": "media",
