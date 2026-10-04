@@ -31,15 +31,19 @@ in {
         CWA_WATCH_MODE = "poll";
         CWA_PORT_OVERRIDE = toString port;
         TRUSTED_PROXY_COUNT = "1";
+        NETCAT_AUTH_URL = "https://${network.servicesByName.authentik.fqdn}";
+        NETCAT_BOOKS_URL = "https://${network.servicesByName.calibre-web-automated.fqdn}";
       };
       volumes = [
         "${state}:/config"
         "${root}/incoming:/cwa-book-ingest"
         "${root}/library:/calibre-library"
         "${secrets}/initial-admin-password:/run/secrets/cwa-admin-password:ro"
+        "${secrets}/oidc-client-secret:/run/secrets/cwa-oidc-secret:ro"
         "${./cwa-configure.py}:/nix-cwa/configure.py:ro"
+        "${./cwa_oidc.py}:/nix-cwa/cwa_oidc.py:ro"
         "${libraryInit}:/etc/s6-overlay/s6-rc.d/cwa-auto-library/run:ro"
-        # Upstream OAuth debug output is unbounded and unused here.
+        # Suppress upstream's unbounded OAuth debug file (may contain tokens).
         "/dev/null:/tmp/oauth_debug.log"
       ];
       extraOptions = ["--memory=4g" "--pids-limit=512" "--group-add=${toString config.users.groups.media.gid}"];
@@ -64,10 +68,11 @@ in {
       ${pkgs.python3}/bin/python - <<'PY'
       from pathlib import Path
       import secrets
-      path = Path('${secrets}/initial-admin-password')
-      if not path.exists():
-        with path.open('x') as output:
-          output.write(secrets.token_urlsafe(32) + '\n')
+      for name in ('initial-admin-password', 'oidc-client-secret'):
+        path = Path('${secrets}') / name
+        if not path.exists():
+          with path.open('x') as output:
+            output.write(secrets.token_urlsafe(32) + '\n')
       PY
     '';
   };

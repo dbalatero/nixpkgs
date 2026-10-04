@@ -73,11 +73,86 @@
             authentik_host: ${authURL}
             log_level: info
   '';
+  booksBlueprint = pkgs.writeText "netcat-books-authentik.yaml" ''
+    version: 1
+    metadata:
+      name: netcat - Books
+    entries:
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Default - Authentication flow
+          required: true
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Default - Provider authorization flow (implicit consent)
+          required: true
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Default - Provider invalidation flow
+          required: true
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: System - OAuth2 Provider - Scopes
+          required: true
+      - model: authentik_core.group
+        # Seed once; invite additional readers by adding them to this group.
+        state: created
+        id: books-users
+        identifiers:
+          name: Books users
+        attrs:
+          users:
+            - !Find [authentik_core.user, [username, akadmin]]
+      - model: authentik_providers_oauth2.oauth2provider
+        id: books-provider
+        identifiers:
+          name: Books
+        attrs:
+          client_type: confidential
+          client_id: netcat-books
+          client_secret: !Env NETCAT_BOOKS_OIDC_CLIENT_SECRET
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          redirect_uris:
+            - matching_mode: strict
+              url: https://${network.servicesByName.calibre-web-automated.fqdn}/login/generic/authorized
+          sub_mode: hashed_user_id
+          issuer_mode: per_provider
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+            - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+      - model: authentik_core.application
+        id: books-app
+        identifiers:
+          slug: books
+        attrs:
+          name: Books
+          provider: !KeyOf books-provider
+          meta_launch_url: https://${network.servicesByName.calibre-web-automated.fqdn}
+          policy_engine_mode: any
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf books-app
+          group: !KeyOf books-users
+          order: 0
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf books-app
+          group: !Find [authentik_core.group, [name, authentik Admins]]
+          order: 1
+  '';
   # Authentik rejects blueprint symlinks that resolve outside blueprints_dir.
   blueprints = pkgs.runCommand "netcat-authentik-blueprints" {} ''
     mkdir -p $out/custom
     cp -rL ${components.staticWorkdirDeps}/blueprints/{default,system} $out/
     cp ${blueprint} $out/custom/netcat.yaml
+    cp ${booksBlueprint} $out/custom/books.yaml
   '';
   # Generate credentials on the host, never during Nix evaluation or a build.
   generateSecrets = pkgs.writeText "authentik-secrets.py" ''
@@ -85,6 +160,7 @@
     import hashlib
     import os
     from pathlib import Path
+    import re
     import secrets
 
     os.umask(0o077)
@@ -104,6 +180,20 @@
         + "AUTHENTIK_BOOTSTRAP_PASSWORD_HASH='" + password_hash + "'\n"
       )
       temporary.replace(env)
+
+    # Provision this shared secret from media's CWA secret file before enabling
+    # Books. Missing credentials affect only the separate Books blueprint.
+    books_secret_file = state / "books-oidc-client-secret"
+    lines = [line for line in env.read_text().splitlines()
+      if not line.startswith("NETCAT_BOOKS_OIDC_CLIENT_SECRET=")]
+    if books_secret_file.exists():
+      books_secret = books_secret_file.read_text().strip()
+      if not re.fullmatch(r"[A-Za-z0-9_-]{32,255}", books_secret):
+        raise ValueError("Invalid Books OIDC client secret: expected URL-safe random text")
+      lines.append("NETCAT_BOOKS_OIDC_CLIENT_SECRET=" + books_secret)
+    temporary = state / "environment.new"
+    temporary.write_text("\n".join(lines) + "\n")
+    temporary.replace(env)
   '';
   retention = pkgs.writeText "authentik-log-retention.py" ''
     from datetime import timedelta

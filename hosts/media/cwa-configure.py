@@ -5,8 +5,10 @@ import sqlite3
 import sys
 
 from werkzeug.security import check_password_hash, generate_password_hash
+from cwa_oidc import configure_oidc
 
 password = Path('/run/secrets/cwa-admin-password').read_text().strip()
+oidc_secret = Path('/run/secrets/cwa-oidc-secret').read_text().strip()
 uid, gid = int(os.environ['PUID']), int(os.environ['PGID'])
 # NAS mode skips upstream chown even for the local config directory. These
 # files/parent directories are created by root but edited by the app.
@@ -49,4 +51,6 @@ with sqlite3.connect('/config/app.db', timeout=30) as db:
     config_calibre_web_title='Books', config_logfile='/dev/stdout',
     config_access_log=0, config_anonbrowse=0, config_public_reg=0
   ''')
+  configure_oidc(db, secret=oidc_secret,
+    auth_url=os.environ['NETCAT_AUTH_URL'], public_url=os.environ['NETCAT_BOOKS_URL'])
 print('[nix-cwa] Library settings and administrator initialized')
