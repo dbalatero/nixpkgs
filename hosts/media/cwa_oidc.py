@@ -24,7 +24,10 @@ def configure_oidc(db, *, secret, auth_url, public_url):
   # 258 = download (2), browser reader (256). Personal shelves need no role;
   # the separate edit-shelves bit grants editing of public shelves.
   # Preserve local login and manual admin grants, including dbalatero's role.
+  # In CWA 4.0.8 redirect_host is incorrectly passed to Flask-Dance's
+  # post-login redirect_url. Leave it empty; Caddy's forwarded headers produce
+  # the HTTPS callback via url_for without redirecting back to the callback.
   db.execute('''UPDATE settings SET config_login_type=2,
-    config_oauth_redirect_host=?, config_disable_standard_login=0,
+    config_oauth_redirect_host='', config_disable_standard_login=0,
     config_enable_oauth_group_admin_management=0, config_default_role=258
-  ''', (public_url,))
+  ''')

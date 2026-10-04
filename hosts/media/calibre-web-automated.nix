@@ -31,6 +31,8 @@ in {
         CWA_WATCH_MODE = "poll";
         CWA_PORT_OVERRIDE = toString port;
         TRUSTED_PROXY_COUNT = "1";
+        # Isolate Books from generic session cookies used by other lab apps.
+        COOKIE_PREFIX = "books_";
         NETCAT_AUTH_URL = "https://${network.servicesByName.authentik.fqdn}";
         NETCAT_BOOKS_URL = "https://${network.servicesByName.calibre-web-automated.fqdn}";
       };

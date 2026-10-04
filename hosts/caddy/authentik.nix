@@ -114,6 +114,9 @@
         attrs:
           client_type: confidential
           client_id: netcat-books
+          # Authentik 2026.8 defaults new providers to no enabled grants.
+          grant_types:
+            - authorization_code
           client_secret: !Env NETCAT_BOOKS_OIDC_CLIENT_SECRET
           authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]

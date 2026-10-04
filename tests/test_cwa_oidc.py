@@ -33,7 +33,7 @@ class OIDCTest(unittest.TestCase):
   def test_settings_and_existing_user_preserved(self):
     self.apply()
     self.assertEqual(self.db.execute('SELECT * FROM user').fetchall(), [('dbalatero',511,'existing-hash')])
-    self.assertEqual(self.db.execute('SELECT * FROM settings').fetchone(), (2,'https://books.netcat.cloud',0,0,258))
+    self.assertEqual(self.db.execute('SELECT * FROM settings').fetchone(), (2,'',0,0,258))
     self.assertEqual(self.db.execute('SELECT provider_name FROM oauthProvider WHERE active=1').fetchall(), [('generic',)])
 
   def test_reconcile_preserves_provider_identity_and_rotates_secret(self):
