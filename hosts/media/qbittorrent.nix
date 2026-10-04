@@ -29,7 +29,7 @@ in {
     user = "dbalatero";
     group = "media";
     webuiPort = port;
-    torrentingPort = 6881;
+    torrentingPort = 52681;
     openFirewall = false;
     serverConfig = {
       LegalNotice.Accepted = true;
@@ -88,8 +88,8 @@ in {
   # The web UI is reachable only through Caddy or local connections.
   networking.firewall.extraCommands = "iptables -A nixos-fw ${proxyRule}";
   networking.firewall.extraStopCommands = "iptables -D nixos-fw ${proxyRule} 2>/dev/null || true";
-  networking.firewall.allowedTCPPorts = [6881];
-  networking.firewall.allowedUDPPorts = [6881];
+  networking.firewall.allowedTCPPorts = [config.services.qbittorrent.torrentingPort];
+  networking.firewall.allowedUDPPorts = [config.services.qbittorrent.torrentingPort];
 
   # qBittorrent file logging is disabled; common/nfs bounds the journal to
   # 512 MiB persistent / 128 MiB runtime and 14 days, including setup jobs.
