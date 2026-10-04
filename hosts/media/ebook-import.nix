@@ -64,7 +64,9 @@ in {
       PrivateTmp = true;
       NoNewPrivileges = true;
       ReadOnlyPaths = ["/mnt/warez/torrents"];
-      ReadWritePaths = [state "${root}/incoming" "${root}/.staging"];
+      # Keep staging and incoming on one sandbox mount so publishing a complete
+      # copy with rename stays atomic (separate bind mounts fail with EXDEV).
+      ReadWritePaths = [state root];
       MemoryMax = "1G";
       TasksMax = 32;
       StandardOutput = "journal";
