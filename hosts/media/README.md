@@ -64,6 +64,20 @@ Verify DNS resolves `usenet.netcat.cloud` to `192.168.1.203`, the frontend
 requires Authentik, all four SABnzbd client tests pass, NinjaCentral is synced,
 and an approved Seerr request downloads and imports into the existing library.
 
+## Plex library updates
+
+`plex-notifications.service` reconciles a `Plex (Nix)` connection in Sonarr,
+Radarr, and Lidarr on boot and configuration changes. Imports, upgrades, and
+renames notify Plex through loopback; Lidarr also notifies on track retagging.
+All libraries are eligible (no tag filter), and Plex's hourly scan remains a
+fallback. The apps and Plex use the same NAS paths, so no path mapping is needed.
+Claim Plex before setup; its token is read from its protected preferences at
+runtime and app API keys use systemd credentials, never stored in Nix.
+Connection tests run before saving;
+failed setup retries after 60 seconds. Inspect `journalctl -u plex-notifications`.
+Setup logs go only to the existing journal (512 MiB persistent / 128 MiB runtime,
+14-day retention); no additional file or job logs are created.
+
 ## Migration jobs paused
 
 `media-import-configure.service`, `media-import-worker.service` and its timer,

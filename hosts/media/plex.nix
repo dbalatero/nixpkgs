@@ -7,7 +7,7 @@
     dataDir = data;
     url = "http://127.0.0.1:${toString port}";
     preferences = {
-      FriendlyName = "Media";
+      FriendlyName = "netcat";
       customConnections = "https://${network.servicesByName.plex.fqdn}:443";
       # Keep Plex's automatic remote-access/port-mapping feature disabled.
       # Caddy access is controlled separately by the proxy and router firewall.
@@ -35,6 +35,8 @@
     ${pkgs.python3}/bin/python ${./plex-configure.py} ${settings} preferences
   '';
 in {
+  imports = [./plex-notifications.nix];
+
   services.plex = {
     enable = true;
     openFirewall = false;
