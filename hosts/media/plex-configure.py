@@ -14,11 +14,45 @@ def preferences(settings):
   folder.mkdir(parents=True, exist_ok=True)
   path = folder / 'Preferences.xml'
   tree = ET.parse(path) if path.exists() else ET.ElementTree(ET.Element('Preferences'))
+  # These obsolete server keys have been replaced by account-level preferences.
+  for key in ('AutoSelectAudio', 'SubtitleLanguage', 'SubtitleMode'):
+    tree.getroot().attrib.pop(key, None)
   tree.getroot().attrib.update(settings['preferences'])
   temporary = path.with_suffix('.xml.tmp')
   tree.write(temporary, encoding='utf-8', xml_declaration=True)
   temporary.chmod(0o600)
   temporary.replace(path)
+
+
+def subtitles(settings):
+  path = Path(settings['dataDir']) / 'Preferences.xml'
+  token = ET.parse(path).getroot().get('PlexOnlineToken') if path.exists() else None
+  if not token:
+    return
+  headers = {
+    'X-Plex-Token': token,
+    'X-Plex-Client-Identifier': 'netcat-nix-configuration',
+    'X-Plex-Product': 'Nix configuration',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  }
+  def account():
+    request = urllib.request.Request('https://plex.tv/api/v2/user', headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+      return json.load(response)['profile']
+  desired = settings['accountProfile']
+  current = account()
+  if all(current.get(key) == value for key, value in desired.items()):
+    return
+  # Same endpoint as Plex Web's UserProfileModel; preserve unrelated preferences.
+  request = urllib.request.Request('https://plex.tv/api/v2/user/profile',
+    headers=headers, method='PUT', data=json.dumps(desired).encode())
+  with urllib.request.urlopen(request, timeout=30) as response:
+    response.read()
+  current = account()
+  if not all(current.get(key) == value for key, value in desired.items()):
+    raise RuntimeError('Plex account did not retain subtitle preferences')
+  print('Plex: enabled automatic English subtitles for the server owner', flush=True)
 
 
 def libraries(settings):
@@ -55,6 +89,6 @@ if __name__ == '__main__':
   os.umask(0o077)
   try:
     settings = json.loads(Path(sys.argv[1]).read_text())
-    {'preferences': preferences, 'libraries': libraries}[sys.argv[2]](settings)
+    {'preferences': preferences, 'libraries': libraries, 'subtitles': subtitles}[sys.argv[2]](settings)
   except (OSError, RuntimeError, ET.ParseError) as error:
     raise SystemExit(f'Plex configuration failed ({type(error).__name__})') from None

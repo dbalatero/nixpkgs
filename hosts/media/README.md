@@ -88,3 +88,55 @@ Their definitions, CLI tooling, audit database, and existing backups remain
 in place for later deprecation. `media-api-credentials.service` performs only
 the API-key provisioning still needed by the live download integrations; it
 does not apply migration policies. The independent ebook worker remains active.
+# English subtitles
+
+Bazarr runs on port 6767 and is exposed at `https://subtitles.netcat.cloud`
+through Caddy and Authentik's Media admins gate. Only Caddy can reach its LAN
+port. Caddy and Pi-hole deployment is manual; their minimal changes are pushed
+separately so they can be pulled on those hosts.
+
+`bazarr.nix` owns the subtitle policy. The NixOS Bazarr module has no application
+settings option, so `bazarr-configure.py` merges its YAML while stopped and uses
+the supported API for database-backed language profiles. Runtime Sonarr/Radarr
+keys come from systemd credentials, not Git or the Nix store. The profile timer
+reconciles existing media every five minutes; defaults cover new imports.
+
+- Full embedded English subtitles, including hearing-impaired tracks, satisfy
+  the profile. Forced-only and unknown-language tracks do not.
+- ASS/SSA embedded subtitles also count: that format alone does not imply moving
+  subtitles. Downloads use SRT and remove style tags. Videos are never rewritten;
+  image subtitles and Plex client track choices can still affect positioning.
+- Missing subtitles are searched every six hours. Bazarr chooses its best match
+  above the default 90% episode / 70% movie score thresholds. Its own downloads
+  remain eligible for upgrades every 12 hours for 30 days; manual subtitles are
+  excluded from upgrades. Availability and correct timing depend on providers.
+- OpenSubtitles.com and YIFY Subtitles are enabled. Gestdown and TVSubtitles are
+  explicitly disabled due to provider HTTP errors.
+  Enter the user's OpenSubtitles.com username/password in Settings → Providers;
+  VIP privileges are determined by that account. Bazarr selects by subtitle score,
+  not provider priority. Additional providers and credentials survive rebuilds.
+
+Plex's modern language preferences belong to the account, not the server's XML
+settings. Run `sudo plex-subtitles-configure` once to use the existing claim token to enable
+automatic track selection, English subtitles, and Always enabled for the owner.
+These account settings persist without a service or timer. The command preserves
+audio-language preferences and other accounts. Manual per-item
+track selections override Plex's defaults; select the external SRT if a client
+continues choosing a styled embedded track. Plex's existing hourly library scan
+discovers new sidecars on NFS.
+
+Bazarr's duplicate file-log handler is disabled in the package; runtime and
+provisioning logs go only to journald, capped by `common/nfs` at 512 MiB persistent,
+128 MiB runtime, and 14 days, with journal compression. No debug sync job logs are
+enabled. Plex keeps its existing five-archive native rotation and daily 14-day
+archive cleanup. Subtitle files and database history are application data and
+are not removed by log cleanup.
+
+Check `systemctl status bazarr`, `systemctl list-timers bazarr-profiles.timer`,
+and `journalctl -u bazarr-profiles`.
+
+To backfill, open Bazarr's System → Tasks and run Index All Existing Episodes
+Subtitles and Index All Existing Movies Subtitles first. Once indexing finishes,
+run Search for Missing Series Subtitles and Search for Missing Movies Subtitles.
+These searches respect embedded tracks and the English profile; provider quotas
+can make a large backfill take multiple scheduled passes.

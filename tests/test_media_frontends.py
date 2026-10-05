@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import io
 from pathlib import Path
 import tempfile
 import unittest
@@ -93,6 +94,27 @@ class FrontendTests(unittest.TestCase):
       with patch.object(plex.urllib.request, 'urlopen') as request:
         plex.libraries({'dataDir': folder})
       request.assert_not_called()
+
+  def test_plex_subtitles_updates_only_declared_account_preferences(self):
+    with tempfile.TemporaryDirectory() as folder:
+      (Path(folder) / 'Preferences.xml').write_text('<Preferences PlexOnlineToken="private"/>')
+      profile = {'autoSelectAudio': False, 'defaultAudioLanguage': 'fr'}
+      writes = []
+      def request(req, timeout):
+        self.assertEqual(req.get_header('X-plex-token'), 'private')
+        if req.get_method() == 'PUT':
+          self.assertEqual(req.full_url, 'https://plex.tv/api/v2/user/profile')
+          values = json.loads(req.data)
+          writes.append(values)
+          profile.update(values)
+          return io.BytesIO(b'')
+        return io.BytesIO(json.dumps({'profile': profile}).encode())
+      desired = {'autoSelectAudio': True, 'autoSelectSubtitle': 2, 'defaultSubtitleLanguage': 'en'}
+      with patch.object(plex.urllib.request, 'urlopen', side_effect=request):
+        plex.subtitles({'dataDir': folder, 'accountProfile': desired})
+        plex.subtitles({'dataDir': folder, 'accountProfile': desired})
+      self.assertEqual(writes, [desired])
+      self.assertEqual(profile['defaultAudioLanguage'], 'fr')
 
 
 if __name__ == '__main__':

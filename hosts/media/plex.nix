@@ -25,6 +25,12 @@
       LogVerbose = "0";
       LogNumFiles = "5";
     };
+    # Modern Plex uses the claimed owner's account profile for these settings.
+    accountProfile = {
+      autoSelectAudio = true;
+      autoSelectSubtitle = 2;
+      defaultSubtitleLanguage = "en";
+    };
     libraries = [
       {name = "Movies"; type = "movie"; agent = "tv.plex.agents.movie"; scanner = "Plex Movie"; path = "/mnt/warez/media/movies";}
       {name = "TV Shows"; type = "show"; agent = "tv.plex.agents.series"; scanner = "Plex TV Series"; path = "/mnt/warez/media/tv";}
@@ -74,6 +80,12 @@ in {
     wantedBy = ["timers.target"];
     timerConfig = {OnBootSec = "1min"; OnUnitInactiveSec = "1min";};
   };
+  # Run once with sudo; account preferences persist without a service or timer.
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "plex-subtitles-configure" ''
+      exec ${pkgs.python3}/bin/python ${./plex-configure.py} ${settings} subtitles
+    '')
+  ];
   # Plex rotates its own active logs (five archives per log via LogNumFiles).
   # Plugin/job archives also get age-based cleanup, retaining current *.log
   # files. This is not a strict aggregate quota; data/caches are never removed.
