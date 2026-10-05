@@ -145,9 +145,18 @@ Applies the home-manager configuration for the current hostname. The script auto
 - On **NixOS machines** (where system configuration is managed via NixOS): You CAN run `./bin/switch` automatically as it may require sudo for system-level changes.
 - On **non-NixOS machines** (macOS, or Linux machines using only home-manager): DO NOT run `./bin/switch` automatically. The user will run this command themselves. After making configuration changes, inform the user to run `./bin/switch` to apply them.
 
+### Caddy and DNS Deployment
+
+**The user manually deploys all Caddy and DNS changes**, including changes on the `caddy` and `pihole-dns` hosts. This overrides the general permission to apply NixOS changes automatically for those hosts.
+
+- Prepare the necessary declarative Nix and shared network inventory changes in this repository.
+- Commit and push the minimum changes needed for Caddy/DNS deployment so the user can pull them on the other machines. Keep unrelated changes out of these commits, and report the pushed commit and hosts that need rebuilding.
+- Do not deploy, rebuild, switch, or remotely apply Caddy or DNS changes. Do not attempt SSH access to those hosts for deployment.
+- Tell the user which hosts need rebuilding and provide any relevant verification steps. Clearly distinguish prepared configuration from deployed changes.
+
 ### Git Workflow for Nix Configuration Changes
 
-**NEVER create commits automatically.** When making Nix configuration changes:
+**Do not create commits automatically, except for the required Caddy/DNS deployment commits above or when the user explicitly requests them.** When making other Nix configuration changes:
 1. Use `git add` to stage new files and directories (required for flakes to see them)
 2. Let the user review and commit changes themselves
 

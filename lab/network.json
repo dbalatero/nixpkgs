@@ -64,6 +64,13 @@
   ],
   "services": [
     {
+      "name": "bazarr",
+      "hostname": "subtitles",
+      "machine": "media",
+      "scheme": "http",
+      "port": 6767
+    },
+    {
       "name": "seerr",
       "hostname": "download",
       "machine": "media",

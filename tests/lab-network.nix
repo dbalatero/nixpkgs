@@ -39,6 +39,7 @@
         "192.168.1.203 caddy.vm.netcat.cloud"
         "192.168.1.204 builder.vm.netcat.cloud"
         "192.168.1.205 media.vm.netcat.cloud"
+        "192.168.1.203 subtitles.netcat.cloud"
         "192.168.1.203 download.netcat.cloud"
         "192.168.1.203 plex.netcat.cloud"
         "192.168.1.203 trackers.netcat.cloud"
@@ -107,6 +108,7 @@
     testExistingUpstreams = {
       expr = builtins.mapAttrs (_: service: service.upstream) network.servicesByName;
       expected = {
+        bazarr = "http://media.vm.netcat.cloud:6767";
         prowlarr = "http://media.vm.netcat.cloud:9696";
         seerr = "http://media.vm.netcat.cloud:5055";
         plex = "http://media.vm.netcat.cloud:32400";
