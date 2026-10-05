@@ -85,7 +85,7 @@ def configure(settings, credentials):
     print(f"{name}: SABnzbd tested and configured", flush=True)
   reconcile(apps["prowlarr"], "indexer", "NinjaCentral", "Newznab",
     {"baseUrl": "https://ninjacentral.co.za", "apiPath": "/api", "apiKey": secrets["ninjacentral_api_key"]},
-    {"enable": True, "appProfileId": 1, "priority": 3}, preset="NinjaCentral")
+    {"enable": True, "appProfileId": 1, "priority": settings["indexerPriority"]}, preset="NinjaCentral")
   arr(apps["prowlarr"], "command", "POST", {"name": "ApplicationIndexerSync"})
   print("NinjaCentral tested and configured; application indexer sync requested", flush=True)
 

@@ -16,6 +16,7 @@
   };
   proxyRule = "-i ens18 -s ${network.proxy.ip}/32 -p tcp --dport ${toString service.port} -j nixos-fw-accept";
   settings = pkgs.writeText "usenet-integrations.json" (builtins.toJSON {
+    indexerPriority = 35;
     sab = {url = "http://127.0.0.1:${toString service.port}"; port = service.port;};
     prowlarr = {
       url = "http://127.0.0.1:${toString config.services.prowlarr.settings.server.port}/api/v1";
