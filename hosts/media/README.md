@@ -19,7 +19,9 @@ Root-only `/etc/usenet/credentials.json` (0600, parent directory 0700) supplies
 `eweka_username`, `eweka_password`, and `ninjacentral_api_key` strings. Keep it
 out of Git and the Nix store. SABnzbd API keys are generated once under its
 private `/var/lib/sabnzbd` directory. Systemd loads credentials at runtime;
-Nix declares all service, category, indexer, and client settings. Restart
+Nix declares all service, category, indexer, and client settings. SABnzbd's
+runtime INI is writable (0600) for application state; declared settings and
+runtime secrets override its saved values on each service start. Restart
 `sabnzbd` and `usenet-integrations` after rotating the external credentials.
 
 Eweka uses `news.eweka.nl:563` with strict TLS verification and 20 connections.

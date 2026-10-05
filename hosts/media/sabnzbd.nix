@@ -32,7 +32,9 @@ in {
   services.sabnzbd = {
     enable = true;
     configFile = null;
-    allowConfigWrite = false;
+    # SABnzbd persists runtime state in its INI. Merge Nix settings and secrets
+    # over that state on every start, then let the service write its 0600 file.
+    allowConfigWrite = true;
     user = "dbalatero";
     group = "media";
     openFirewall = false;
@@ -45,6 +47,9 @@ in {
         # Browser authentication is supplied by Caddy/Authentik. The backend
         # firewall admits only Caddy; local API clients still need an API key.
         local_ranges = ["127.0.0.1/32" "${network.proxy.ip}/32"];
+        # Caddy authenticates browser users. Check the trusted TCP peer rather
+        # than rejecting their forwarded IP, which is outside local_ranges.
+        verify_xff_header = false;
         inet_exposure = "none";
         api_warnings = true;
         download_dir = "${root}/incomplete";
