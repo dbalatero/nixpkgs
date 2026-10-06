@@ -32,6 +32,24 @@ in {
 
   networking.nameservers = ["1.1.1.1" "8.8.8.8"];
 
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+    useRoutingFeatures = "server";
+    extraSetFlags = [
+      "--advertise-routes=${network.subnet}"
+      "--accept-dns=false"
+      "--accept-routes=false"
+      "--snat-subnet-routes=true"
+    ];
+    # Keep logs in the bounded journal configured in pihole.nix; disabling
+    # upstream debug logging also disables its on-disk upload buffer.
+    disableUpstreamLogging = true;
+  };
+
+  # Tailscale traffic may have an asymmetric return path.
+  networking.firewall.checkReversePath = "loose";
+
   # Route private lookups to FTL while public lookups remain independent of it.
   # Keep the shared search suffix on this link, not on the public DNS servers.
   services.resolved.settings.Resolve.Domains = lib.mkForce [];

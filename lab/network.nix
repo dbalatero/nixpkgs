@@ -75,7 +75,7 @@ assert lib.assertMsg (builtins.length subnetParts == 2 && validIPv4 (builtins.he
   "lab/network.json: invalid subnet or gateway";
 {
   inherit domain machineDomain machinesByName servicesByName proxy prefixLength;
-  inherit (inventory) gateway dns;
+  inherit (inventory) gateway dns subnet;
   dnsHosts =
     map (machine: "${machine.ip} ${machinesByName.${machine.hostname}.fqdn}") machines
     ++ map (service: "${proxy.ip} ${servicesByName.${service.name}.fqdn}") services;

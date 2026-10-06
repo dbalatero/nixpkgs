@@ -147,4 +147,90 @@ The Caddy module derives its three proxy mappings from the same inventory. See
 separate staging/production issuance, and service checks. Deployment results and
 remaining validation are tracked in [the Caddy handoff](../plans/netcat-cloud-dns-and-caddy.md).
 
+### Tailscale access through pihole-dns
+
+The declared subnet router advertises `network.json`'s `subnet` (currently
+`192.168.1.0/24`) and uses SNAT so LAN hosts need no return routes. Pi-hole accepts
+DNS on `ens18` and `tailscale0`. This VM does not accept Tailscale DNS or subnet
+routes itself. It keeps its existing local/public DNS arrangement.
+
+Deploy manually on **pihole-dns only**, then authenticate this machine once:
+
+```bash
+git pull --ff-only
+bin/switch --max-jobs 1 --cores 1
+sudo tailscale login
+sudo systemctl restart tailscaled-set.service
+tailscale ip -4
+```
+
+Authentication is interactive; no auth key belongs in Git or the Nix store.
+`tailscaled-set` applies the declared preferences, including on future rebuilds.
+If its first run fails before authentication, the restart above reapplies them.
+
+In the Tailscale admin console:
+
+1. Approve this machine if device approval is enabled, and approve its advertised
+   `192.168.1.0/24` subnet route.
+2. Under DNS, add the `100.x.y.z` address printed above as a custom nameserver,
+   restricted to **netcat.cloud** (no wildcard). Use this as the only nameserver
+   for that restricted domain; do not add a public fallback for it.
+3. Add **vm.netcat.cloud** under search domains. This is separate from the
+   nameserver restriction. Optionally add `netcat.cloud` for short service names.
+4. Ensure the tailnet access policy permits the intended users/devices to reach
+   this VM on TCP/UDP 53 and the desired services in `192.168.1.0/24`.
+   Route approval alone does not grant access. An existing allow-all policy
+   already covers this; retain a narrower policy if one is configured.
+5. Review this server's key expiry so unattended routing does not unexpectedly
+   stop when its machine authentication expires.
+
+Clients must use Tailscale DNS and accept subnet routes. Linux clients need
+explicit route acceptance (for NixOS clients, declare
+`services.tailscale.extraSetFlags = [ "--accept-routes=true" "--accept-dns=true" ];`
+in their own configuration). Other clients normally accept subnet routes by
+default. Browser secure DNS/custom resolvers may bypass system split DNS.
+If a client uses an exit node, enable **Use with exit node** for this restricted
+nameserver in Tailscale DNS settings as well.
+
+Verify from an external network with Tailscale connected. Replace the sample
+DNS IP below with this VM's actual Tailscale IP:
+
+```bash
+dig @100.x.y.z builder.vm.netcat.cloud A +short
+dig @100.x.y.z books.netcat.cloud A +short
+dig +tcp @100.x.y.z books.netcat.cloud A +short
+dig @100.x.y.z unconfigured.netcat.cloud
+getent ahostsv4 builder
+curl -I https://books.netcat.cloud/
+```
+
+Expect `.204`, `.203`, `.203`, and NXDOMAIN respectively. `getent` tests the
+Linux system resolver/search domain; direct `dig @...` only tests the server.
+Use the client's native resolver check on other operating systems. The HTTPS
+request should reach Caddy (an authentication redirect is a valid response).
+Also verify a public hostname still resolves normally.
+Direct HTTP access to this VM's Tailscale IP and `192.168.1.202` should time out;
+the passwordless Pi-hole dashboard remains accessible through Caddy only.
+Early firewall rules preserve that restriction ahead of Tailscale's INPUT
+accept rule, without blocking forwarded HTTP traffic to other LAN machines.
+
+On the VM, check `systemctl status tailscaled tailscaled-set`,
+`journalctl -u tailscaled -u tailscaled-set`, and `systemctl list-timers logrotate.timer`.
+Tailscale service output shares the existing journal limits: 256 MiB persistent,
+64 MiB runtime, seven-day retention. Upstream debug logging is disabled, which
+also disables the disk upload buffer in the pinned Tailscale version; this
+reduces the diagnostics available to Tailscale support. There are no per-job logs.
+Pi-hole retains its existing compressed seven-rotation text logs (daily, checked
+hourly for 10 MiB) and 30-day query database. Those are periodic/age limits,
+not strict disk quotas. No cleanup touches Tailscale authentication state.
+
+Overlapping `192.168.1.0/24` networks remain a known limitation. When renumbering,
+update the inventory and LAN configurations, rebuild this router, approve the
+new route, and remove the old approval. Keep the same Tailscale DNS IP and domain
+settings. Caddy needs no rebuild for this initial Tailscale addition.
+
+References: [subnet routers](https://tailscale.com/docs/features/subnet-routers),
+[DNS settings](https://tailscale.com/docs/reference/dns-in-tailscale), and
+[Pi-hole listening modes](https://docs.pi-hole.net/ftldns/configfile/).
+
 SSH password login is disabled. For recovery, use the VM console with `dbalatero` and the password stored in 1Password. The password and GitHub private key are shared by all clones. Rotate existing VMs individually when replacing either credential; rebuilding a template does not update existing clones.

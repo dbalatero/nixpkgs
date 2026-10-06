@@ -1,4 +1,4 @@
-{lib, ...}: let
+{config, lib, ...}: let
   network = import ../../lab/network.nix {inherit lib;};
   webPort = network.servicesByName.pihole-dns.port;
 in {
@@ -6,6 +6,14 @@ in {
   # NixOS recreates nixos-fw on reload, so this rule needs no separate cleanup.
   networking.firewall.extraCommands = ''
     iptables -w -A nixos-fw -s ${network.proxy.ip}/32 -p tcp --dport ${toString webPort} -j nixos-fw-accept
+    # Tailscale's own INPUT accept rule precedes nixos-fw. Protect the
+    # passwordless dashboard before that rule, including via this VM's LAN IP.
+    iptables -w -t raw -C PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP 2>/dev/null || iptables -w -t raw -A PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP
+    ip6tables -w -t raw -C PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP 2>/dev/null || ip6tables -w -t raw -A PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP
+  '';
+  networking.firewall.extraStopCommands = ''
+    iptables -w -t raw -D PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP 2>/dev/null || true
+    ip6tables -w -t raw -D PREROUTING -i ${config.services.tailscale.interfaceName} -m addrtype --dst-type LOCAL -p tcp --dport ${toString webPort} -j DROP 2>/dev/null || true
   '';
 
   # Leave port 53 to Pi-hole while keeping resolved for host DNS resolution.
@@ -14,7 +22,7 @@ in {
 
   services.pihole-ftl = {
     enable = true;
-    openFirewallDNS = true;
+    openFirewallDNS = false;
     openFirewallWebserver = false;
 
     settings = {
@@ -23,7 +31,9 @@ in {
 
       dns = {
         upstreams = ["1.1.1.1" "8.8.8.8"];
-        listeningMode = "LOCAL";
+        # Tailnet peers are not directly attached LAN clients. The firewall
+        # limits DNS ingress to ens18 and tailscale0 instead.
+        listeningMode = "ALL";
         hosts = network.dnsHosts;
         # Unknown names in the private zone must not leak to public resolvers.
         domain = {
@@ -49,7 +59,18 @@ in {
     ];
   };
 
-  # Bound service and firewall journal logs as well as Pi-hole's text logs.
+  networking.firewall.interfaces = {
+    ens18 = {
+      allowedTCPPorts = [53];
+      allowedUDPPorts = [53];
+    };
+    ${config.services.tailscale.interfaceName} = {
+      allowedTCPPorts = [53];
+      allowedUDPPorts = [53];
+    };
+  };
+
+  # Bound Pi-hole, tailscaled, tailscaled-set, and firewall journal logs.
   services.journald.extraConfig = ''
     SystemMaxUse=256M
     RuntimeMaxUse=64M
